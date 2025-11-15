@@ -4,6 +4,33 @@ from fastapi import Cookie, HTTPException, status
 from app.auth import magic_link_auth
 from app.config import settings
 
+# Email service instance (initialized at startup)
+_email_service = None
+
+
+def set_email_service(service):
+    """Set the email service instance (called at app startup).
+
+    Args:
+        service: EmailService instance to use
+    """
+    global _email_service
+    _email_service = service
+
+
+def get_email_service():
+    """Get the email service instance for dependency injection.
+
+    Returns:
+        EmailService: The configured email service
+
+    Raises:
+        RuntimeError: If email service not initialized
+    """
+    if _email_service is None:
+        raise RuntimeError("Email service not initialized")
+    return _email_service
+
 
 class CurrentUser:
     """Represents the currently authenticated user."""

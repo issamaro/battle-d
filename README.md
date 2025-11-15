@@ -119,8 +119,16 @@ web-app/
 │   ├── main.py            # Application entry point
 │   ├── config.py          # Settings
 │   ├── auth.py            # Magic link authentication
-│   ├── email_service.py   # Resend email service
 │   ├── dependencies.py    # Auth & role decorators
+│   ├── services/          # Business services (SOLID principles)
+│   │   └── email/         # Email service (Adapter pattern)
+│   │       ├── provider.py         # Provider interface
+│   │       ├── service.py          # EmailService (DI)
+│   │       ├── factory.py          # Provider factory
+│   │       ├── templates.py        # Email templates
+│   │       └── providers/          # Provider implementations
+│   │           ├── resend_provider.py    # Resend adapter
+│   │           └── console_provider.py   # Console adapter (dev)
 │   ├── routers/           # API routes
 │   │   ├── auth.py        # Login, magic links
 │   │   └── phases.py      # Phase navigation
@@ -143,6 +151,51 @@ web-app/
 ├── railway.json          # Railway configuration
 └── .gitignore            # Git ignore rules
 ```
+
+### Email Service Architecture (Adapter Pattern)
+
+The email system follows **SOLID principles** with the **Adapter Pattern**, making it easy to swap email providers:
+
+```
+EmailService (Facade)
+    ↓ (Dependency Injection)
+EmailProvider (Interface)
+    ↓
+┌─────────────────┬─────────────────┐
+│  ResendProvider │ ConsoleProvider │  (Future: SendGrid, AWS SES, etc.)
+└─────────────────┴─────────────────┘
+```
+
+**Benefits:**
+- ✅ Easy to switch providers (just change config)
+- ✅ Testable with mock providers
+- ✅ No code changes when adding new providers
+- ✅ Development mode (console) vs Production mode (Resend)
+
+**Adding a New Provider:**
+
+1. Create new provider class implementing `EmailProvider` interface:
+```python
+# app/services/email/providers/sendgrid_provider.py
+from app.services.email.provider import BaseEmailProvider
+
+class SendGridEmailProvider(BaseEmailProvider):
+    async def send_magic_link(self, to_email, magic_link, first_name) -> bool:
+        # Implement SendGrid-specific logic
+        pass
+```
+
+2. Update factory in `app/services/email/factory.py`:
+```python
+if provider_type == "sendgrid":
+    return SendGridEmailProvider(...)
+```
+
+3. Set `EMAIL_PROVIDER=sendgrid` in `.env`
+
+**Configuration Options:**
+- `EMAIL_PROVIDER=resend` - Use Resend API (production)
+- `EMAIL_PROVIDER=console` - Print to console (development)
 
 ---
 
@@ -190,8 +243,9 @@ pytest tests/ --cov=app --cov-report=html
 **Environment Variables:**
 - `SECRET_KEY` - Security token
 - `DATABASE_URL` - `sqlite:////data/battle_d.db`
-- `RESEND_API_KEY` - Email service
-- `FROM_EMAIL` - Verified sender
+- `EMAIL_PROVIDER` - `resend` or `console` (default: resend)
+- `RESEND_API_KEY` - Email service API key
+- `FROM_EMAIL` - Verified sender email
 - `BASE_URL` - Railway assigned URL
 - `DEBUG` - False (production)
 
@@ -204,7 +258,7 @@ pytest tests/ --cov=app --cov-report=html
 | **Backend** | FastAPI + Uvicorn | Web framework |
 | **Templates** | Jinja2 | Server-side rendering |
 | **Auth** | itsdangerous | Magic link tokens |
-| **Email** | Resend API | Password less login |
+| **Email** | Resend Python SDK | Passwordless login (adapter pattern) |
 | **Database** | SQLite | Data persistence |
 | **Hosting** | Railway | Cloud platform |
 | **Testing** | pytest + pytest-asyncio | Unit & integration tests |

@@ -15,7 +15,8 @@ class Settings:
     MAGIC_LINK_EXPIRY_MINUTES: int = 15
     MAGIC_LINK_BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
 
-    # Email (Resend)
+    # Email Configuration
+    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "resend")  # Options: resend, console
     RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
     FROM_EMAIL: str = os.getenv("FROM_EMAIL", "noreply@battle-d.com")
 

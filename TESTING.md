@@ -186,19 +186,69 @@ async def test_protected_route():
 
 ### Mocking External Services
 
+#### Email Service Mocking (Adapter Pattern)
+
+The email service uses dependency injection, making it easy to mock for testing:
+
 ```python
-from unittest.mock import patch
+from app.services.email.service import EmailService
+from app.services.email.provider import BaseEmailProvider
+from app.dependencies import get_email_service
 
-@pytest.mark.asyncio
-async def test_email_sending():
-    with patch('app.email_service.resend_client.emails.send') as mock_send:
-        mock_send.return_value = {"id": "test-email-id"}
+class MockEmailProvider(BaseEmailProvider):
+    """Mock email provider for testing."""
 
-        result = await send_magic_link("test@example.com")
+    def __init__(self):
+        self.sent_emails = []
 
-        assert mock_send.called
-        assert result is not None
+    async def send_magic_link(self, to_email: str, magic_link: str, first_name: str) -> bool:
+        """Store email data instead of sending."""
+        self.sent_emails.append({
+            "to_email": to_email,
+            "magic_link": magic_link,
+            "first_name": first_name
+        })
+        return True
+
+    def clear(self):
+        """Clear sent emails."""
+        self.sent_emails = []
+
+@pytest.fixture
+def mock_email_provider():
+    """Create mock email provider."""
+    return MockEmailProvider()
+
+@pytest.fixture
+def client(mock_email_provider):
+    """Create test client with mocked email service."""
+    def get_mock_email_service():
+        return EmailService(mock_email_provider)
+
+    # Override dependency
+    app.dependency_overrides[get_email_service] = get_mock_email_service
+
+    client = TestClient(app)
+    yield client
+
+    # Cleanup
+    app.dependency_overrides.clear()
+    mock_email_provider.clear()
+
+# Use in tests
+def test_send_magic_link(client, mock_email_provider):
+    response = client.post("/auth/send-magic-link", data={"email": "test@example.com"})
+
+    # Verify email was "sent"
+    assert len(mock_email_provider.sent_emails) == 1
+    assert mock_email_provider.sent_emails[0]["to_email"] == "test@example.com"
 ```
+
+**Benefits of this approach:**
+- ✅ No need for `unittest.mock.patch`
+- ✅ Tests actual email service logic
+- ✅ Can verify email content and recipients
+- ✅ Follows SOLID principles (testable by design)
 
 ### Database Fixtures (Phase 1+)
 

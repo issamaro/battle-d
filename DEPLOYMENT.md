@@ -137,10 +137,15 @@ In Railway Dashboard → Your Service → Variables, add:
 |----------|-------|-------|
 | `SECRET_KEY` | `[generated key from Step 2]` | Security token |
 | `DATABASE_URL` | `sqlite:////data/battle_d.db` | Absolute path to volume |
+| `EMAIL_PROVIDER` | `resend` | Email provider to use (resend or console) |
 | `RESEND_API_KEY` | `re_xxxxx` | From Resend dashboard |
 | `FROM_EMAIL` | `noreply@yourdomain.com` | Verified email on Resend |
 | `BASE_URL` | `https://[your-app].up.railway.app` | Auto-assigned by Railway |
 | `DEBUG` | `False` | Production mode |
+
+**Email Provider Options:**
+- `resend` - Use Resend API for production emails (default)
+- `console` - Print emails to console/logs (development/debugging)
 
 **How to get BASE_URL:**
 - Railway assigns it automatically

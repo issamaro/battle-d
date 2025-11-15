@@ -4,12 +4,57 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import magic_link_auth
 from app.config import settings
+from app.services.email.service import EmailService
+from app.services.email.provider import BaseEmailProvider
+from app.dependencies import get_email_service
+
+
+class MockEmailProvider(BaseEmailProvider):
+    """Mock email provider for testing.
+
+    Stores sent emails in memory instead of actually sending them.
+    """
+
+    def __init__(self):
+        self.sent_emails = []
+
+    async def send_magic_link(
+        self, to_email: str, magic_link: str, first_name: str
+    ) -> bool:
+        """Mock email sending - just store the email data."""
+        self.sent_emails.append(
+            {"to_email": to_email, "magic_link": magic_link, "first_name": first_name}
+        )
+        return True
+
+    def clear(self):
+        """Clear sent emails list."""
+        self.sent_emails = []
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+def mock_email_provider():
+    """Create mock email provider for testing."""
+    return MockEmailProvider()
+
+
+@pytest.fixture
+def client(mock_email_provider):
+    """Create test client with mock email provider."""
+
+    def get_mock_email_service():
+        return EmailService(mock_email_provider)
+
+    # Override the email service dependency
+    app.dependency_overrides[get_email_service] = get_mock_email_service
+
+    client = TestClient(app)
+
+    yield client
+
+    # Clean up after test
+    app.dependency_overrides.clear()
+    mock_email_provider.clear()
 
 
 class TestMagicLinkAuth:
@@ -64,7 +109,7 @@ class TestAuthRoutes:
         assert b"Login" in response.content
         assert b"email" in response.content.lower()
 
-    def test_send_magic_link_existing_user(self, client):
+    def test_send_magic_link_existing_user(self, client, mock_email_provider):
         """Test sending magic link to existing user."""
         response = client.post(
             "/auth/send-magic-link",
@@ -74,7 +119,14 @@ class TestAuthRoutes:
         data = response.json()
         assert "message" in data
 
-    def test_send_magic_link_nonexistent_user(self, client):
+        # Verify email was "sent" via mock provider
+        assert len(mock_email_provider.sent_emails) == 1
+        sent_email = mock_email_provider.sent_emails[0]
+        assert sent_email["to_email"] == "admin@battle-d.com"
+        assert sent_email["first_name"] == "Admin"
+        assert "/auth/verify?token=" in sent_email["magic_link"]
+
+    def test_send_magic_link_nonexistent_user(self, client, mock_email_provider):
         """Test sending magic link to non-existent user (same response for security)."""
         response = client.post(
             "/auth/send-magic-link",
@@ -83,6 +135,9 @@ class TestAuthRoutes:
         assert response.status_code == 200
         data = response.json()
         assert "message" in data
+
+        # Verify no email was sent (user doesn't exist)
+        assert len(mock_email_provider.sent_emails) == 0
 
     def test_verify_valid_magic_link(self, client):
         """Test verifying a valid magic link."""

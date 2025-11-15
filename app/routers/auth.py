@@ -1,10 +1,11 @@
 """Authentication routes for magic link login."""
-from fastapi import APIRouter, Form, Request, Response, HTTPException, status
+from fastapi import APIRouter, Form, Request, Response, HTTPException, status, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import magic_link_auth
-from app.email_service import email_service
 from app.config import settings
+from app.services.email.service import EmailService
+from app.dependencies import get_email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
@@ -25,11 +26,15 @@ async def login_page(request: Request):
 
 
 @router.post("/send-magic-link")
-async def send_magic_link(email: str = Form(...)):
+async def send_magic_link(
+    email: str = Form(...),
+    email_service: EmailService = Depends(get_email_service),
+):
     """Send magic link to user's email.
 
     Args:
         email: User email address
+        email_service: Injected email service dependency
 
     Returns:
         Success message

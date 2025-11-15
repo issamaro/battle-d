@@ -1,12 +1,14 @@
 """Main FastAPI application - Battle-D Web App."""
+from typing import Optional
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.routers import auth, phases
-from app.dependencies import get_current_user, require_auth, CurrentUser
-from typing import Optional
+from app.dependencies import get_current_user, require_auth, CurrentUser, set_email_service
+from app.services.email.factory import create_email_provider
+from app.services.email.service import EmailService
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -15,6 +17,16 @@ app = FastAPI(
 
 # Templates
 templates = Jinja2Templates(directory="app/templates")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on application startup."""
+    provider = create_email_provider()
+    email_service = EmailService(provider)
+    set_email_service(email_service)
+    print(f"Email service initialized with {type(provider).__name__}")
+
 
 # Include routers
 app.include_router(auth.router)

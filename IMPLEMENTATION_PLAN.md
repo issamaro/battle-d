@@ -26,10 +26,21 @@ Phased development roadmap from POC to V2.
 - FastAPI + Uvicorn
 - Jinja2 templates
 - itsdangerous (magic links)
-- Resend (emails)
+- Resend Python SDK (emails - adapter pattern)
 - SQLite (persistent volume on Railway)
 
 **Status:** COMPLETE - Application live on Railway
+
+**Post-Phase 0 Refactoring:**
+- ✅ **Email Service Refactored** - Migrated to SOLID architecture with Adapter Pattern
+  - Created `EmailProvider` interface for provider abstraction
+  - Implemented `ResendEmailProvider` using official Resend SDK (replaced direct HTTP calls)
+  - Implemented `ConsoleEmailProvider` for development mode
+  - Added provider factory with dependency injection
+  - Updated tests to use mock providers (no more `unittest.mock.patch`)
+  - **Benefits:** Easy to swap email providers, testable by design, follows DIP principle
+  - **Files:** `app/services/email/` (new structure)
+  - **Configuration:** `EMAIL_PROVIDER` environment variable (resend/console)
 
 ---
 
