@@ -62,6 +62,7 @@ uvicorn app.main:app --reload
 - **[DOMAIN_MODEL.md](DOMAIN_MODEL.md)** - Complete business rules, entities, workflows
 - **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** - Development roadmap (Phase 0-5)
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Railway deployment guide (step-by-step)
+- **[TESTING.md](TESTING.md)** - Testing guide and best practices
 
 ---
 
@@ -140,7 +141,6 @@ web-app/
 ├── requirements.txt       # Python dependencies
 ├── .env.example          # Environment variables template
 ├── railway.json          # Railway configuration
-├── Procfile              # Start command
 └── .gitignore            # Git ignore rules
 ```
 
@@ -275,7 +275,7 @@ Solo developer project. No external contributions at this time.
 
 ## 📝 License
 
-[To be specified]
+MIT License - see [LICENSE](LICENSE) file for details
 
 ---
 
@@ -285,6 +285,7 @@ Solo developer project. No external contributions at this time.
 - Domain model: [DOMAIN_MODEL.md](DOMAIN_MODEL.md)
 - Implementation plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
 - Deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
+- Testing guide: [TESTING.md](TESTING.md)
 
 **Issues:**
 - Check Railway logs: `railway logs`
