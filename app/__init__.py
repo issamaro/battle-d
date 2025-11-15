@@ -1,0 +1,1 @@
+"""Battle-D Web Application."""

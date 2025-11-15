@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Tournament Phases - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Tournament Phases</h2>
+
+<section>
+    <h3>Current Phase</h3>
+    <p><strong>{{ current_phase.value|upper }}</strong></p>
+</section>
+
+<section>
+    <h3>Phase Sequence</h3>
+    <ol>
+        <li>Registration {{ "← CURRENT" if current_phase.value == "registration" else "" }}</li>
+        <li>Preselection {{ "← CURRENT" if current_phase.value == "preselection" else "" }}</li>
+        <li>Pools {{ "← CURRENT" if current_phase.value == "pools" else "" }}</li>
+        <li>Finals {{ "← CURRENT" if current_phase.value == "finals" else "" }}</li>
+        <li>Completed {{ "← CURRENT" if current_phase.value == "completed" else "" }}</li>
+    </ol>
+</section>
+
+{% if current_user.is_admin %}
+<section>
+    <h3>Phase Controls (Admin Only)</h3>
+    <form action="/phases/go-back" method="post">
+        <button type="submit" {% if not can_go_back %}disabled{% endif %}>
+            ← Go Back to {{ prev_phase.value if prev_phase else "N/A" }}
+        </button>
+    </form>
+
+    <form action="/phases/advance" method="post">
+        <button type="submit" {% if not can_advance %}disabled{% endif %}>
+            Advance to {{ next_phase.value if next_phase else "N/A" }} →
+        </button>
+    </form>
+</section>
+{% else %}
+<section>
+    <p>Only administrators can change tournament phases.</p>
+</section>
+{% endif %}
+
+<section>
+    <h3>Phase Descriptions</h3>
+    <dl>
+        <dt>Registration</dt>
+        <dd>Performers register for tournament categories</dd>
+
+        <dt>Preselection</dt>
+        <dd>Elimination battles when too many performers (judges score 0-10)</dd>
+
+        <dt>Pools</dt>
+        <dd>Round-robin battles in groups (Win=3pts, Draw=1pt, Loss=0pts)</dd>
+
+        <dt>Finals</dt>
+        <dd>Championship battles between pool winners</dd>
+
+        <dt>Completed</dt>
+        <dd>Tournament finished, champions declared</dd>
+    </dl>
+</section>
+{% endblock %}

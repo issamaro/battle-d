@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Battle-D{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>Battle-D - Dance Tournament Management</h1>
+        {% if current_user %}
+        <nav>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/phases">Phases</a>
+            <a href="/auth/logout">Logout</a>
+        </nav>
+        <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+        {% endif %}
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Battle-D Tournament Management System</p>
+    </footer>
+</body>
+</html>
