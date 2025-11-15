@@ -351,7 +351,7 @@ jobs:
 - **Solution:** Check Root Directory setting (should be `/web-app` if in subdirectory)
 
 **Issue:** Python version mismatch
-- **Solution:** Add `runtime.txt` with `python-3.11` (or your version)
+- **Solution:** Add `runtime.txt` with `python-3.12.2` (or your version)
 
 ### Runtime Errors
 
