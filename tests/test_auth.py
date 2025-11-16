@@ -1,6 +1,5 @@
 """Tests for authentication system."""
 import pytest
-from httpx import AsyncClient, ASGITransport
 from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import magic_link_auth
@@ -8,7 +7,7 @@ from app.config import settings
 from app.services.email.service import EmailService
 from app.services.email.provider import BaseEmailProvider
 from app.dependencies import get_email_service
-from app.db.database import init_db, drop_db, async_session_maker
+from app.db.database import async_session_maker
 from app.repositories.user import UserRepository
 from app.models.user import UserRole
 
@@ -43,10 +42,12 @@ def mock_email_provider():
 
 
 @pytest.fixture(scope="function", autouse=True)
-async def setup_test_database():
-    """Setup and teardown test database for each test."""
-    await init_db()
+async def setup_auth_test_users():
+    """Create test users for auth tests.
 
+    Note: Database setup is handled by conftest.py fixture.
+    This fixture only creates the test users needed for auth tests.
+    """
     # Create test users
     async with async_session_maker() as session:
         user_repo = UserRepository(session)
@@ -56,8 +57,6 @@ async def setup_test_database():
         await session.commit()
 
     yield
-
-    await drop_db()
 
 
 @pytest.fixture

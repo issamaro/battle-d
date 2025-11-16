@@ -53,6 +53,9 @@ async def init_db():
     Note: In production, use Alembic migrations instead.
     This is mainly for development/testing.
     """
+    # Import models to register them with Base.metadata
+    import app.models  # noqa: F401
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

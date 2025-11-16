@@ -17,15 +17,7 @@ from app.models import (
     BattleStatus,
     BattleOutcomeType,
 )
-from app.db.database import async_session_maker, init_db, drop_db
-
-
-@pytest.fixture(scope="function", autouse=True)
-async def setup_database():
-    """Setup and teardown test database for each test."""
-    await init_db()
-    yield
-    await drop_db()
+from app.db.database import async_session_maker
 
 
 @pytest.mark.asyncio
