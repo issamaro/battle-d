@@ -161,16 +161,17 @@ EmailService (Facade)
     ↓ (Dependency Injection)
 EmailProvider (Interface)
     ↓
-┌─────────────────┬─────────────────┐
-│  ResendProvider │ ConsoleProvider │  (Future: SendGrid, AWS SES, etc.)
-└─────────────────┴─────────────────┘
+┌─────────────────┬─────────────────┬─────────────────┐
+│  ResendProvider │  GmailProvider  │ ConsoleProvider │  (Future: SendGrid, etc.)
+└─────────────────┴─────────────────┴─────────────────┘
 ```
 
 **Benefits:**
 - ✅ Easy to switch providers (just change config)
 - ✅ Testable with mock providers
 - ✅ No code changes when adding new providers
-- ✅ Development mode (console) vs Production mode (Resend)
+- ✅ Development mode (console) vs Production mode (Resend/Gmail)
+- ✅ No domain required (Gmail) or reliable delivery (Resend)
 
 **Adding a New Provider:**
 
@@ -194,7 +195,8 @@ if provider_type == "sendgrid":
 3. Set `EMAIL_PROVIDER=sendgrid` in `.env`
 
 **Configuration Options:**
-- `EMAIL_PROVIDER=resend` - Use Resend API (production)
+- `EMAIL_PROVIDER=resend` - Use Resend API (production, requires domain)
+- `EMAIL_PROVIDER=gmail` - Use Gmail SMTP (production, personal account, no domain needed)
 - `EMAIL_PROVIDER=console` - Print to console (development)
 
 ---
@@ -243,9 +245,11 @@ pytest tests/ --cov=app --cov-report=html
 **Environment Variables:**
 - `SECRET_KEY` - Security token
 - `DATABASE_URL` - `sqlite:////data/battle_d.db`
-- `EMAIL_PROVIDER` - `resend` or `console` (default: resend)
-- `RESEND_API_KEY` - Email service API key
-- `FROM_EMAIL` - Verified sender email
+- `EMAIL_PROVIDER` - `resend`, `gmail`, or `console` (default: resend)
+- `RESEND_API_KEY` - Resend API key (only if EMAIL_PROVIDER=resend)
+- `FROM_EMAIL` - Verified sender email (only if EMAIL_PROVIDER=resend)
+- `GMAIL_EMAIL` - Gmail account email (only if EMAIL_PROVIDER=gmail)
+- `GMAIL_APP_PASSWORD` - Gmail App Password (only if EMAIL_PROVIDER=gmail)
 - `BASE_URL` - Railway assigned URL
 - `DEBUG` - False (production)
 

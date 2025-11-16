@@ -35,12 +35,14 @@ Phased development roadmap from POC to V2.
 - ✅ **Email Service Refactored** - Migrated to SOLID architecture with Adapter Pattern
   - Created `EmailProvider` interface for provider abstraction
   - Implemented `ResendEmailProvider` using official Resend SDK (replaced direct HTTP calls)
+  - Implemented `GmailEmailProvider` using Gmail SMTP with App Password support
   - Implemented `ConsoleEmailProvider` for development mode
   - Added provider factory with dependency injection
   - Updated tests to use mock providers (no more `unittest.mock.patch`)
   - **Benefits:** Easy to swap email providers, testable by design, follows DIP principle
   - **Files:** `app/services/email/` (new structure)
-  - **Configuration:** `EMAIL_PROVIDER` environment variable (resend/console)
+  - **Configuration:** `EMAIL_PROVIDER` environment variable (resend/gmail/console)
+  - **Gmail Option:** No domain needed, 500 emails/day limit, App Password required
 
 ---
 

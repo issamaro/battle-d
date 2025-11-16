@@ -9,6 +9,7 @@ from app.config import settings
 from app.services.email.provider import EmailProvider
 from app.services.email.providers.console_provider import ConsoleEmailProvider
 from app.services.email.providers.resend_provider import ResendEmailProvider
+from app.services.email.providers.gmail_provider import GmailEmailProvider
 
 
 def create_email_provider() -> EmailProvider:
@@ -19,7 +20,7 @@ def create_email_provider() -> EmailProvider:
     2. RESEND_API_KEY availability (fallback to console if not set)
 
     Returns:
-        Configured EmailProvider instance (either ResendEmailProvider or ConsoleEmailProvider)
+        Configured EmailProvider instance (ResendEmailProvider, GmailEmailProvider, or ConsoleEmailProvider)
 
     Raises:
         ValueError: If provider configuration is invalid
@@ -51,6 +52,24 @@ def create_email_provider() -> EmailProvider:
         print(f"Using Resend email provider (from: {from_email})")
         return ResendEmailProvider(api_key=api_key, from_email=from_email)
 
+    # Gmail provider (production mode with personal Gmail)
+    if provider_type == "gmail":
+        gmail_email: Optional[str] = settings.GMAIL_EMAIL
+        gmail_password: Optional[str] = settings.GMAIL_APP_PASSWORD
+
+        # Fallback to console if credentials not configured
+        if not gmail_email or not gmail_password:
+            print(
+                "GMAIL_EMAIL or GMAIL_APP_PASSWORD not configured. "
+                "Falling back to console email provider."
+            )
+            return ConsoleEmailProvider()
+
+        print(f"Using Gmail SMTP email provider (from: {gmail_email})")
+        return GmailEmailProvider(
+            gmail_email=gmail_email, gmail_password=gmail_password
+        )
+
     # Future providers can be added here:
     # if provider_type == "sendgrid":
     #     return SendGridEmailProvider(...)
@@ -60,5 +79,5 @@ def create_email_provider() -> EmailProvider:
     # Invalid provider type
     raise ValueError(
         f"Unknown email provider: {provider_type}. "
-        f"Supported providers: resend, console"
+        f"Supported providers: resend, gmail, console"
     )

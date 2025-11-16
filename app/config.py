@@ -16,9 +16,13 @@ class Settings:
     MAGIC_LINK_BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
 
     # Email Configuration
-    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "resend")  # Options: resend, console
+    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "resend")  # Options: resend, gmail, console
     RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
     FROM_EMAIL: str = os.getenv("FROM_EMAIL", "noreply@battle-d.com")
+
+    # Gmail SMTP Configuration (only used when EMAIL_PROVIDER=gmail)
+    GMAIL_EMAIL: Optional[str] = os.getenv("GMAIL_EMAIL")
+    GMAIL_APP_PASSWORD: Optional[str] = os.getenv("GMAIL_APP_PASSWORD")
 
     # Session
     SESSION_COOKIE_NAME: str = "battle_d_session"

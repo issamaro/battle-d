@@ -250,6 +250,34 @@ def test_send_magic_link(client, mock_email_provider):
 - ✅ Can verify email content and recipients
 - ✅ Follows SOLID principles (testable by design)
 
+#### Testing Gmail Provider
+
+The Gmail provider is tested exactly the same way - using the mock provider approach:
+
+```python
+def test_send_magic_link_gmail(client, mock_email_provider):
+    """Test magic link with Gmail provider (mocked)."""
+    # Works identically regardless of actual provider
+    # The mock provider intercepts the send_magic_link call
+    response = client.post("/auth/send-magic-link", data={"email": "test@example.com"})
+
+    assert len(mock_email_provider.sent_emails) == 1
+    assert mock_email_provider.sent_emails[0]["to_email"] == "test@example.com"
+```
+
+**No need to test actual SMTP connection in unit tests.**
+
+For integration testing with real Gmail:
+- Set `EMAIL_PROVIDER=gmail` in test environment
+- Use real Gmail credentials
+- Send to test email address
+- Verify delivery manually
+
+We don't include real SMTP tests in CI/CD to avoid:
+- Slow test execution
+- External service dependencies
+- Credential management in CI
+
 ### Database Fixtures (Phase 1+)
 
 For database tests, use fixtures to create clean test data:

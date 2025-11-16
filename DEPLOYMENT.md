@@ -83,6 +83,67 @@ The fix is automatic! Just deploy the latest code.
 
 ---
 
+## Step 1B: Setup Gmail (Alternative to Resend)
+
+**If you don't own a domain or prefer using your personal Gmail account:**
+
+### 1B.1 Enable 2-Factor Authentication
+
+Gmail App Passwords require 2FA to be enabled first:
+
+1. Go to Google Account: https://myaccount.google.com/
+2. Navigate to **Security**
+3. Enable **2-Step Verification** if not already enabled
+4. Follow the setup wizard (SMS or authenticator app)
+
+### 1B.2 Generate App Password
+
+1. Go to: https://myaccount.google.com/apppasswords
+   - Or: Google Account → Security → 2-Step Verification → App passwords
+2. Select app: **Mail**
+3. Select device: **Other (Custom name)**
+4. Enter name: `Battle-D Web App`
+5. Click **Generate**
+6. Copy the 16-character password (shown once)
+   - Format: `xxxx xxxx xxxx xxxx` (remove spaces when using)
+7. Save securely - you'll need it for Railway environment variables
+
+### 1B.3 Important Notes
+
+**Security:**
+- App Password bypasses 2FA for that specific app
+- Revoke if compromised: Google Account → Security → App passwords → Remove
+- Each app should have its own App Password
+
+**Limitations:**
+- Gmail free accounts: 500 emails/day limit
+- May trigger spam filters if sending many emails quickly
+- Less reliable than dedicated email services (Resend/SendGrid)
+
+**Recommended for:**
+- Development/testing with real emails
+- Small-scale production (~10-50 emails/day)
+- Personal projects without domain
+
+**NOT recommended for:**
+- High-volume production (use Resend instead)
+- Critical transactional emails (use Resend instead)
+
+### 1B.4 Troubleshooting
+
+**"Invalid credentials" error:**
+- Verify 2FA is enabled
+- Regenerate App Password
+- Remove spaces from password
+- Check you're using App Password, not account password
+
+**Emails going to spam:**
+- Gmail's SPF/DKIM are automatic (no setup needed)
+- But recipient servers may flag personal Gmail addresses
+- Solution: Use Resend with verified domain for production
+
+---
+
 ## Step 2: Generate Secret Key
 
 Generate a secure secret key for your application:
@@ -176,14 +237,17 @@ In Railway Dashboard → Your Service → Variables, add:
 |----------|-------|-------|
 | `SECRET_KEY` | `[generated key from Step 2]` | Security token |
 | `DATABASE_URL` | `sqlite:////data/battle_d.db` | Absolute path to volume |
-| `EMAIL_PROVIDER` | `resend` | Email provider to use (resend or console) |
-| `RESEND_API_KEY` | `re_xxxxx` | From Resend dashboard |
-| `FROM_EMAIL` | `noreply@yourdomain.com` | Verified email on Resend |
+| `EMAIL_PROVIDER` | `resend` or `gmail` | Email provider to use |
+| `RESEND_API_KEY` | `re_xxxxx` | (Only if EMAIL_PROVIDER=resend) From Resend dashboard |
+| `FROM_EMAIL` | `noreply@yourdomain.com` | (Only if EMAIL_PROVIDER=resend) Verified email on Resend |
+| `GMAIL_EMAIL` | `your-email@gmail.com` | (Only if EMAIL_PROVIDER=gmail) Your Gmail address |
+| `GMAIL_APP_PASSWORD` | `xxxx xxxx xxxx xxxx` | (Only if EMAIL_PROVIDER=gmail) 16-char App Password (no spaces) |
 | `BASE_URL` | `https://[your-app].up.railway.app` | Auto-assigned by Railway |
 | `DEBUG` | `False` | Production mode |
 
 **Email Provider Options:**
-- `resend` - Use Resend API for production emails (default)
+- `resend` - Use Resend API for production emails (recommended, requires domain)
+- `gmail` - Use Gmail SMTP with App Password (personal account, no domain needed)
 - `console` - Print emails to console/logs (development/debugging)
 
 **How to get BASE_URL:**
@@ -410,11 +474,19 @@ jobs:
 - Consider PostgreSQL if concurrent writes > 10/sec
 
 **Issue:** Magic links not received
-- **Solution:**
+- **Solution (Resend):**
   - Check `RESEND_API_KEY` is set correctly
   - Verify `FROM_EMAIL` is verified in Resend
   - Check Resend dashboard for delivery logs
   - Look for printed magic links in Railway logs (dev mode)
+- **Solution (Gmail):**
+  - Verify `GMAIL_EMAIL` and `GMAIL_APP_PASSWORD` are set
+  - Check Gmail App Password is valid (no spaces)
+  - Check Railway logs for SMTP errors
+  - Verify 2FA is enabled on Gmail account
+  - Check recipient spam folder
+  - Try regenerating App Password
+  - Verify user exists in database (see database troubleshooting)
 
 ### Volume Issues
 
