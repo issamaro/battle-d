@@ -1,0 +1,150 @@
+"""Performer repository."""
+import uuid
+from typing import Optional, List
+from decimal import Decimal
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.performer import Performer
+from app.repositories.base import BaseRepository
+
+
+class PerformerRepository(BaseRepository[Performer]):
+    """Repository for Performer model."""
+
+    def __init__(self, session: AsyncSession):
+        """Initialize PerformerRepository.
+
+        Args:
+            session: Database session
+        """
+        super().__init__(Performer, session)
+
+    async def get_by_tournament(self, tournament_id: uuid.UUID) -> List[Performer]:
+        """Get all performers in a tournament.
+
+        Args:
+            tournament_id: Tournament UUID
+
+        Returns:
+            List of performers in the tournament
+        """
+        result = await self.session.execute(
+            select(Performer).where(Performer.tournament_id == tournament_id)
+        )
+        return list(result.scalars().all())
+
+    async def get_by_category(self, category_id: uuid.UUID) -> List[Performer]:
+        """Get all performers in a category.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of performers in the category
+        """
+        result = await self.session.execute(
+            select(Performer)
+            .options(selectinload(Performer.dancer))
+            .where(Performer.category_id == category_id)
+        )
+        return list(result.scalars().all())
+
+    async def get_with_dancer(self, id: uuid.UUID) -> Optional[Performer]:
+        """Get performer with dancer data loaded.
+
+        Args:
+            id: Performer UUID
+
+        Returns:
+            Performer with dancer or None if not found
+        """
+        result = await self.session.execute(
+            select(Performer)
+            .options(selectinload(Performer.dancer))
+            .where(Performer.id == id)
+        )
+        return result.scalar_one_or_none()
+
+    async def dancer_registered_in_tournament(
+        self, dancer_id: uuid.UUID, tournament_id: uuid.UUID
+    ) -> bool:
+        """Check if dancer is already registered in tournament.
+
+        Args:
+            dancer_id: Dancer UUID
+            tournament_id: Tournament UUID
+
+        Returns:
+            True if already registered, False otherwise
+        """
+        result = await self.session.execute(
+            select(Performer.id).where(
+                Performer.dancer_id == dancer_id,
+                Performer.tournament_id == tournament_id,
+            )
+        )
+        return result.scalar_one_or_none() is not None
+
+    async def create_performer(
+        self,
+        tournament_id: uuid.UUID,
+        category_id: uuid.UUID,
+        dancer_id: uuid.UUID,
+        duo_partner_id: Optional[uuid.UUID] = None,
+    ) -> Performer:
+        """Create a new performer registration.
+
+        Args:
+            tournament_id: Tournament UUID
+            category_id: Category UUID
+            dancer_id: Dancer UUID
+            duo_partner_id: Partner performer UUID (for 2v2 categories)
+
+        Returns:
+            Created performer instance
+        """
+        return await self.create(
+            tournament_id=tournament_id,
+            category_id=category_id,
+            dancer_id=dancer_id,
+            duo_partner_id=duo_partner_id,
+        )
+
+    async def get_top_by_preselection_score(
+        self, category_id: uuid.UUID, limit: int
+    ) -> List[Performer]:
+        """Get top performers by preselection score.
+
+        Args:
+            category_id: Category UUID
+            limit: Number of performers to return
+
+        Returns:
+            List of top-scoring performers
+        """
+        result = await self.session.execute(
+            select(Performer)
+            .where(
+                Performer.category_id == category_id,
+                Performer.preselection_score.isnot(None),
+            )
+            .order_by(Performer.preselection_score.desc())
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
+    async def get_by_pool_points(
+        self, category_id: uuid.UUID
+    ) -> List[Performer]:
+        """Get performers ordered by pool points.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of performers ordered by pool points (descending)
+        """
+        performers = await self.get_by_category(category_id)
+        # Sort by pool_points property (computed in Python)
+        return sorted(performers, key=lambda p: p.pool_points, reverse=True)

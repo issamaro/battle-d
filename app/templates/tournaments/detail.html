@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ tournament.name }} - Battle-D</title>
+</head>
+<body>
+    <h1>Tournament: {{ tournament.name }}</h1>
+    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+    <p><a href="/tournaments">← Back to Tournaments</a></p>
+
+    <h2>Tournament Information</h2>
+    <table border="1" cellpadding="10">
+        <tr>
+            <td><strong>Status:</strong></td>
+            <td>{{ tournament.status.value }}</td>
+        </tr>
+        <tr>
+            <td><strong>Phase:</strong></td>
+            <td>{{ tournament.phase.value }}</td>
+        </tr>
+        <tr>
+            <td><strong>Created:</strong></td>
+            <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+    </table>
+
+    <h2>Categories</h2>
+    <p><a href="/tournaments/{{ tournament.id }}/add-category">+ Add Category</a></p>
+
+    {% if category_data %}
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Category Name</th>
+                    <th>Type</th>
+                    <th>Registered Performers</th>
+                    <th>Ideal Pool Size</th>
+                    <th>Groups</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in category_data %}
+                <tr>
+                    <td><strong>{{ item.category.name }}</strong></td>
+                    <td>{{ item.category.category_type }}</td>
+                    <td>{{ item.performer_count }}</td>
+                    <td>{{ item.category.ideal_pool_capacity }} ({{ item.category.performers_ideal }} per pool)</td>
+                    <td>{{ item.category.groups_ideal }}</td>
+                    <td>
+                        <a href="/registration/{{ tournament.id }}/{{ item.category.id }}">Register Dancers</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No categories yet. Add a category to get started.</p>
+    {% endif %}
+
+    <p><a href="/auth/logout">Logout</a></p>
+</body>
+</html>

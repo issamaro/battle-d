@@ -7,6 +7,9 @@ from app.config import settings
 from app.services.email.service import EmailService
 from app.services.email.provider import BaseEmailProvider
 from app.dependencies import get_email_service
+from app.db.database import init_db, drop_db, async_session_maker
+from app.repositories.user import UserRepository
+from app.models.user import UserRole
 
 
 class MockEmailProvider(BaseEmailProvider):
@@ -36,6 +39,24 @@ class MockEmailProvider(BaseEmailProvider):
 def mock_email_provider():
     """Create mock email provider for testing."""
     return MockEmailProvider()
+
+
+@pytest.fixture(scope="function", autouse=True)
+async def setup_test_database():
+    """Setup and teardown test database for each test."""
+    await init_db()
+
+    # Create test users
+    async with async_session_maker() as session:
+        user_repo = UserRepository(session)
+        await user_repo.create_user("admin@battle-d.com", "Admin", UserRole.ADMIN)
+        await user_repo.create_user("staff@battle-d.com", "Staff", UserRole.STAFF)
+        await user_repo.create_user("mc@battle-d.com", "MC", UserRole.MC)
+        await session.commit()
+
+    yield
+
+    await drop_db()
 
 
 @pytest.fixture
