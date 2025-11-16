@@ -25,10 +25,27 @@ class Settings:
     SESSION_MAX_AGE_SECONDS: int = 86400 * 7  # 7 days
 
     # Database
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "sqlite+aiosqlite:///./data/battle_d.db"
-    )
+    @property
+    def DATABASE_URL(self) -> str:
+        """Get database URL with proper async driver.
+
+        Ensures SQLite always uses aiosqlite async driver.
+        Railway volume is mounted at /data, local dev uses ./data
+        """
+        db_url = os.getenv("DATABASE_URL")
+
+        if not db_url:
+            # Default for local development
+            return "sqlite+aiosqlite:///./data/battle_d.db"
+
+        # If URL is sqlite but doesn't have +aiosqlite, add it
+        if db_url.startswith("sqlite://") and "+aiosqlite" not in db_url:
+            db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+        elif db_url.startswith("sqlite:") and "+aiosqlite" not in db_url:
+            db_url = db_url.replace("sqlite:", "sqlite+aiosqlite:", 1)
+
+        return db_url
+
     DATABASE_ECHO: bool = os.getenv("DATABASE_ECHO", "False").lower() == "true"
 
 
