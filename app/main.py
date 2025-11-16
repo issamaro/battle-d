@@ -1,4 +1,5 @@
 """Main FastAPI application - Battle-D Web App."""
+import logging
 from typing import Optional
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -9,6 +10,11 @@ from app.routers import auth, phases, admin, dancers, tournaments, registration
 from app.dependencies import get_current_user, require_auth, CurrentUser, set_email_service
 from app.services.email.factory import create_email_provider
 from app.services.email.service import EmailService
+from app.logging_config import setup_logging
+
+# Initialize logging
+setup_logging(level="INFO" if not settings.DEBUG else "DEBUG")
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,10 +28,16 @@ templates = Jinja2Templates(directory="app/templates")
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on application startup."""
+    logger.info("Starting Battle-D application")
+    logger.info(f"Debug mode: {settings.DEBUG}")
+    logger.info(f"Base URL: {settings.BASE_URL}")
+
     provider = create_email_provider()
     email_service = EmailService(provider)
     set_email_service(email_service)
-    print(f"Email service initialized with {type(provider).__name__}")
+    logger.info(f"Email service initialized with {type(provider).__name__}")
+
+    logger.info("Application startup complete")
 
 
 # Include routers

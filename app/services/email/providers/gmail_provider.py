@@ -4,6 +4,9 @@ This module implements the EmailProvider interface using Gmail's SMTP server.
 Requires Gmail account with App Password configured.
 """
 
+import asyncio
+import logging
+import time
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -12,6 +15,8 @@ from app.services.email.templates import (
     generate_magic_link_html,
     generate_magic_link_subject,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class GmailEmailProvider(BaseEmailProvider):
@@ -77,13 +82,17 @@ class GmailEmailProvider(BaseEmailProvider):
         Returns:
             True if email was sent successfully, False otherwise
         """
+        start_time = time.time()
+        logger.info(f"Starting Gmail email send to {to_email}")
+
         # Validate email format
         if not self._validate_email(to_email):
-            print(f"Invalid email format: {to_email}")
+            logger.error(f"Invalid email format: {to_email}")
             return False
 
         try:
             # Create MIME message
+            logger.debug(f"Creating MIME message for {to_email}")
             message = MIMEMultipart("alternative")
             message["From"] = self.gmail_email
             message["To"] = to_email
@@ -93,29 +102,44 @@ class GmailEmailProvider(BaseEmailProvider):
             html_body = generate_magic_link_html(magic_link, first_name)
             message.attach(MIMEText(html_body, "html"))
 
-            # Send via Gmail SMTP
-            async with aiosmtplib.SMTP(
-                hostname=self.smtp_server,
-                port=self.smtp_port,
-                use_tls=False,  # We'll use STARTTLS
-            ) as smtp:
-                await smtp.connect()
-                await smtp.starttls()  # Upgrade to TLS
-                await smtp.login(self.gmail_email, self.gmail_password)
-                await smtp.send_message(message)
+            # Send via Gmail SMTP with timeout
+            logger.info(f"Connecting to Gmail SMTP server {self.smtp_server}:{self.smtp_port}")
 
-            print(f"Magic link email sent successfully to {to_email} via Gmail")
+            async with asyncio.timeout(15):  # 15 second total timeout
+                async with aiosmtplib.SMTP(
+                    hostname=self.smtp_server,
+                    port=self.smtp_port,
+                    timeout=10,  # 10 second per-operation timeout
+                    use_tls=False,  # We'll use STARTTLS
+                ) as smtp:
+                    logger.debug("Upgrading connection to TLS")
+                    await smtp.starttls()  # Upgrade to TLS
+
+                    logger.debug("Authenticating with Gmail")
+                    await smtp.login(self.gmail_email, self.gmail_password)
+
+                    logger.debug("Sending message")
+                    await smtp.send_message(message)
+
+            elapsed = time.time() - start_time
+            logger.info(f"Magic link email sent successfully to {to_email} via Gmail in {elapsed:.2f}s")
             return True
 
+        except asyncio.TimeoutError:
+            elapsed = time.time() - start_time
+            logger.error(f"Gmail SMTP timeout after {elapsed:.2f}s sending to {to_email}")
+            logger.error("This usually indicates network issues or Gmail server unavailability")
+            return False
         except aiosmtplib.SMTPAuthenticationError as e:
-            print(f"Gmail authentication failed: {e}")
-            print(
-                "Hint: Make sure you're using an App Password, not your regular password"
-            )
+            elapsed = time.time() - start_time
+            logger.error(f"Gmail authentication failed after {elapsed:.2f}s: {e}")
+            logger.error("Hint: Make sure you're using an App Password, not your regular password")
             return False
         except aiosmtplib.SMTPException as e:
-            print(f"SMTP error sending email via Gmail: {e}")
+            elapsed = time.time() - start_time
+            logger.error(f"SMTP error after {elapsed:.2f}s sending email via Gmail: {e}")
             return False
         except Exception as e:
-            print(f"Unexpected error sending email via Gmail: {e}")
+            elapsed = time.time() - start_time
+            logger.error(f"Unexpected error after {elapsed:.2f}s sending email via Gmail: {e}", exc_info=True)
             return False

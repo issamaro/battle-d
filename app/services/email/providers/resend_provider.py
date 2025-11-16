@@ -3,12 +3,16 @@
 This module implements the EmailProvider interface using the official Resend Python SDK.
 """
 
+import logging
+import time
 import resend
 from app.services.email.provider import BaseEmailProvider
 from app.services.email.templates import (
     generate_magic_link_html,
     generate_magic_link_subject,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ResendEmailProvider(BaseEmailProvider):
@@ -53,13 +57,17 @@ class ResendEmailProvider(BaseEmailProvider):
         Returns:
             True if email was sent successfully, False otherwise
         """
+        start_time = time.time()
+        logger.info(f"Starting Resend email send to {to_email}")
+
         # Validate email format
         if not self._validate_email(to_email):
-            print(f"Invalid email format: {to_email}")
+            logger.error(f"Invalid email format: {to_email}")
             return False
 
         try:
             # Prepare email parameters using Resend SDK format
+            logger.debug(f"Preparing email parameters for {to_email}")
             params: resend.Emails.SendParams = {
                 "from": self.from_email,
                 "to": [to_email],
@@ -68,17 +76,21 @@ class ResendEmailProvider(BaseEmailProvider):
             }
 
             # Send email using Resend SDK
+            logger.info(f"Calling Resend API to send email to {to_email}")
             email: resend.Email = resend.Emails.send(params)
 
             # Check if email was sent successfully
             # Resend SDK returns an Email object with an 'id' field on success
             if email and hasattr(email, "id"):
-                print(f"Magic link email sent successfully to {to_email} (ID: {email.id})")
+                elapsed = time.time() - start_time
+                logger.info(f"Magic link email sent successfully to {to_email} (ID: {email.id}) in {elapsed:.2f}s")
                 return True
             else:
-                print(f"Failed to send magic link email to {to_email}")
+                elapsed = time.time() - start_time
+                logger.error(f"Failed to send magic link email to {to_email} after {elapsed:.2f}s")
                 return False
 
         except Exception as e:
-            print(f"Error sending email via Resend: {e}")
+            elapsed = time.time() - start_time
+            logger.error(f"Error after {elapsed:.2f}s sending email via Resend: {e}", exc_info=True)
             return False

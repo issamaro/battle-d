@@ -1,5 +1,6 @@
 """Authentication routes for magic link login."""
-from fastapi import APIRouter, Form, Request, Response, HTTPException, status, Depends
+import logging
+from fastapi import APIRouter, Form, Request, Response, HTTPException, status, Depends, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.auth import magic_link_auth
@@ -7,6 +8,8 @@ from app.config import settings
 from app.services.email.service import EmailService
 from app.dependencies import get_email_service, get_user_repo
 from app.repositories.user import UserRepository
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
@@ -20,6 +23,7 @@ async def login_page(request: Request):
 
 @router.post("/send-magic-link")
 async def send_magic_link(
+    background_tasks: BackgroundTasks,
     email: str = Form(...),
     email_service: EmailService = Depends(get_email_service),
     user_repo: UserRepository = Depends(get_user_repo),
@@ -27,16 +31,20 @@ async def send_magic_link(
     """Send magic link to user's email.
 
     Args:
+        background_tasks: FastAPI background tasks for async email sending
         email: User email address
         email_service: Injected email service dependency
         user_repo: Injected user repository dependency
 
     Returns:
-        Success message
+        Success message (returns immediately, email sends in background)
     """
+    logger.info(f"Magic link request for email: {email}")
+
     # Check if user exists in database
     user = await user_repo.get_by_email(email.lower())
     if not user:
+        logger.warning(f"Magic link requested for non-existent user: {email}")
         # Don't reveal if user exists or not (security best practice)
         return {
             "message": "If an account exists with this email, you will receive a login link."
@@ -44,9 +52,16 @@ async def send_magic_link(
 
     # Generate magic link
     magic_link = magic_link_auth.generate_magic_link(email.lower(), user.role.value)
+    logger.info(f"Generated magic link for user: {email}")
 
-    # Send email
-    await email_service.send_magic_link(email.lower(), magic_link, user.first_name)
+    # Send email in background (non-blocking)
+    background_tasks.add_task(
+        email_service.send_magic_link,
+        email.lower(),
+        magic_link,
+        user.first_name
+    )
+    logger.info(f"Queued background task to send magic link to {email}")
 
     return {
         "message": "If an account exists with this email, you will receive a login link."

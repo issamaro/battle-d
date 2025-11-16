@@ -4,7 +4,10 @@ This module implements the EmailProvider interface by printing emails to console
 Used for development/testing when no actual email service is configured.
 """
 
+import logging
 from app.services.email.provider import BaseEmailProvider
+
+logger = logging.getLogger(__name__)
 
 
 class ConsoleEmailProvider(BaseEmailProvider):
@@ -36,15 +39,17 @@ class ConsoleEmailProvider(BaseEmailProvider):
         Returns:
             Always returns True since console printing cannot fail
         """
+        logger.info(f"Console provider: Sending magic link to {to_email}")
+
         # Validate email format (even though we're not sending it)
         if not self._validate_email(to_email):
-            print(f"Invalid email format: {to_email}")
+            logger.error(f"Invalid email format: {to_email}")
             return False
 
         # Print magic link to console (preserves original dev mode behavior)
-        print(f"\n{'='*60}")
-        print(f"MAGIC LINK for {first_name} ({to_email}):")
-        print(f"{magic_link}")
-        print(f"{'='*60}\n")
+        logger.info(f"\n{'='*60}")
+        logger.info(f"MAGIC LINK for {first_name} ({to_email}):")
+        logger.info(f"{magic_link}")
+        logger.info(f"{'='*60}\n")
 
         return True
