@@ -4,6 +4,45 @@ Step-by-step guide to deploy Battle-D on Railway with SQLite database.
 
 ---
 
+## ⚡ Phase 1 Update - Deployment Fixes (November 2024)
+
+### What Changed
+
+**Automatic Async Driver Fix** - The application now automatically ensures SQLite uses the async driver (`aiosqlite`), preventing the `InvalidRequestError` on Railway.
+
+**Startup Script** - Added `start.sh` that:
+1. Runs database migrations (`alembic upgrade head`)
+2. Seeds default users (`python seed_db.py`)
+3. Starts the server
+
+**Configuration Update:**
+- `DATABASE_URL` is now a smart property that auto-adds `+aiosqlite`
+- Works with both `sqlite://` and `sqlite+aiosqlite://` formats
+- No manual URL formatting needed!
+
+### Quick Fix for Existing Deployments
+
+If you're seeing this error:
+```
+sqlalchemy.exc.InvalidRequestError: The asyncio extension requires
+an async driver to be used. The loaded 'pysqlite' is not async.
+```
+
+**Solution:**
+1. Pull latest code: `git pull origin main`
+2. Railway will auto-redeploy with the fix
+3. Ensure your `DATABASE_URL` is set to: `sqlite:////data/battle_d.db`
+4. The app will automatically add `+aiosqlite` for you!
+
+**What You Don't Need to Do:**
+- ❌ Manually change DATABASE_URL to include `+aiosqlite`
+- ❌ Modify railway.json (already updated)
+- ❌ Install additional packages (aiosqlite already in requirements.txt)
+
+The fix is automatic! Just deploy the latest code.
+
+---
+
 ## Prerequisites
 
 1. **Railway Account** (free tier available)
