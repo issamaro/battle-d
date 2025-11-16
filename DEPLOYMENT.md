@@ -144,6 +144,120 @@ Gmail App Passwords require 2FA to be enabled first:
 
 ---
 
+## Step 1C: Setup Brevo (RECOMMENDED for Railway)
+
+**Best option if you don't own a domain and want reliable production email delivery.**
+
+### Why Brevo?
+
+✅ **Works on Railway** - Uses HTTPS API (not SMTP ports that Railway blocks)
+✅ **No domain required** - Can use any email address without verification
+✅ **Free tier** - 300 emails/day (more than Gmail's effective limit)
+✅ **Production ready** - Reliable transactional email service
+✅ **Simple setup** - Just API key, no DNS configuration
+
+### 1C.1 Create Brevo Account
+
+1. Go to: https://www.brevo.com
+2. Click **Sign Up Free**
+3. Create account with email
+4. Verify your email address
+5. Complete onboarding (you can skip marketing setup)
+
+### 1C.2 Get API Key
+
+1. Log in to Brevo dashboard
+2. Navigate to: **Settings** → **SMTP & API** → **API Keys**
+   - Or go directly to: https://app.brevo.com/settings/keys/api
+3. Click **Generate a new API key**
+4. Give it a name: `Battle-D Production`
+5. Copy the API key (starts with `xkeysib-`)
+6. Save securely - you'll need it for Railway environment variables
+
+**Important:** Keep this key secure! It allows sending emails from your account.
+
+### 1C.3 Configure Sender Information
+
+You can use ANY email address as the sender - no verification needed for the free tier!
+
+**Recommended setup:**
+- **From Email:** `noreply@battle-d.com` (or any email you prefer)
+- **From Name:** `Battle-D`
+
+Note: Recipients will see this as the sender, but Brevo handles the actual delivery.
+
+### 1C.4 Verify Email Deliverability (Optional)
+
+For better deliverability, you can verify your domain:
+
+1. Dashboard → **Senders, Domains & Dedicated IPs**
+2. Add and verify your domain
+3. Add SPF and DKIM DNS records
+
+**But this is optional!** The free tier works fine without domain verification.
+
+### 1C.5 Free Tier Limits
+
+| Resource | Free Tier | Notes |
+|----------|-----------|-------|
+| Emails per day | 300 | More than enough for small tournaments |
+| Monthly emails | 9,000 | ~300/day average |
+| Cost | $0 | Forever free tier |
+
+**Perfect for:**
+- Small to medium tournaments (up to ~50 dancers/day)
+- Development and testing
+- Production deployments without domain ownership
+
+### 1C.6 Advantages vs Other Providers
+
+| Feature | Brevo | Gmail SMTP | Resend |
+|---------|-------|------------|--------|
+| Works on Railway | ✅ Yes | ❌ No (SMTP blocked) | ✅ Yes |
+| Domain required | ❌ No | ❌ No | ✅ Yes |
+| Free tier | 300/day | ~500/day* | 100/day |
+| Production ready | ✅ Yes | ⚠️ Limited | ✅ Yes |
+| Setup complexity | Easy | Medium | Medium |
+
+*Gmail's limit is technically 500/day but less reliable for transactional emails.
+
+### 1C.7 Important Notes
+
+**Sender Reputation:**
+- Brevo manages IP reputation for you
+- Emails sent through Brevo have good deliverability
+- Don't spam! Follow email best practices
+
+**API vs SMTP:**
+- Brevo supports both API and SMTP
+- This app uses the **API** (more reliable, works on Railway)
+- SMTP is blocked on Railway, so stick with API
+
+**Monitoring:**
+- Dashboard shows email statistics
+- Track opens, clicks, bounces
+- View delivery logs
+
+### 1C.8 Troubleshooting
+
+**"Invalid API key" error:**
+- Check you copied the full key including `xkeysib-` prefix
+- Regenerate key if needed
+- Verify key is from correct Brevo account
+
+**Emails not received:**
+- Check Brevo dashboard → **Statistics** → **Email Activity**
+- Look for delivery status
+- Check spam folder
+- Verify recipient email is valid
+
+**Daily limit reached:**
+- Free tier: 300 emails/day
+- Resets at midnight UTC
+- Consider upgrading if you need more
+
+---
+
 ## Step 2: Generate Secret Key
 
 Generate a secure secret key for your application:
@@ -237,17 +351,20 @@ In Railway Dashboard → Your Service → Variables, add:
 |----------|-------|-------|
 | `SECRET_KEY` | `[generated key from Step 2]` | Security token |
 | `DATABASE_URL` | `sqlite:////data/battle_d.db` | Absolute path to volume |
-| `EMAIL_PROVIDER` | `resend` or `gmail` | Email provider to use |
+| `EMAIL_PROVIDER` | `brevo` (recommended) | Email provider to use |
+| `BREVO_API_KEY` | `xkeysib-xxxxx` | (Only if EMAIL_PROVIDER=brevo) From Brevo dashboard |
+| `BREVO_FROM_EMAIL` | `noreply@battle-d.com` | (Only if EMAIL_PROVIDER=brevo) Sender email |
+| `BREVO_FROM_NAME` | `Battle-D` | (Only if EMAIL_PROVIDER=brevo) Sender name |
 | `RESEND_API_KEY` | `re_xxxxx` | (Only if EMAIL_PROVIDER=resend) From Resend dashboard |
-| `FROM_EMAIL` | `noreply@yourdomain.com` | (Only if EMAIL_PROVIDER=resend) Verified email on Resend |
 | `GMAIL_EMAIL` | `your-email@gmail.com` | (Only if EMAIL_PROVIDER=gmail) Your Gmail address |
 | `GMAIL_APP_PASSWORD` | `xxxx xxxx xxxx xxxx` | (Only if EMAIL_PROVIDER=gmail) 16-char App Password (no spaces) |
 | `BASE_URL` | `https://[your-app].up.railway.app` | Auto-assigned by Railway |
 | `DEBUG` | `False` | Production mode |
 
 **Email Provider Options:**
-- `resend` - Use Resend API for production emails (recommended, requires domain)
-- `gmail` - Use Gmail SMTP with App Password (personal account, no domain needed)
+- `brevo` - Use Brevo API (RECOMMENDED for Railway - no domain required, works reliably)
+- `resend` - Use Resend API for production emails (requires domain verification)
+- `gmail` - Use Gmail SMTP (BLOCKED on Railway - SMTP ports restricted, use for local dev only)
 - `console` - Print emails to console/logs (development/debugging)
 
 **How to get BASE_URL:**
@@ -474,19 +591,27 @@ jobs:
 - Consider PostgreSQL if concurrent writes > 10/sec
 
 **Issue:** Magic links not received
+- **Solution (Brevo - RECOMMENDED):**
+  - Check `BREVO_API_KEY` is set correctly (starts with `xkeysib-`)
+  - Verify `BREVO_FROM_EMAIL` and `BREVO_FROM_NAME` are set
+  - Check Brevo dashboard → Statistics → Email Activity for delivery status
+  - Check Railway logs for Brevo API errors
+  - Verify user exists in database
+  - Check recipient spam folder
+  - Verify you haven't exceeded 300 emails/day limit
 - **Solution (Resend):**
   - Check `RESEND_API_KEY` is set correctly
   - Verify `FROM_EMAIL` is verified in Resend
   - Check Resend dashboard for delivery logs
   - Look for printed magic links in Railway logs (dev mode)
 - **Solution (Gmail):**
-  - Verify `GMAIL_EMAIL` and `GMAIL_APP_PASSWORD` are set
-  - Check Gmail App Password is valid (no spaces)
-  - Check Railway logs for SMTP errors
-  - Verify 2FA is enabled on Gmail account
-  - Check recipient spam folder
-  - Try regenerating App Password
-  - Verify user exists in database (see database troubleshooting)
+  - NOTE: Gmail SMTP is BLOCKED on Railway - switch to Brevo instead
+  - For local development only:
+    - Verify `GMAIL_EMAIL` and `GMAIL_APP_PASSWORD` are set
+    - Check Gmail App Password is valid (no spaces)
+    - Verify 2FA is enabled on Gmail account
+    - Check recipient spam folder
+    - Try regenerating App Password
 
 ### Volume Issues
 

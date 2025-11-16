@@ -8,6 +8,7 @@ from typing import Optional
 from app.config import settings
 from app.services.email.provider import EmailProvider
 from app.services.email.providers.console_provider import ConsoleEmailProvider
+from app.services.email.providers.brevo_provider import BrevoEmailProvider
 from app.services.email.providers.resend_provider import ResendEmailProvider
 from app.services.email.providers.gmail_provider import GmailEmailProvider
 
@@ -20,7 +21,7 @@ def create_email_provider() -> EmailProvider:
     2. RESEND_API_KEY availability (fallback to console if not set)
 
     Returns:
-        Configured EmailProvider instance (ResendEmailProvider, GmailEmailProvider, or ConsoleEmailProvider)
+        Configured EmailProvider instance (BrevoEmailProvider, ResendEmailProvider, GmailEmailProvider, or ConsoleEmailProvider)
 
     Raises:
         ValueError: If provider configuration is invalid
@@ -29,13 +30,31 @@ def create_email_provider() -> EmailProvider:
         >>> provider = create_email_provider()
         >>> await provider.send_magic_link("user@example.com", "https://...", "John")
     """
-    # Get provider type from settings (default to "resend")
-    provider_type = getattr(settings, "EMAIL_PROVIDER", "resend").lower()
+    # Get provider type from settings (default to "brevo")
+    provider_type = getattr(settings, "EMAIL_PROVIDER", "brevo").lower()
 
     # Console provider (development mode)
     if provider_type == "console":
         print("Using console email provider (development mode)")
         return ConsoleEmailProvider()
+
+    # Brevo provider (recommended for Railway - no domain required)
+    if provider_type == "brevo":
+        api_key: Optional[str] = settings.BREVO_API_KEY
+        from_email: str = settings.BREVO_FROM_EMAIL
+        from_name: str = settings.BREVO_FROM_NAME
+
+        # Fallback to console if API key not configured
+        if not api_key:
+            print(
+                "BREVO_API_KEY not configured. Falling back to console email provider."
+            )
+            return ConsoleEmailProvider()
+
+        print(f"Using Brevo email provider (from: {from_name} <{from_email}>)")
+        return BrevoEmailProvider(
+            api_key=api_key, from_email=from_email, from_name=from_name
+        )
 
     # Resend provider (production mode)
     if provider_type == "resend":
@@ -79,5 +98,5 @@ def create_email_provider() -> EmailProvider:
     # Invalid provider type
     raise ValueError(
         f"Unknown email provider: {provider_type}. "
-        f"Supported providers: resend, gmail, console"
+        f"Supported providers: brevo, resend, gmail, console"
     )

@@ -9,6 +9,7 @@ httpx==0.26.0  # For testing and email API calls
 # Email
 resend==0.8.0
 aiosmtplib==3.0.1  # Gmail SMTP support
+brevo-python==1.0.0  # Brevo (Sendinblue) API support
 
 # Database
 sqlalchemy[asyncio]==2.0.25

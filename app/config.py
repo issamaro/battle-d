@@ -18,11 +18,18 @@ class Settings:
     MAGIC_LINK_EXPIRY_MINUTES: int = 15
 
     # Email Configuration
-    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "resend")  # Options: resend, gmail, console
-    RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
+    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "brevo")  # Options: brevo, resend, gmail, console
     FROM_EMAIL: str = os.getenv("FROM_EMAIL", "noreply@battle-d.com")
 
-    # Gmail SMTP Configuration (only used when EMAIL_PROVIDER=gmail)
+    # Brevo Configuration (recommended for Railway - no domain required)
+    BREVO_API_KEY: Optional[str] = os.getenv("BREVO_API_KEY")
+    BREVO_FROM_EMAIL: str = os.getenv("BREVO_FROM_EMAIL", "noreply@battle-d.com")
+    BREVO_FROM_NAME: str = os.getenv("BREVO_FROM_NAME", "Battle-D")
+
+    # Resend Configuration (requires domain verification)
+    RESEND_API_KEY: Optional[str] = os.getenv("RESEND_API_KEY")
+
+    # Gmail SMTP Configuration (blocked on Railway due to SMTP port restrictions)
     GMAIL_EMAIL: Optional[str] = os.getenv("GMAIL_EMAIL")
     GMAIL_APP_PASSWORD: Optional[str] = os.getenv("GMAIL_APP_PASSWORD")
 
