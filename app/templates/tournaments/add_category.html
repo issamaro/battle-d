@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Category - Battle-D</title>
+</head>
+<body>
+    <h1>Add Category to {{ tournament.name }}</h1>
+    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+    <p><a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a></p>
+
+    <form method="post" action="/tournaments/{{ tournament.id }}/add-category">
+        <div>
+            <label for="name">Category Name:</label><br>
+            <input type="text" id="name" name="name" required placeholder="e.g., Hip Hop Boys 1v1">
+        </div>
+
+        <div>
+            <label>
+                <input type="checkbox" name="is_duo" value="true">
+                2v2 Category (Duo battles)
+            </label>
+        </div>
+
+        <div>
+            <label for="groups_ideal">Number of Pools:</label><br>
+            <input type="number" id="groups_ideal" name="groups_ideal" value="2" min="1" max="10" required>
+            <small>(Default: 2)</small>
+        </div>
+
+        <div>
+            <label for="performers_ideal">Target Performers Per Pool:</label><br>
+            <input type="number" id="performers_ideal" name="performers_ideal" value="4" min="2" max="20" required>
+            <small>(Default: 4)</small>
+        </div>
+
+        <br>
+        <p><strong>Note:</strong> Ideal pool capacity = Number of Pools × Performers Per Pool</p>
+        <p>Example: 2 pools × 4 performers = 8 total performers in pools (after preselection)</p>
+
+        <br>
+        <button type="submit">Add Category</button>
+    </form>
+
+    <p><a href="/auth/logout">Logout</a></p>
+</body>
+</html>

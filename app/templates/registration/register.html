@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register Dancers - Battle-D</title>
+</head>
+<body>
+    <h1>Register Dancers: {{ category.name }}</h1>
+    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+    <p><a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a></p>
+
+    <h2>Tournament: {{ tournament.name }}</h2>
+    <p>Category: <strong>{{ category.name }}</strong> ({{ category.category_type }})</p>
+    <p>Pool Configuration: {{ category.groups_ideal }} pools × {{ category.performers_ideal }} performers = {{ category.ideal_pool_capacity }} total</p>
+
+    <h2>Registered Dancers ({{ performers|length }})</h2>
+    {% if performers %}
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Blaze</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Country</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for performer in performers %}
+                <tr>
+                    <td><strong>{{ performer.dancer.blaze }}</strong></td>
+                    <td>{{ performer.dancer.full_name }}</td>
+                    <td>{{ performer.dancer.age }}</td>
+                    <td>{{ performer.dancer.country or "-" }}</td>
+                    <td>
+                        <form method="post" action="/registration/{{ tournament.id }}/{{ category.id }}/unregister/{{ performer.id }}" style="display:inline;">
+                            <button type="submit" onclick="return confirm('Unregister {{ performer.dancer.blaze }}?');">
+                                Unregister
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No dancers registered yet.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>Register New Dancer</h2>
+    <form method="get" action="/registration/{{ tournament.id }}/{{ category.id }}">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search by blaze, name, or email" size="40">
+        <button type="submit">Search Dancers</button>
+        <a href="/registration/{{ tournament.id }}/{{ category.id }}">Clear</a>
+    </form>
+
+    {% if search %}
+        <h3>Search Results</h3>
+        {% if dancers %}
+            <table border="1" cellpadding="10">
+                <thead>
+                    <tr>
+                        <th>Blaze</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Age</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dancer in dancers %}
+                    <tr>
+                        <td><strong>{{ dancer.blaze }}</strong></td>
+                        <td>{{ dancer.full_name }}</td>
+                        <td>{{ dancer.email }}</td>
+                        <td>{{ dancer.age }}</td>
+                        <td>
+                            <form method="post" action="/registration/{{ tournament.id }}/{{ category.id }}/register">
+                                <input type="hidden" name="dancer_id" value="{{ dancer.id }}">
+                                <button type="submit">Register</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No dancers found matching "{{ search }}"</p>
+        {% endif %}
+    {% endif %}
+
+    <p><strong>Note:</strong> Each dancer can only register in ONE category per tournament.</p>
+
+    <p><a href="/dancers/create">+ Create New Dancer</a></p>
+    <p><a href="/auth/logout">Logout</a></p>
+</body>
+</html>

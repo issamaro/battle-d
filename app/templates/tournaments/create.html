@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Tournament - Battle-D</title>
+</head>
+<body>
+    <h1>Create New Tournament</h1>
+    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+    <p><a href="/tournaments">← Back to Tournaments</a></p>
+
+    <form method="post" action="/tournaments/create">
+        <div>
+            <label for="name">Tournament Name:</label><br>
+            <input type="text" id="name" name="name" required placeholder="e.g., Battle-D Winter 2024">
+        </div>
+
+        <br>
+        <button type="submit">Create Tournament</button>
+    </form>
+
+    <p><a href="/auth/logout">Logout</a></p>
+</body>
+</html>
