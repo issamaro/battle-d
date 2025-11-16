@@ -18,7 +18,7 @@ Phased development roadmap from POC to V2.
 - ✅ Minimal HTML templates (zero CSS, structural only)
 - ✅ 49 tests passing (auth, permissions, phases)
 - ✅ Railway deployment with SQLite persistent volume
-- ✅ Resend API configured (production emails)
+- ✅ Brevo API configured (production emails - no domain required)
 - ✅ Live URL accessible
 - ✅ Cost: ~$0-5/month
 
@@ -26,7 +26,7 @@ Phased development roadmap from POC to V2.
 - FastAPI + Uvicorn
 - Jinja2 templates
 - itsdangerous (magic links)
-- Resend Python SDK (emails - adapter pattern)
+- Brevo Python SDK (emails - adapter pattern, SDK-verified)
 - SQLite (persistent volume on Railway)
 
 **Status:** COMPLETE - Application live on Railway
@@ -34,15 +34,17 @@ Phased development roadmap from POC to V2.
 **Post-Phase 0 Refactoring:**
 - ✅ **Email Service Refactored** - Migrated to SOLID architecture with Adapter Pattern
   - Created `EmailProvider` interface for provider abstraction
-  - Implemented `ResendEmailProvider` using official Resend SDK (replaced direct HTTP calls)
-  - Implemented `GmailEmailProvider` using Gmail SMTP with App Password support
+  - Implemented `BrevoEmailProvider` (RECOMMENDED for Railway - no domain, 300/day free)
+  - Implemented `ResendEmailProvider` using official Resend SDK (requires domain)
+  - Implemented `GmailEmailProvider` using Gmail SMTP (BLOCKED on Railway)
   - Implemented `ConsoleEmailProvider` for development mode
   - Added provider factory with dependency injection
-  - Updated tests to use mock providers (no more `unittest.mock.patch`)
+  - SDK-verified implementation using Context7 documentation
   - **Benefits:** Easy to swap email providers, testable by design, follows DIP principle
   - **Files:** `app/services/email/` (new structure)
-  - **Configuration:** `EMAIL_PROVIDER` environment variable (resend/gmail/console)
-  - **Gmail Option:** No domain needed, 500 emails/day limit, App Password required
+  - **Configuration:** `EMAIL_PROVIDER` environment variable (brevo/resend/gmail/console)
+  - **Brevo (Recommended):** No domain needed, 300 emails/day, works on Railway, SDK best practices
+  - **Tests:** 79 passing (11 Brevo tests with name validation, tags, response validation)
 
 ---
 
@@ -391,7 +393,7 @@ Battle starts
 - SQLAlchemy 2.0 (async)
 - Alembic (migrations)
 - SQLite (Railway volume)
-- Resend (emails)
+- Brevo (emails - recommended for Railway)
 - pytest + pytest-asyncio
 
 ### **Phase 5 (V2):**

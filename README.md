@@ -74,8 +74,8 @@ uvicorn app.main:app --reload
 - ✅ Hardcoded phase navigation
 - ✅ Minimal HTML (zero CSS, structural only)
 - ✅ **Deployed on Railway** with SQLite
-- ✅ Production emails (Resend)
-- ✅ 49 tests passing
+- ✅ Production emails (Brevo - no domain required)
+- ✅ 79 tests passing (SDK-verified)
 - ✅ Cost: ~$0-5/month
 
 ### **Phase 1 (Next) - Database + CRUD** 📋
@@ -127,7 +127,9 @@ web-app/
 │   │       ├── factory.py          # Provider factory
 │   │       ├── templates.py        # Email templates
 │   │       └── providers/          # Provider implementations
+│   │           ├── brevo_provider.py     # Brevo adapter (recommended)
 │   │           ├── resend_provider.py    # Resend adapter
+│   │           ├── gmail_provider.py     # Gmail adapter
 │   │           └── console_provider.py   # Console adapter (dev)
 │   ├── routers/           # API routes
 │   │   ├── auth.py        # Login, magic links
@@ -138,10 +140,12 @@ web-app/
 │       ├── auth/
 │       └── phases/
 │
-├── tests/                 # 49 tests (auth, permissions, phases)
+├── tests/                 # 79 tests (auth, permissions, phases, email providers)
 │   ├── test_auth.py
 │   ├── test_permissions.py
-│   └── test_phases.py
+│   ├── test_phases.py
+│   ├── test_brevo_provider.py
+│   └── test_gmail_provider.py
 │
 ├── data/                  # SQLite database
 │   └── .gitkeep
@@ -161,17 +165,19 @@ EmailService (Facade)
     ↓ (Dependency Injection)
 EmailProvider (Interface)
     ↓
-┌─────────────────┬─────────────────┬─────────────────┐
-│  ResendProvider │  GmailProvider  │ ConsoleProvider │  (Future: SendGrid, etc.)
-└─────────────────┴─────────────────┴─────────────────┘
+┌─────────────────┬─────────────────┬─────────────────┬─────────────────┐
+│  BrevoProvider  │ ResendProvider  │  GmailProvider  │ ConsoleProvider │
+│  (Recommended)  │ (Req. domain)   │ (Railway block) │ (Development)   │
+└─────────────────┴─────────────────┴─────────────────┴─────────────────┘
 ```
 
 **Benefits:**
 - ✅ Easy to switch providers (just change config)
 - ✅ Testable with mock providers
 - ✅ No code changes when adding new providers
-- ✅ Development mode (console) vs Production mode (Resend/Gmail)
-- ✅ No domain required (Gmail) or reliable delivery (Resend)
+- ✅ Development mode (console) vs Production mode (Brevo/Resend)
+- ✅ SDK-verified implementation (Context7 documentation)
+- ✅ Brevo: No domain required, works on Railway, 300 emails/day free
 
 **Adding a New Provider:**
 
@@ -195,8 +201,9 @@ if provider_type == "sendgrid":
 3. Set `EMAIL_PROVIDER=sendgrid` in `.env`
 
 **Configuration Options:**
-- `EMAIL_PROVIDER=resend` - Use Resend API (production, requires domain)
-- `EMAIL_PROVIDER=gmail` - Use Gmail SMTP (production, personal account, no domain needed)
+- `EMAIL_PROVIDER=brevo` - Use Brevo API (RECOMMENDED for Railway, no domain, 300/day free)
+- `EMAIL_PROVIDER=resend` - Use Resend API (requires domain verification)
+- `EMAIL_PROVIDER=gmail` - Use Gmail SMTP (BLOCKED on Railway, local dev only)
 - `EMAIL_PROVIDER=console` - Print to console (development)
 
 ---
@@ -221,7 +228,7 @@ pytest tests/ -v
 pytest tests/ --cov=app --cov-report=html
 
 # Current status
-49/49 tests passing ✅
+79/79 tests passing ✅
 ```
 
 ---
@@ -240,16 +247,18 @@ pytest tests/ --cov=app --cov-report=html
 5. Mount volume to service
 6. Test production URL
 
-**Cost:** ~$0-5/month (Railway free tier + Resend free tier)
+**Cost:** ~$0-5/month (Railway free tier + Brevo free tier)
 
 **Environment Variables:**
 - `SECRET_KEY` - Security token
 - `DATABASE_URL` - `sqlite:////data/battle_d.db`
-- `EMAIL_PROVIDER` - `resend`, `gmail`, or `console` (default: resend)
+- `EMAIL_PROVIDER` - `brevo` (recommended), `resend`, `gmail`, or `console`
+- `BREVO_API_KEY` - Brevo API key (only if EMAIL_PROVIDER=brevo)
+- `BREVO_FROM_EMAIL` - Sender email (only if EMAIL_PROVIDER=brevo)
+- `BREVO_FROM_NAME` - Sender name (only if EMAIL_PROVIDER=brevo)
 - `RESEND_API_KEY` - Resend API key (only if EMAIL_PROVIDER=resend)
-- `FROM_EMAIL` - Verified sender email (only if EMAIL_PROVIDER=resend)
-- `GMAIL_EMAIL` - Gmail account email (only if EMAIL_PROVIDER=gmail)
-- `GMAIL_APP_PASSWORD` - Gmail App Password (only if EMAIL_PROVIDER=gmail)
+- `GMAIL_EMAIL` - Gmail account email (only if EMAIL_PROVIDER=gmail, local dev only)
+- `GMAIL_APP_PASSWORD` - Gmail App Password (only if EMAIL_PROVIDER=gmail, local dev only)
 - `BASE_URL` - Railway assigned URL
 - `DEBUG` - False (production)
 
@@ -262,10 +271,10 @@ pytest tests/ --cov=app --cov-report=html
 | **Backend** | FastAPI + Uvicorn | Web framework |
 | **Templates** | Jinja2 | Server-side rendering |
 | **Auth** | itsdangerous | Magic link tokens |
-| **Email** | Resend Python SDK | Passwordless login (adapter pattern) |
+| **Email** | Brevo Python SDK | Passwordless login (adapter pattern, SDK-verified) |
 | **Database** | SQLite | Data persistence |
 | **Hosting** | Railway | Cloud platform |
-| **Testing** | pytest + pytest-asyncio | Unit & integration tests |
+| **Testing** | pytest + pytest-asyncio | Unit & integration tests (79 passing) |
 
 **No CSS frameworks** - Structural HTML only (by design, AI-first development)
 
@@ -358,10 +367,11 @@ MIT License - see [LICENSE](LICENSE) file for details
 - ✅ Complete authentication system (magic links)
 - ✅ Role-based access control
 - ✅ Hardcoded phase navigation
-- ✅ 49 tests passing (100%)
+- ✅ 79 tests passing (100%, SDK-verified email providers)
 - ✅ Production deployment (Railway)
 - ✅ Cost-effective (~$0-5/month)
 - ✅ Comprehensive documentation
+- ✅ Multiple email providers (Brevo recommended for Railway)
 
 **Next:** Phase 1 - Database + CRUD
 
