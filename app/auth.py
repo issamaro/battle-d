@@ -58,7 +58,7 @@ class MagicLinkAuth:
             Complete magic link URL
         """
         token = self.generate_token(email, role)
-        return f"{settings.MAGIC_LINK_BASE_URL}/auth/verify?token={token}"
+        return f"{settings.BASE_URL}/auth/verify?token={token}"
 
 
 magic_link_auth = MagicLinkAuth()

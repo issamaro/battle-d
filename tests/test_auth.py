@@ -116,7 +116,7 @@ class TestMagicLinkAuth:
         """Test generating complete magic link URL."""
         link = magic_link_auth.generate_magic_link("test@example.com", "admin")
 
-        assert link.startswith(settings.MAGIC_LINK_BASE_URL)
+        assert link.startswith(settings.BASE_URL)
         assert "/auth/verify?token=" in link
 
 

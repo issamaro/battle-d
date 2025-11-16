@@ -11,9 +11,11 @@ class Settings:
     SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
 
+    # Application Base URL
+    BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
+
     # Magic Link Authentication
     MAGIC_LINK_EXPIRY_MINUTES: int = 15
-    MAGIC_LINK_BASE_URL: str = os.getenv("BASE_URL", "http://localhost:8000")
 
     # Email Configuration
     EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "resend")  # Options: resend, gmail, console
