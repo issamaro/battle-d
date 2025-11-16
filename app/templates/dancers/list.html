@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dancers - Battle-D</title>
+</head>
+<body>
+    <h1>Dancer Management</h1>
+    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+    <p><a href="/dashboard">← Back to Dashboard</a></p>
+
+    <h2>Search Dancers</h2>
+    <form method="get" action="/dancers">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search by blaze, name, or email">
+        <button type="submit">Search</button>
+        <a href="/dancers">Clear</a>
+    </form>
+
+    <p><a href="/dancers/create">+ Create New Dancer</a></p>
+
+    <h2>Dancers</h2>
+    {% if dancers %}
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Blaze</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Age</th>
+                    <th>Country</th>
+                    <th>City</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dancer in dancers %}
+                <tr>
+                    <td><strong>{{ dancer.blaze }}</strong></td>
+                    <td>{{ dancer.full_name }}</td>
+                    <td>{{ dancer.email }}</td>
+                    <td>{{ dancer.age }}</td>
+                    <td>{{ dancer.country or "-" }}</td>
+                    <td>{{ dancer.city or "-" }}</td>
+                    <td>
+                        <a href="/dancers/{{ dancer.id }}/edit">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No dancers found.</p>
+    {% endif %}
+
+    <p><a href="/auth/logout">Logout</a></p>
+</body>
+</html>

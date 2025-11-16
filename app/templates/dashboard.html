@@ -14,6 +14,11 @@
         <li><a href="/phases">View Tournament Phases</a></li>
         {% if current_user.is_admin %}
         <li><a href="/phases/advance">Advance Phase (Admin only)</a></li>
+        <li><a href="/admin/users">Manage Users (Admin only)</a></li>
+        {% endif %}
+        {% if current_user.is_staff %}
+        <li><a href="/dancers">Manage Dancers</a></li>
+        <li><a href="/tournaments">Manage Tournaments</a></li>
         {% endif %}
     </ul>
 </section>

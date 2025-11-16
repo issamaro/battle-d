@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create User - Battle-D</title>
+</head>
+<body>
+    <h1>Create New User</h1>
+
+    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+    <p><a href="/admin/users">← Back to User List</a></p>
+
+    <form method="post" action="/admin/users/create">
+        <div>
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" name="email" required>
+        </div>
+
+        <div>
+            <label for="first_name">First Name:</label><br>
+            <input type="text" id="first_name" name="first_name" required>
+        </div>
+
+        <div>
+            <label for="role">Role:</label><br>
+            <select id="role" name="role" required>
+                {% for role in roles %}
+                <option value="{{ role }}">{{ role }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label>
+                <input type="checkbox" name="send_magic_link" value="true">
+                Send magic link email to user
+            </label>
+        </div>
+
+        <br>
+        <button type="submit">Create User</button>
+    </form>
+
+    <p><a href="/auth/logout">Logout</a></p>
+</body>
+</html>

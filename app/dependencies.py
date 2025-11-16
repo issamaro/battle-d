@@ -1,8 +1,19 @@
 """FastAPI dependencies for authentication and authorization."""
 from typing import Optional
-from fastapi import Cookie, HTTPException, status
+from fastapi import Cookie, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import magic_link_auth
 from app.config import settings
+from app.db.database import get_db
+from app.repositories import (
+    UserRepository,
+    DancerRepository,
+    TournamentRepository,
+    CategoryRepository,
+    PerformerRepository,
+    PoolRepository,
+    BattleRepository,
+)
 
 # Email service instance (initialized at startup)
 _email_service = None
@@ -193,3 +204,88 @@ def require_judge(
             detail="Judge access required",
         )
     return user
+
+
+# Repository dependencies
+def get_user_repo(session: AsyncSession = Depends(get_db)) -> UserRepository:
+    """Get UserRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        UserRepository instance
+    """
+    return UserRepository(session)
+
+
+def get_dancer_repo(session: AsyncSession = Depends(get_db)) -> DancerRepository:
+    """Get DancerRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        DancerRepository instance
+    """
+    return DancerRepository(session)
+
+
+def get_tournament_repo(session: AsyncSession = Depends(get_db)) -> TournamentRepository:
+    """Get TournamentRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        TournamentRepository instance
+    """
+    return TournamentRepository(session)
+
+
+def get_category_repo(session: AsyncSession = Depends(get_db)) -> CategoryRepository:
+    """Get CategoryRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        CategoryRepository instance
+    """
+    return CategoryRepository(session)
+
+
+def get_performer_repo(session: AsyncSession = Depends(get_db)) -> PerformerRepository:
+    """Get PerformerRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        PerformerRepository instance
+    """
+    return PerformerRepository(session)
+
+
+def get_pool_repo(session: AsyncSession = Depends(get_db)) -> PoolRepository:
+    """Get PoolRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        PoolRepository instance
+    """
+    return PoolRepository(session)
+
+
+def get_battle_repo(session: AsyncSession = Depends(get_db)) -> BattleRepository:
+    """Get BattleRepository instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        BattleRepository instance
+    """
+    return BattleRepository(session)

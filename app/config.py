@@ -24,5 +24,12 @@ class Settings:
     SESSION_COOKIE_NAME: str = "battle_d_session"
     SESSION_MAX_AGE_SECONDS: int = 86400 * 7  # 7 days
 
+    # Database
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite+aiosqlite:///./data/battle_d.db"
+    )
+    DATABASE_ECHO: bool = os.getenv("DATABASE_ECHO", "False").lower() == "true"
+
 
 settings = Settings()

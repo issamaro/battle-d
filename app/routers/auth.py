@@ -5,18 +5,11 @@ from fastapi.templating import Jinja2Templates
 from app.auth import magic_link_auth
 from app.config import settings
 from app.services.email.service import EmailService
-from app.dependencies import get_email_service
+from app.dependencies import get_email_service, get_user_repo
+from app.repositories.user import UserRepository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
-
-# In-memory user store for POC (Phase 1 will use database)
-# Format: {email: {"first_name": str, "role": str}}
-USERS_STORE = {
-    "admin@battle-d.com": {"first_name": "Admin", "role": "admin"},
-    "staff@battle-d.com": {"first_name": "Staff", "role": "staff"},
-    "mc@battle-d.com": {"first_name": "MC", "role": "mc"},
-}
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -29,18 +22,20 @@ async def login_page(request: Request):
 async def send_magic_link(
     email: str = Form(...),
     email_service: EmailService = Depends(get_email_service),
+    user_repo: UserRepository = Depends(get_user_repo),
 ):
     """Send magic link to user's email.
 
     Args:
         email: User email address
         email_service: Injected email service dependency
+        user_repo: Injected user repository dependency
 
     Returns:
         Success message
     """
-    # Check if user exists
-    user = USERS_STORE.get(email.lower())
+    # Check if user exists in database
+    user = await user_repo.get_by_email(email.lower())
     if not user:
         # Don't reveal if user exists or not (security best practice)
         return {
@@ -48,10 +43,10 @@ async def send_magic_link(
         }
 
     # Generate magic link
-    magic_link = magic_link_auth.generate_magic_link(email.lower(), user["role"])
+    magic_link = magic_link_auth.generate_magic_link(email.lower(), user.role.value)
 
     # Send email
-    await email_service.send_magic_link(email.lower(), magic_link, user["first_name"])
+    await email_service.send_magic_link(email.lower(), magic_link, user.first_name)
 
     return {
         "message": "If an account exists with this email, you will receive a login link."
