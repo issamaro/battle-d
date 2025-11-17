@@ -16,6 +16,43 @@ class EmailService:
     This service acts as a facade, providing a simple interface for the application
     while delegating the actual email sending to the injected provider.
 
+    ARCHITECTURE: Facade Pattern
+    =============================
+    All providers (Brevo, Resend, Gmail, Console) use the SAME templates from templates.py.
+    This service simply delegates to the configured provider without knowing implementation details.
+
+    ADDING NEW EMAIL TYPES:
+    =======================
+    After completing steps 1-3 in provider.py, add a facade method here:
+
+    Example for tournament invitation:
+
+        async def send_tournament_invitation(
+            self, to_email: str, tournament_name: str, dancer_name: str
+        ) -> bool:
+            '''Send tournament invitation email to dancer.
+
+            Args:
+                to_email: Dancer's email address
+                tournament_name: Name of the tournament
+                dancer_name: Dancer's first name for personalization
+
+            Returns:
+                True if email was sent successfully, False otherwise
+
+            Example:
+                >>> success = await email_service.send_tournament_invitation(
+                ...     "dancer@example.com",
+                ...     "Battle of the Year 2024",
+                ...     "Sarah"
+                ... )
+            '''
+            return await self.provider.send_tournament_invitation(
+                to_email, tournament_name, dancer_name
+            )
+
+    The facade delegates to the provider, which uses the centralized template.
+
     Attributes:
         provider: The email provider implementation to use for sending emails
 
@@ -30,7 +67,7 @@ class EmailService:
         """Initialize email service with a specific provider.
 
         Args:
-            provider: EmailProvider implementation (ResendEmailProvider, ConsoleEmailProvider, etc.)
+            provider: EmailProvider implementation (Brevo, Resend, Gmail, Console)
 
         Example:
             >>> from app.services.email.providers import ResendEmailProvider

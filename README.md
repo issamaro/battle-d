@@ -158,7 +158,7 @@ web-app/
 
 ### Email Service Architecture (Adapter Pattern)
 
-The email system follows **SOLID principles** with the **Adapter Pattern**, making it easy to swap email providers:
+The email system follows **SOLID principles** with the **Adapter Pattern**, making it easy to swap email providers and add new email types:
 
 ```
 EmailService (Facade)
@@ -169,15 +169,32 @@ EmailProvider (Interface)
 │  BrevoProvider  │ ResendProvider  │  GmailProvider  │ ConsoleProvider │
 │  (Recommended)  │ (Req. domain)   │ (Railway block) │ (Development)   │
 └─────────────────┴─────────────────┴─────────────────┴─────────────────┘
+         ↓                ↓                ↓                ↓
+              ALL use SAME templates from templates.py
 ```
+
+**Key Principle:** ONE template per email type, shared across ALL providers.
 
 **Benefits:**
 - ✅ Easy to switch providers (just change config)
+- ✅ Easy to add new email types (15-30 min per type)
+- ✅ Consistent email design across all providers
 - ✅ Testable with mock providers
 - ✅ No code changes when adding new providers
 - ✅ Development mode (console) vs Production mode (Brevo/Resend)
 - ✅ SDK-verified implementation (Context7 documentation)
 - ✅ Brevo: No domain required, works on Railway, 300 emails/day free
+
+**Adding New Email Types (15-30 minutes):**
+
+Follow the 4-step process documented in `app/services/email/provider.py`:
+
+1. **Add templates** to `app/services/email/templates.py`
+2. **Add method** to `EmailProvider` interface
+3. **Implement** in all 4 providers (Brevo, Resend, Gmail, Console)
+4. **Add facade** method to `EmailService`
+
+See inline code comments for detailed examples.
 
 **Adding a New Provider:**
 
@@ -185,10 +202,14 @@ EmailProvider (Interface)
 ```python
 # app/services/email/providers/sendgrid_provider.py
 from app.services.email.provider import BaseEmailProvider
+from app.services.email.templates import generate_magic_link_html, generate_magic_link_subject
 
 class SendGridEmailProvider(BaseEmailProvider):
     async def send_magic_link(self, to_email, magic_link, first_name) -> bool:
-        # Implement SendGrid-specific logic
+        # Use centralized template
+        html = generate_magic_link_html(magic_link, first_name)
+        subject = generate_magic_link_subject()
+        # Implement SendGrid-specific sending logic
         pass
 ```
 

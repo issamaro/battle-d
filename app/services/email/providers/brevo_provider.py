@@ -6,6 +6,11 @@ import brevo_python
 from brevo_python.rest import ApiException
 
 from app.services.email.provider import BaseEmailProvider
+from app.services.email.templates import (
+    generate_magic_link_html,
+    generate_magic_link_text,
+    generate_magic_link_subject,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -100,64 +105,17 @@ class BrevoEmailProvider(BaseEmailProvider):
                 name=self._truncate_name(first_name)
             )]
 
-            # Build HTML content
-            html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Battle-D Login Link</title>
-            </head>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-                <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
-                    <h2 style="color: #2c3e50; margin-bottom: 20px;">Battle-D Login</h2>
-                    <p>Hello {first_name},</p>
-                    <p>Click the button below to log in to your Battle-D account:</p>
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="{magic_link}"
-                           style="background-color: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
-                            Log In to Battle-D
-                        </a>
-                    </div>
-                    <p style="color: #7f8c8d; font-size: 14px;">
-                        This link will expire in 15 minutes for security reasons.
-                    </p>
-                    <p style="color: #7f8c8d; font-size: 14px;">
-                        If you didn't request this login link, you can safely ignore this email.
-                    </p>
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    <p style="color: #95a5a6; font-size: 12px; text-align: center;">
-                        Battle-D Tournament Management System
-                    </p>
-                </div>
-            </body>
-            </html>
-            """
-
-            # Build plain text fallback
-            text_content = f"""
-            Battle-D Login
-
-            Hello {first_name},
-
-            Click the link below to log in to your Battle-D account:
-
-            {magic_link}
-
-            This link will expire in 15 minutes for security reasons.
-
-            If you didn't request this login link, you can safely ignore this email.
-
-            ---
-            Battle-D Tournament Management System
-            """
+            # Generate email content from centralized templates
+            # All providers use the SAME templates for consistency
+            html_content = generate_magic_link_html(magic_link, first_name)
+            text_content = generate_magic_link_text(magic_link, first_name)
+            subject = generate_magic_link_subject()
 
             # Create email object with tags for analytics
             send_smtp_email = brevo_python.SendSmtpEmail(
                 sender=sender,
                 to=to,
-                subject="Battle-D Login Link",
+                subject=subject,
                 html_content=html_content,
                 text_content=text_content,
                 tags=["magic-link", "authentication"],

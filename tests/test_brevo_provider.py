@@ -70,7 +70,7 @@ class TestBrevoEmailProvider:
             assert len(call_args.to) == 1
             assert call_args.to[0].email == "user@example.com"
             assert call_args.to[0].name == "John"
-            assert call_args.subject == "Battle-D Login Link"
+            assert call_args.subject == "Battle-D - Login Link"  # Uses centralized template
 
             # Verify magic link is in content
             assert "https://battle-d.com/auth/verify?token=abc123" in call_args.html_content
@@ -261,3 +261,59 @@ class TestBrevoEmailProvider:
 
             # Should return False when response is invalid
             assert result is False
+
+    @pytest.mark.asyncio
+    async def test_uses_centralized_templates(self):
+        """Test that Brevo provider uses centralized templates from templates.py.
+
+        This verifies the architecture: ONE template per email type, shared across
+        ALL providers (Brevo, Resend, Gmail, Console).
+        """
+        from app.services.email.templates import (
+            generate_magic_link_html,
+            generate_magic_link_text,
+            generate_magic_link_subject,
+        )
+
+        provider = BrevoEmailProvider(
+            api_key="test-api-key",
+            from_email="noreply@battle-d.com",
+            from_name="Battle-D",
+        )
+
+        mock_response = MagicMock()
+        mock_response.message_id = "test-id"
+
+        magic_link = "https://battle-d.com/verify?token=test123"
+        first_name = "TestUser"
+
+        with patch.object(
+            provider.api_instance, "send_transac_email", return_value=mock_response
+        ) as mock_send:
+            result = await provider.send_magic_link(
+                to_email="user@test.com",
+                magic_link=magic_link,
+                first_name=first_name,
+            )
+
+            assert result is True
+
+            # Get the email that was sent
+            call_args = mock_send.call_args[0][0]
+
+            # Verify HTML content matches centralized template
+            expected_html = generate_magic_link_html(magic_link, first_name)
+            assert call_args.html_content == expected_html
+
+            # Verify text content matches centralized template
+            expected_text = generate_magic_link_text(magic_link, first_name)
+            assert call_args.text_content == expected_text
+
+            # Verify subject matches centralized template
+            expected_subject = generate_magic_link_subject()
+            assert call_args.subject == expected_subject
+
+            # Verify it's using the styled template (not simple version)
+            assert "<!DOCTYPE html>" in call_args.html_content
+            assert "background-color:" in call_args.html_content  # Has inline CSS
+            assert "Battle-D Login" in call_args.html_content
