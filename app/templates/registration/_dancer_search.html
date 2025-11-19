@@ -1,0 +1,40 @@
+{% if dancers %}
+<table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+    <thead>
+        <tr style="background-color: #f4f4f4;">
+            <th>Blaze</th>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dancer in dancers %}
+        <tr>
+            <td><strong>{{ dancer.blaze }}</strong></td>
+            <td>{{ dancer.full_name }}</td>
+            <td>{{ dancer.age }}</td>
+            <td>
+                {% if is_duo %}
+                <button type="button"
+                        onclick="selectDancer('{{ dancer.id }}', '{{ dancer.blaze }}', {{ dancer_number }})"
+                        style="padding: 4px 8px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 3px; font-size: 12px;">
+                    Select
+                </button>
+                {% else %}
+                <form method="post" action="/registration/{{ tournament_id }}/{{ category_id }}/register" style="display:inline;">
+                    <input type="hidden" name="dancer_id" value="{{ dancer.id }}">
+                    <button type="submit" style="padding: 4px 8px; background-color: #28a745; color: white; border: none; cursor: pointer; border-radius: 3px; font-size: 12px;">
+                        Register
+                    </button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<p style="margin-top: 10px; font-size: 12px; color: #6c757d;">Found {{ dancers|length }} dancer(s)</p>
+{% else %}
+<p style="color: #6c757d; font-size: 14px;">No dancers found. Try a different search term.</p>
+{% endif %}

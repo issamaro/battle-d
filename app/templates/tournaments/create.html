@@ -1,23 +1,33 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Tournament - Battle-D</title>
-</head>
-<body>
-    <h1>Create New Tournament</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
-    <p><a href="/tournaments">← Back to Tournaments</a></p>
+{% extends "base.html" %}
 
-    <form method="post" action="/tournaments/create">
-        <div>
+{% block title %}Create Tournament - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Create New Tournament</h2>
+
+<section>
+    <p><a href="/tournaments">← Back to Tournaments</a></p>
+</section>
+
+<section>
+    <form method="post" action="/tournaments/create" style="max-width: 600px;">
+        <div style="margin-bottom: 15px;">
             <label for="name">Tournament Name:</label><br>
-            <input type="text" id="name" name="name" required placeholder="e.g., Battle-D Winter 2024">
+            <input type="text" id="name" name="name" required placeholder="e.g., Battle-D Winter 2024" style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Give your tournament a unique, descriptive name</small>
         </div>
 
-        <br>
-        <button type="submit">Create Tournament</button>
-    </form>
+        <div style="margin-bottom: 15px; padding: 10px; background-color: #d1ecf1; border-left: 3px solid #0c5460;">
+            <p style="margin: 0; font-size: 14px; color: #0c5460;">
+                <strong>Note:</strong> After creating the tournament, you'll be able to add categories and register dancers.
+                The tournament will start in the <strong>REGISTRATION</strong> phase.
+            </p>
+        </div>
 
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+        <button type="submit" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
+            Create Tournament
+        </button>
+        <a href="/tournaments" style="margin-left: 10px;">Cancel</a>
+    </form>
+</section>
+{% endblock %}

@@ -50,6 +50,27 @@ class PerformerRepository(BaseRepository[Performer]):
         )
         return list(result.scalars().all())
 
+    async def get_by_category_with_partners(
+        self, category_id: uuid.UUID
+    ) -> List[Performer]:
+        """Get all performers in a category with duo partner relationships loaded.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of performers in the category with partner data
+        """
+        result = await self.session.execute(
+            select(Performer)
+            .options(
+                selectinload(Performer.dancer),
+                selectinload(Performer.duo_partner).selectinload(Performer.dancer),
+            )
+            .where(Performer.category_id == category_id)
+        )
+        return list(result.scalars().all())
+
     async def get_with_dancer(self, id: uuid.UUID) -> Optional[Performer]:
         """Get performer with dancer data loaded.
 
@@ -148,3 +169,26 @@ class PerformerRepository(BaseRepository[Performer]):
         performers = await self.get_by_category(category_id)
         # Sort by pool_points property (computed in Python)
         return sorted(performers, key=lambda p: p.pool_points, reverse=True)
+
+    async def link_duo_partners(
+        self, performer1_id: uuid.UUID, performer2_id: uuid.UUID
+    ) -> None:
+        """Link two performers as duo partners.
+
+        Args:
+            performer1_id: First performer UUID
+            performer2_id: Second performer UUID
+        """
+        # Get both performers
+        performer1 = await self.get_by_id(performer1_id)
+        performer2 = await self.get_by_id(performer2_id)
+
+        if not performer1 or not performer2:
+            raise ValueError("One or both performers not found")
+
+        # Update duo_partner_id for both
+        performer1.duo_partner_id = performer2_id
+        performer2.duo_partner_id = performer1_id
+
+        # Commit changes
+        await self.session.commit()

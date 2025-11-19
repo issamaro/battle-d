@@ -286,7 +286,9 @@ registered_performers (rp) > pool_performers (pp)
 - Keeps tournament interesting even with exact capacity registrations
 
 **Constraint:**
-- **Minimum 4 registered performers** required to start tournament
+- **Minimum (groups_ideal × 2) + 2 registered performers** required to start tournament
+  - Example: groups_ideal=2 → minimum 6 performers (NOT 4!)
+  - Formula: `(groups_ideal * 2) + 2` ensures minimum 2 per pool + 2 for elimination
 - Pool sizes adapt dynamically based on registrations
 
 **Adaptation Logic:**
@@ -481,8 +483,9 @@ CHECK (
 **Business Validations:**
 
 1. **Minimum Performers:**
-   - Minimum 4 registered performers required to start tournament
-   - Minimum 2 performers per pool
+   - Minimum `(groups_ideal × 2) + 2` registered performers required to start tournament
+   - Example: groups_ideal=2 → minimum 6 performers
+   - Minimum 2 performers per pool after distribution
 
 2. **Phase Transitions:**
    - Can only advance to next phase in sequence
@@ -561,7 +564,7 @@ Staff → Select Tournament + Category
 ```
 1. Registration Phase:
    - Staff registers dancers in categories
-   - Admin checks if minimum 4 performers per category
+   - Admin checks if minimum (groups_ideal × 2 + 2) performers per category
    - When ready → Admin clicks "Advance Phase"
 
 2. Preselection Phase (ALWAYS triggered):

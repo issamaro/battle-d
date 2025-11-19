@@ -78,8 +78,8 @@ async def registration_page(
             detail="Category not found",
         )
 
-    # Get registered performers
-    performers = await performer_repo.get_by_category(category_uuid)
+    # Get registered performers with duo partner relationships loaded
+    performers = await performer_repo.get_by_category_with_partners(category_uuid)
 
     # Get dancer search results
     dancers = []
@@ -178,6 +178,187 @@ async def register_dancer(
         category_id=category_uuid,
         dancer_id=dancer_uuid,
     )
+
+    return RedirectResponse(
+        url=f"/registration/{tournament_id}/{category_id}",
+        status_code=303,
+    )
+
+
+@router.get("/{tournament_id}/{category_id}/search-dancer", response_class=HTMLResponse)
+async def search_dancer_api(
+    tournament_id: str,
+    category_id: str,
+    request: Request,
+    query: str = "",
+    dancer_number: int = 1,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+):
+    """HTMX endpoint for dancer search.
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        request: FastAPI request
+        query: Search query string
+        dancer_number: Which dancer slot (1 or 2) for duo registration
+        current_user: Current authenticated user
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+
+    Returns:
+        HTML partial with search results
+    """
+    user = require_staff(current_user)
+
+    # Parse UUIDs
+    try:
+        category_uuid = uuid.UUID(category_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid category ID",
+        )
+
+    # Get category to check if duo
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found",
+        )
+
+    # Search dancers
+    dancers = []
+    if query:
+        dancers = await dancer_repo.search(query, limit=20)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_dancer_search.html",
+        context={
+            "dancers": dancers,
+            "is_duo": category.is_duo,
+            "dancer_number": dancer_number,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+        },
+    )
+
+
+@router.post("/{tournament_id}/{category_id}/register-duo")
+async def register_duo(
+    tournament_id: str,
+    category_id: str,
+    dancer1_id: str = Form(...),
+    dancer2_id: str = Form(...),
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """Register a duo (two dancers) in a 2v2 tournament category (staff only).
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        dancer1_id: First dancer UUID
+        dancer2_id: Second dancer UUID
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+        performer_repo: Performer repository
+
+    Returns:
+        Redirect back to registration page
+    """
+    user = require_staff(current_user)
+
+    # Parse UUIDs
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+        category_uuid = uuid.UUID(category_id)
+        dancer1_uuid = uuid.UUID(dancer1_id)
+        dancer2_uuid = uuid.UUID(dancer2_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid ID format",
+        )
+
+    # Verify same dancer not selected twice
+    if dancer1_uuid == dancer2_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot register the same dancer twice in a duo",
+        )
+
+    # Verify tournament exists
+    tournament = await tournament_repo.get_by_id(tournament_uuid)
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tournament not found",
+        )
+
+    # Verify category exists and is duo
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found",
+        )
+    if not category.is_duo:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This category is not a duo category",
+        )
+
+    # Verify both dancers exist
+    dancer1 = await dancer_repo.get_by_id(dancer1_uuid)
+    dancer2 = await dancer_repo.get_by_id(dancer2_uuid)
+    if not dancer1 or not dancer2:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or both dancers not found",
+        )
+
+    # Check if either dancer is already registered in this tournament
+    if await performer_repo.dancer_registered_in_tournament(
+        dancer1_uuid, tournament_uuid
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dancer {dancer1.blaze} is already registered in this tournament",
+        )
+    if await performer_repo.dancer_registered_in_tournament(
+        dancer2_uuid, tournament_uuid
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dancer {dancer2.blaze} is already registered in this tournament",
+        )
+
+    # Register first dancer (without partner link initially)
+    performer1 = await performer_repo.create_performer(
+        tournament_id=tournament_uuid,
+        category_id=category_uuid,
+        dancer_id=dancer1_uuid,
+    )
+
+    # Register second dancer (without partner link initially)
+    performer2 = await performer_repo.create_performer(
+        tournament_id=tournament_uuid,
+        category_id=category_uuid,
+        dancer_id=dancer2_uuid,
+    )
+
+    # Link them as duo partners
+    await performer_repo.link_duo_partners(performer1.id, performer2.id)
 
     return RedirectResponse(
         url=f"/registration/{tournament_id}/{category_id}",

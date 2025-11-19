@@ -4,19 +4,26 @@ This document describes the testing strategy, setup, and practices for the Battl
 
 ## Overview
 
-The project uses pytest as the primary testing framework with support for async tests and code coverage reporting. As of Phase 0, we maintain 100% test pass rate (49/49 tests passing).
+The project uses pytest as the primary testing framework with support for async tests and code coverage reporting. As of Phase 1, we maintain 100% test pass rate (97+ tests passing, 8 skipped).
 
 ## Test Structure
 
 ```
 tests/
-├── __init__.py              # Test configuration and fixtures
-├── test_auth.py             # Authentication and magic link tests
-├── test_permissions.py      # Role-based access control tests
-├── test_phases.py           # Tournament phase routing tests
-└── reports/                 # Generated test reports (gitignored)
-    ├── coverage-html/       # HTML coverage reports
-    └── test-report.html     # Test execution report
+├── __init__.py                      # Test configuration and fixtures
+├── test_auth.py                     # Authentication and magic link tests
+├── test_permissions.py              # Role-based access control tests
+├── test_phases.py                   # Tournament phase routing tests
+├── test_models.py                   # Database model tests
+├── test_repositories.py             # Repository layer tests
+├── test_tournament_calculations.py  # Calculation utility tests (24 tests)
+├── test_crud_workflows.py           # Integration CRUD tests
+├── test_brevo_provider.py          # Brevo email provider tests
+├── test_gmail_provider.py          # Gmail email provider tests
+├── test_email_templates.py         # Email template tests
+└── reports/                         # Generated test reports (gitignored)
+    ├── coverage-html/               # HTML coverage reports
+    └── test-report.html             # Test execution report
 ```
 
 ## Quick Start
@@ -66,11 +73,22 @@ pytest -v
 
 ### Current Coverage Status
 
-Phase 0 maintains high test coverage across core functionality:
+Phase 1 maintains high test coverage across core functionality:
 
-- **Authentication**: Magic link generation, validation, expiry
-- **Permissions**: Role-based access control (Admin, Organizer, Judge, Participant)
+**Phase 0 Tests:**
+- **Authentication**: Magic link generation, validation, expiry (15 tests)
+- **Permissions**: Role-based access control (Admin, Staff, MC, Judge) (11 tests)
 - **Routing**: Phase-specific access and redirects
+- **Email Providers**: Brevo, Gmail, Resend, Console providers (13 tests)
+- **Email Templates**: Template generation and validation (11 tests)
+
+**Phase 1 Tests:**
+- **Database Models**: User, Dancer, Tournament, Category, Performer models (14 tests)
+- **Repositories**: CRUD operations for all entities
+- **Tournament Calculations**: Min performers, pool distribution, capacity (24 tests)
+- **CRUD Workflows**: Integration tests for dancer, tournament, registration flows (9 tests)
+- **Validators**: Phase transition validation
+- **Service Layer**: DancerService, TournamentService, PerformerService
 
 ### Viewing Coverage Reports
 
@@ -449,6 +467,6 @@ Before committing code:
 
 ---
 
-**Current Status**: Phase 0 - 49/49 tests passing ✅
+**Current Status**: Phase 1 COMPLETE - 97+ tests passing, 8 skipped ✅
 
-Last updated: 2024-11-15
+Last updated: 2025-01-19

@@ -1,46 +1,118 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Add Category - Battle-D</title>
-</head>
-<body>
-    <h1>Add Category to {{ tournament.name }}</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
-    <p><a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a></p>
+{% extends "base.html" %}
 
-    <form method="post" action="/tournaments/{{ tournament.id }}/add-category">
-        <div>
+{% block title %}Add Category - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Add Category to {{ tournament.name }}</h2>
+
+<section>
+    <p><a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a></p>
+</section>
+
+<section>
+    <form method="post" action="/tournaments/{{ tournament.id }}/add-category" style="max-width: 700px;">
+        <div style="margin-bottom: 15px;">
             <label for="name">Category Name:</label><br>
-            <input type="text" id="name" name="name" required placeholder="e.g., Hip Hop Boys 1v1">
+            <input type="text" id="name" name="name" required placeholder="e.g., Hip Hop Boys 1v1" style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Be specific: include style, gender/age group, and battle type</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 20px;">
             <label>
-                <input type="checkbox" name="is_duo" value="true">
+                <input type="checkbox" name="is_duo" value="true" id="is-duo-checkbox">
                 2v2 Category (Duo battles)
             </label>
+            <br>
+            <small style="color: #6c757d;">Check this if dancers compete in pairs</small>
         </div>
 
-        <div>
-            <label for="groups_ideal">Number of Pools:</label><br>
-            <input type="number" id="groups_ideal" name="groups_ideal" value="2" min="1" max="10" required>
-            <small>(Default: 2)</small>
+        <div style="margin-bottom: 15px;">
+            <label for="groups_ideal">Number of Pools (Groups):</label><br>
+            <input type="number"
+                   id="groups_ideal"
+                   name="groups_ideal"
+                   value="2"
+                   min="1"
+                   max="10"
+                   required
+                   style="width: 100%; padding: 8px;"
+                   oninput="updateMinimumCalculation()">
+            <small style="color: #6c757d;">Number of pool groups for round-robin battles (Fixed at registration)</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="performers_ideal">Target Performers Per Pool:</label><br>
-            <input type="number" id="performers_ideal" name="performers_ideal" value="4" min="2" max="20" required>
-            <small>(Default: 4)</small>
+            <input type="number"
+                   id="performers_ideal"
+                   name="performers_ideal"
+                   value="4"
+                   min="2"
+                   max="20"
+                   required
+                   style="width: 100%; padding: 8px;"
+                   oninput="updateMinimumCalculation()">
+            <small style="color: #6c757d;">Ideal size for each pool (Adaptive based on registrations)</small>
         </div>
 
-        <br>
-        <p><strong>Note:</strong> Ideal pool capacity = Number of Pools × Performers Per Pool</p>
-        <p>Example: 2 pools × 4 performers = 8 total performers in pools (after preselection)</p>
+        <div style="margin-bottom: 20px; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
+            <h4 style="margin-top: 0;">📊 Category Requirements</h4>
 
-        <br>
-        <button type="submit">Add Category</button>
+            <p style="margin: 5px 0;">
+                <strong>Minimum Required Performers:</strong>
+                <span id="min-display" style="font-size: 20px; color: #856404;">6</span>
+            </p>
+
+            <p style="margin: 5px 0; font-size: 14px; color: #856404;">
+                <strong>Formula:</strong> <span id="formula-display">(2 pools × 2 minimum) + 2 elimination</span>
+            </p>
+
+            <hr style="border-top: 1px solid #856404; margin: 10px 0;">
+
+            <p style="margin: 5px 0; font-size: 14px;">
+                <strong>Ideal Pool Capacity:</strong> <span id="ideal-display">8</span> performers
+                <br>
+                <small>(After preselection: <span id="pools-display">2</span> pools × <span id="per-pool-display">4</span> performers/pool)</small>
+            </p>
+        </div>
+
+        <div style="margin-bottom: 15px; padding: 10px; background-color: #d1ecf1; border-left: 3px solid #0c5460;">
+            <p style="margin: 0; font-size: 14px; color: #0c5460;">
+                <strong>How it works:</strong><br>
+                • Registration phase: Collect performers (need at least the minimum)<br>
+                • Preselection phase: Eliminate ~25% to reach pool capacity<br>
+                • Pools phase: Round-robin battles within each pool<br>
+                • Finals phase: Pool winners compete for championship
+            </p>
+        </div>
+
+        <button type="submit" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
+            Add Category
+        </button>
+        <a href="/tournaments/{{ tournament.id }}" style="margin-left: 10px;">Cancel</a>
     </form>
+</section>
 
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+<script>
+function updateMinimumCalculation() {
+    const groupsIdeal = parseInt(document.getElementById('groups_ideal').value) || 2;
+    const performersIdeal = parseInt(document.getElementById('performers_ideal').value) || 4;
+
+    // Formula: (groups_ideal * 2) + 2
+    const minimum = (groupsIdeal * 2) + 2;
+
+    // Ideal pool capacity: groups_ideal * performers_ideal
+    const idealCapacity = groupsIdeal * performersIdeal;
+
+    // Update displays
+    document.getElementById('min-display').textContent = minimum;
+    document.getElementById('formula-display').textContent =
+        `(${groupsIdeal} pools × 2 minimum) + 2 elimination`;
+    document.getElementById('ideal-display').textContent = idealCapacity;
+    document.getElementById('pools-display').textContent = groupsIdeal;
+    document.getElementById('per-pool-display').textContent = performersIdeal;
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', updateMinimumCalculation);
+</script>
+{% endblock %}

@@ -1,56 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dancers - Battle-D</title>
-</head>
-<body>
-    <h1>Dancer Management</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+{% extends "base.html" %}
+
+{% block title %}Dancer Management - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Dancer Management</h2>
+
+<section>
     <p><a href="/dashboard">← Back to Dashboard</a></p>
+</section>
 
-    <h2>Search Dancers</h2>
-    <form method="get" action="/dancers">
-        <input type="text" name="search" value="{{ search }}" placeholder="Search by blaze, name, or email">
-        <button type="submit">Search</button>
-        <a href="/dancers">Clear</a>
-    </form>
+<section>
+    <h3>Search and Actions</h3>
 
-    <p><a href="/dancers/create">+ Create New Dancer</a></p>
+    <div style="margin-bottom: 20px;">
+        <input type="text"
+               name="query"
+               id="search-input"
+               value="{{ search }}"
+               placeholder="Search by blaze, name, or email..."
+               hx-get="/dancers/api/search"
+               hx-trigger="keyup changed delay:500ms"
+               hx-target="#dancers-table"
+               style="width: 400px; padding: 8px; margin-right: 10px;">
 
-    <h2>Dancers</h2>
-    {% if dancers %}
-        <table border="1" cellpadding="10">
-            <thead>
-                <tr>
-                    <th>Blaze</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Age</th>
-                    <th>Country</th>
-                    <th>City</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for dancer in dancers %}
-                <tr>
-                    <td><strong>{{ dancer.blaze }}</strong></td>
-                    <td>{{ dancer.full_name }}</td>
-                    <td>{{ dancer.email }}</td>
-                    <td>{{ dancer.age }}</td>
-                    <td>{{ dancer.country or "-" }}</td>
-                    <td>{{ dancer.city or "-" }}</td>
-                    <td>
-                        <a href="/dancers/{{ dancer.id }}/edit">Edit</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No dancers found.</p>
-    {% endif %}
+        <a href="/dancers/create" style="padding: 8px 16px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+            + Create New Dancer
+        </a>
+    </div>
 
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+    <p style="font-size: 14px; color: #6c757d;">
+        <em>Live search - results update as you type</em>
+    </p>
+</section>
+
+<section id="dancers-table">
+    {% include "dancers/_table.html" %}
+</section>
+{% endblock %}

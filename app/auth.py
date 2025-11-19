@@ -1,5 +1,5 @@
 """Authentication utilities for magic link authentication."""
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from app.config import settings
@@ -24,7 +24,7 @@ class MagicLinkAuth:
         payload = {
             "email": email,
             "role": role,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
         return self.serializer.dumps(payload, salt="magic-link")
 

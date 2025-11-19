@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Edit User</h2>
+
+<section>
+    <p><a href="/admin/users">← Back to User List</a></p>
+</section>
+
+<section>
+    <form method="post" action="/admin/users/{{ user_to_edit.id }}/edit" style="max-width: 500px;">
+        <div style="margin-bottom: 15px;">
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" name="email" value="{{ user_to_edit.email }}" required style="width: 100%; padding: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="first_name">First Name:</label><br>
+            <input type="text" id="first_name" name="first_name" value="{{ user_to_edit.first_name }}" required style="width: 100%; padding: 8px;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="role">Role:</label><br>
+            <select id="role" name="role" required style="width: 100%; padding: 8px;">
+                {% for role in roles %}
+                <option value="{{ role }}" {% if role == user_to_edit.role.value %}selected{% endif %}>{{ role }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
+            <p style="margin: 0; font-size: 14px; color: #495057;">
+                <strong>Created:</strong> {{ user_to_edit.created_at.strftime('%Y-%m-%d %H:%M') }}<br>
+                <strong>User ID:</strong> {{ user_to_edit.id }}
+            </p>
+        </div>
+
+        <button type="submit" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
+            Update User
+        </button>
+        <a href="/admin/users" style="margin-left: 10px;">Cancel</a>
+    </form>
+</section>
+
+<section style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+    <h3>Other Actions</h3>
+
+    <form method="post" action="/admin/users/{{ user_to_edit.id }}/resend-magic-link" style="display:inline; margin-right: 10px;">
+        <button type="submit" style="background-color: #17a2b8; color: white; padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px;">
+            Resend Magic Link
+        </button>
+    </form>
+
+    <form method="post" action="/admin/users/{{ user_to_edit.id }}/delete" style="display:inline;">
+        <button type="submit"
+                onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.');"
+                style="background-color: #dc3545; color: white; padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px;">
+            Delete User
+        </button>
+    </form>
+</section>
+{% endblock %}

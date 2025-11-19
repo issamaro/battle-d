@@ -1,5 +1,6 @@
 """Main FastAPI application - Battle-D Web App."""
 import logging
+from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -16,18 +17,11 @@ from app.logging_config import setup_logging
 setup_logging(level="INFO" if not settings.DEBUG else "DEBUG")
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title=settings.APP_NAME,
-    debug=settings.DEBUG,
-)
 
-# Templates
-templates = Jinja2Templates(directory="app/templates")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on application startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events (startup and shutdown)."""
+    # Startup
     logger.info("Starting Battle-D application")
     logger.info(f"Debug mode: {settings.DEBUG}")
     logger.info(f"Base URL: {settings.BASE_URL}")
@@ -38,6 +32,21 @@ async def startup_event():
     logger.info(f"Email service initialized with {type(provider).__name__}")
 
     logger.info("Application startup complete")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down Battle-D application")
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    debug=settings.DEBUG,
+    lifespan=lifespan,
+)
+
+# Templates
+templates = Jinja2Templates(directory="app/templates")
 
 
 # Include routers

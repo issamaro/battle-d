@@ -1,53 +1,59 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Dancer - Battle-D</title>
-</head>
-<body>
-    <h1>Create New Dancer</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+{% extends "base.html" %}
+
+{% block title %}Create Dancer - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Create New Dancer</h2>
+
+<section>
     <p><a href="/dancers">← Back to Dancers</a></p>
+</section>
 
-    <form method="post" action="/dancers/create">
-        <div>
+<section>
+    <form method="post" action="/dancers/create" style="max-width: 600px;">
+        <div style="margin-bottom: 15px;">
             <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" name="email" required style="width: 100%; padding: 8px;">
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="first_name">First Name:</label><br>
-            <input type="text" id="first_name" name="first_name" required>
+            <input type="text" id="first_name" name="first_name" required style="width: 100%; padding: 8px;">
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="last_name">Last Name:</label><br>
-            <input type="text" id="last_name" name="last_name" required>
+            <input type="text" id="last_name" name="last_name" required style="width: 100%; padding: 8px;">
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="blaze">Blaze (Stage Name):</label><br>
-            <input type="text" id="blaze" name="blaze" required>
+            <input type="text" id="blaze" name="blaze" required style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">The dancer's stage name or nickname</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="date_of_birth">Date of Birth:</label><br>
-            <input type="date" id="date_of_birth" name="date_of_birth" required>
+            <input type="date" id="date_of_birth" name="date_of_birth" required style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Must be between 10 and 100 years old</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="country">Country:</label><br>
-            <input type="text" id="country" name="country">
+            <input type="text" id="country" name="country" style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Optional</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 20px;">
             <label for="city">City:</label><br>
-            <input type="text" id="city" name="city">
+            <input type="text" id="city" name="city" style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Optional</small>
         </div>
 
-        <br>
-        <button type="submit">Create Dancer</button>
+        <button type="submit" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
+            Create Dancer
+        </button>
+        <a href="/dancers" style="margin-left: 10px;">Cancel</a>
     </form>
-
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+</section>
+{% endblock %}

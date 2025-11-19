@@ -48,7 +48,7 @@ Phased development roadmap from POC to V2.
 
 ---
 
-## Phase 1: Database + CRUD
+## Phase 1: Database + CRUD (COMPLETED ✅)
 
 **Duration:** 7-10 days
 
@@ -65,48 +65,70 @@ Phased development roadmap from POC to V2.
 
 **CRUD Interfaces:**
 
-1. **Admin Manage Users**
+1. **Admin Manage Users** ✅
    - Create User accounts (Staff/MC)
    - Send magic links
    - List users by role
+   - Edit and delete users
+   - Resend magic links
 
-2. **Staff Manage Dancers**
+2. **Staff Manage Dancers** ✅
    - Create Dancer (full form: 8 fields)
    - Edit Dancer information
-   - Search Dancers (by blaze, name, email)
-   - View Dancer history (tournaments participated)
+   - Search Dancers (by blaze, name, email) with HTMX live search
+   - View Dancer profile and history (tournaments participated)
 
-3. **Staff Manage Tournaments**
+3. **Staff Manage Tournaments** ✅
    - Create Tournament
-   - Add/configure Categories
+   - Add/configure Categories (1v1 and 2v2)
    - Set groups_ideal, performers_ideal per category
+   - Dynamic minimum performer calculation display
+   - Database-driven phase navigation with validation
 
-4. **Staff Register Dancers**
+4. **Staff Register Dancers** ✅
    - Select Tournament + Category
-   - Search and select Dancer
+   - Search and select Dancer with HTMX live search
    - Create Performer record
-   - Handle duo pairing (if 2v2 category)
+   - Handle duo pairing (if 2v2 category) with partner linking
+   - JavaScript-based duo selection UI
 
-**Migrations:**
+**Service Layer Architecture:** ✅
+- `DancerService` - Business logic for dancer operations with age/email validation
+- `TournamentService` - Tournament phase advancement with validation
+- `PerformerService` - Registration with duo pairing support
+- `ValidationResult` - Type-safe error handling
+- `ValidationError` - Custom exception for business rules
+
+**Validators & Utils:** ✅
+- `phase_validators.py` - Phase transition validation functions
+- `tournament_calculations.py` - Formulas for min performers, pool distribution
+- Pydantic schemas for all entities with field validation
+
+**Migrations:** ✅
 - Alembic setup
 - Initial schema migration
 - Migration from CLI data (optional)
 
-**Validations:**
+**Validations:** ✅
 - Unique email constraints
 - Unique dancer per tournament
-- Minimum performer requirements
+- Minimum performer requirements: `(groups_ideal × 2) + 2`
+- Phase transition validation (cannot skip phases)
 
-**Tests:**
+**Tests:** ✅
 - Model tests
 - CRUD operation tests
 - Validation tests
-- Target: 90%+ coverage
+- Tournament calculation tests (24 tests)
+- CRUD workflow integration tests
+- Target: 90%+ coverage - **ACHIEVED**
 
-**Deployment:**
+**Deployment:** ✅
 - Same Railway setup
 - SQLite database on `/data` volume
 - Alembic migrations run on deploy
+
+**Status:** COMPLETE - All UI components implemented and tested
 
 ---
 
@@ -368,8 +390,8 @@ Battle starts
 | Phase | Duration | Cumulative | Status |
 |-------|----------|------------|--------|
 | Phase 0 (POC + Railway) | 3-5 days | 3-5 days | ✅ COMPLETE |
-| Phase 1 (Database + CRUD) | 7-10 days | 10-15 days | 📋 Next |
-| Phase 2 (Battle Logic) | 10-14 days | 20-29 days | ⏳ Planned |
+| Phase 1 (Database + CRUD) | 7-10 days | 10-15 days | ✅ COMPLETE |
+| Phase 2 (Battle Logic) | 10-14 days | 20-29 days | 📋 Next |
 | Phase 3 (Projection) | 3-5 days | 23-34 days | ⏳ Planned |
 | Phase 4 (V1 Complete) | 3-5 days | 26-39 days | ⏳ Planned |
 | **V1 RELEASE** | - | **~26-39 days** | 🎯 Target |
@@ -449,9 +471,16 @@ Battle starts
 
 ## Current Status
 
-**Latest:** Phase 0 COMPLETE ✅
-**Next:** Phase 1 (Database + CRUD)
-**Target:** V1 in ~26-39 days
+**Latest:** Phase 1 COMPLETE ✅
+**Next:** Phase 2 (Battle Management + Preselection Logic)
+**Target:** V1 in ~16-24 days remaining
 
 **Live URL:** [To be added after Railway deployment]
 **Cost:** ~$0-5/month (SQLite on Railway free tier)
+
+**Phase 1 Highlights:**
+- Complete CRUD UIs for users, dancers, tournaments, and registration
+- Service layer architecture with validators and utils
+- HTMX integration for live search and dynamic forms
+- Database-driven phase navigation
+- 90%+ test coverage achieved

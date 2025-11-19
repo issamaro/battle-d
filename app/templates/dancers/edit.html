@@ -1,53 +1,66 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Edit Dancer - Battle-D</title>
-</head>
-<body>
-    <h1>Edit Dancer: {{ dancer.blaze }}</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+{% extends "base.html" %}
+
+{% block title %}Edit Dancer - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Edit Dancer: {{ dancer.blaze }}</h2>
+
+<section>
     <p><a href="/dancers">← Back to Dancers</a></p>
+</section>
 
-    <form method="post" action="/dancers/{{ dancer.id }}/edit">
-        <div>
+<section>
+    <form method="post" action="/dancers/{{ dancer.id }}/edit" style="max-width: 600px;">
+        <div style="margin-bottom: 15px;">
             <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" value="{{ dancer.email }}" required>
+            <input type="email" id="email" name="email" value="{{ dancer.email }}" required style="width: 100%; padding: 8px;">
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="first_name">First Name:</label><br>
-            <input type="text" id="first_name" name="first_name" value="{{ dancer.first_name }}" required>
+            <input type="text" id="first_name" name="first_name" value="{{ dancer.first_name }}" required style="width: 100%; padding: 8px;">
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="last_name">Last Name:</label><br>
-            <input type="text" id="last_name" name="last_name" value="{{ dancer.last_name }}" required>
+            <input type="text" id="last_name" name="last_name" value="{{ dancer.last_name }}" required style="width: 100%; padding: 8px;">
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="blaze">Blaze (Stage Name):</label><br>
-            <input type="text" id="blaze" name="blaze" value="{{ dancer.blaze }}" required>
+            <input type="text" id="blaze" name="blaze" value="{{ dancer.blaze }}" required style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">The dancer's stage name or nickname</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="date_of_birth">Date of Birth:</label><br>
-            <input type="date" id="date_of_birth" name="date_of_birth" value="{{ dancer.date_of_birth.isoformat() }}" required>
+            <input type="date" id="date_of_birth" name="date_of_birth" value="{{ dancer.date_of_birth.isoformat() }}" required style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Current age: {{ dancer.age }} years</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 15px;">
             <label for="country">Country:</label><br>
-            <input type="text" id="country" name="country" value="{{ dancer.country or '' }}">
+            <input type="text" id="country" name="country" value="{{ dancer.country or '' }}" style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Optional</small>
         </div>
 
-        <div>
+        <div style="margin-bottom: 20px;">
             <label for="city">City:</label><br>
-            <input type="text" id="city" name="city" value="{{ dancer.city or '' }}">
+            <input type="text" id="city" name="city" value="{{ dancer.city or '' }}" style="width: 100%; padding: 8px;">
+            <small style="color: #6c757d;">Optional</small>
         </div>
 
-        <br>
-        <button type="submit">Update Dancer</button>
-    </form>
+        <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
+            <p style="margin: 0; font-size: 14px; color: #495057;">
+                <strong>Dancer ID:</strong> {{ dancer.id }}<br>
+                <strong>Created:</strong> {{ dancer.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </p>
+        </div>
 
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+        <button type="submit" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
+            Update Dancer
+        </button>
+        <a href="/dancers" style="margin-left: 10px;">Cancel</a>
+    </form>
+</section>
+{% endblock %}

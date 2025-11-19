@@ -289,3 +289,56 @@ def get_battle_repo(session: AsyncSession = Depends(get_db)) -> BattleRepository
         BattleRepository instance
     """
     return BattleRepository(session)
+
+
+# Service dependencies
+def get_tournament_service(session: AsyncSession = Depends(get_db)):
+    """Get TournamentService instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        TournamentService instance with all required repositories
+    """
+    from app.services.tournament_service import TournamentService
+
+    return TournamentService(
+        tournament_repo=TournamentRepository(session),
+        category_repo=CategoryRepository(session),
+        performer_repo=PerformerRepository(session),
+        battle_repo=BattleRepository(session),
+        pool_repo=PoolRepository(session),
+    )
+
+
+def get_dancer_service(session: AsyncSession = Depends(get_db)):
+    """Get DancerService instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        DancerService instance
+    """
+    from app.services.dancer_service import DancerService
+
+    return DancerService(dancer_repo=DancerRepository(session))
+
+
+def get_performer_service(session: AsyncSession = Depends(get_db)):
+    """Get PerformerService instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        PerformerService instance with all required repositories
+    """
+    from app.services.performer_service import PerformerService
+
+    return PerformerService(
+        performer_repo=PerformerRepository(session),
+        category_repo=CategoryRepository(session),
+        dancer_repo=DancerRepository(session),
+    )

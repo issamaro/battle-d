@@ -1,26 +1,34 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Register Dancers - Battle-D</title>
-</head>
-<body>
-    <h1>Register Dancers: {{ category.name }}</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
-    <p><a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a></p>
+{% extends "base.html" %}
 
-    <h2>Tournament: {{ tournament.name }}</h2>
+{% block title %}Register Dancers - {{ category.name }} - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Register Dancers: {{ category.name }}</h2>
+
+<section>
+    <p><a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a></p>
+</section>
+
+<section>
+    <h3>Tournament: {{ tournament.name }}</h3>
     <p>Category: <strong>{{ category.name }}</strong> ({{ category.category_type }})</p>
     <p>Pool Configuration: {{ category.groups_ideal }} pools × {{ category.performers_ideal }} performers = {{ category.ideal_pool_capacity }} total</p>
+</section>
 
-    <h2>Registered Dancers ({{ performers|length }})</h2>
+<section>
+    <h3>Registered {% if category.is_duo %}Duos{% else %}Dancers{% endif %} ({{ performers|length }}{% if category.is_duo %} dancers = {{ (performers|length) // 2 }} duos{% endif %})</h3>
+
     {% if performers %}
-        <table border="1" cellpadding="10">
+        <table border="1" cellpadding="10" style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr>
+                <tr style="background-color: #f4f4f4;">
                     <th>Blaze</th>
                     <th>Name</th>
                     <th>Age</th>
                     <th>Country</th>
+                    {% if category.is_duo %}
+                    <th>Duo Partner</th>
+                    {% endif %}
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -31,6 +39,15 @@
                     <td>{{ performer.dancer.full_name }}</td>
                     <td>{{ performer.dancer.age }}</td>
                     <td>{{ performer.dancer.country or "-" }}</td>
+                    {% if category.is_duo %}
+                    <td>
+                        {% if performer.duo_partner %}
+                        <strong>{{ performer.duo_partner.dancer.blaze }}</strong>
+                        {% else %}
+                        <span style="color: red;">⚠️ No partner</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
                     <td>
                         <form method="post" action="/registration/{{ tournament.id }}/{{ category.id }}/unregister/{{ performer.id }}" style="display:inline;">
                             <button type="submit" onclick="return confirm('Unregister {{ performer.dancer.blaze }}?');">
@@ -43,56 +60,132 @@
             </tbody>
         </table>
     {% else %}
-        <p>No dancers registered yet.</p>
+        <div style="padding: 20px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
+            <p style="margin: 0;">No {% if category.is_duo %}duos{% else %}dancers{% endif %} registered yet.</p>
+        </div>
     {% endif %}
+</section>
 
-    <hr>
+{% if category.is_duo %}
+<!-- DUO (2v2) REGISTRATION -->
+<section style="max-width: 1200px;">
+    <h3>Register New Duo</h3>
 
-    <h2>Register New Dancer</h2>
-    <form method="get" action="/registration/{{ tournament.id }}/{{ category.id }}">
-        <input type="text" name="search" value="{{ search }}" placeholder="Search by blaze, name, or email" size="40">
-        <button type="submit">Search Dancers</button>
-        <a href="/registration/{{ tournament.id }}/{{ category.id }}">Clear</a>
-    </form>
+    <div style="margin-bottom: 15px; padding: 10px; background-color: #fff3cd; border-left: 3px solid #ffc107;">
+        <p style="margin: 0; font-size: 14px; color: #856404;">
+            <strong>Duo Registration:</strong> Search and select two dancers to form a duo. Both dancers will be registered together.
+        </p>
+    </div>
 
-    {% if search %}
-        <h3>Search Results</h3>
-        {% if dancers %}
-            <table border="1" cellpadding="10">
-                <thead>
-                    <tr>
-                        <th>Blaze</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Age</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for dancer in dancers %}
-                    <tr>
-                        <td><strong>{{ dancer.blaze }}</strong></td>
-                        <td>{{ dancer.full_name }}</td>
-                        <td>{{ dancer.email }}</td>
-                        <td>{{ dancer.age }}</td>
-                        <td>
-                            <form method="post" action="/registration/{{ tournament.id }}/{{ category.id }}/register">
-                                <input type="hidden" name="dancer_id" value="{{ dancer.id }}">
-                                <button type="submit">Register</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>No dancers found matching "{{ search }}"</p>
-        {% endif %}
-    {% endif %}
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <!-- Dancer 1 Search -->
+        <div style="border: 2px solid #007bff; padding: 15px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #007bff;">👤 Dancer 1</h4>
+            <input type="text"
+                   id="search-dancer1"
+                   placeholder="Search by blaze, name, or email..."
+                   hx-get="/registration/{{ tournament.id }}/{{ category.id }}/search-dancer"
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-target="#dancer1-results"
+                   style="width: 100%; padding: 8px; margin-bottom: 10px;">
+            <div id="dancer1-results" style="max-height: 300px; overflow-y: auto;">
+                <p style="color: #6c757d; font-size: 14px;">Start typing to search...</p>
+            </div>
+        </div>
 
-    <p><strong>Note:</strong> Each dancer can only register in ONE category per tournament.</p>
+        <!-- Dancer 2 Search -->
+        <div style="border: 2px solid #28a745; padding: 15px; border-radius: 4px;">
+            <h4 style="margin-top: 0; color: #28a745;">👤 Dancer 2</h4>
+            <input type="text"
+                   id="search-dancer2"
+                   placeholder="Search by blaze, name, or email..."
+                   hx-get="/registration/{{ tournament.id }}/{{ category.id }}/search-dancer"
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-target="#dancer2-results"
+                   style="width: 100%; padding: 8px; margin-bottom: 10px;">
+            <div id="dancer2-results" style="max-height: 300px; overflow-y: auto;">
+                <p style="color: #6c757d; font-size: 14px;">Start typing to search...</p>
+            </div>
+        </div>
+    </div>
 
-    <p><a href="/dancers/create">+ Create New Dancer</a></p>
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+    <!-- Selected Duo Summary -->
+    <div id="duo-summary" style="padding: 15px; background-color: #e7f3ff; border-left: 3px solid #007bff; margin-bottom: 15px; display: none;">
+        <h4 style="margin-top: 0;">Selected Duo</h4>
+        <p><strong>Dancer 1:</strong> <span id="selected-dancer1-name">-</span></p>
+        <p><strong>Dancer 2:</strong> <span id="selected-dancer2-name">-</span></p>
+        <form method="post" action="/registration/{{ tournament.id }}/{{ category.id }}/register-duo">
+            <input type="hidden" id="dancer1_id" name="dancer1_id" value="">
+            <input type="hidden" id="dancer2_id" name="dancer2_id" value="">
+            <button type="submit" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
+                Register Duo
+            </button>
+            <button type="button" onclick="clearDuoSelection()" style="margin-left: 10px; padding: 10px 20px; background-color: #6c757d; color: white; border: none; cursor: pointer; border-radius: 4px;">
+                Clear Selection
+            </button>
+        </form>
+    </div>
+
+    <script>
+    let selectedDancer1 = null;
+    let selectedDancer2 = null;
+
+    function selectDancer(dancerId, dancerName, dancerNumber) {
+        if (dancerNumber === 1) {
+            selectedDancer1 = {id: dancerId, name: dancerName};
+            document.getElementById('dancer1_id').value = dancerId;
+            document.getElementById('selected-dancer1-name').textContent = dancerName;
+        } else {
+            selectedDancer2 = {id: dancerId, name: dancerName};
+            document.getElementById('dancer2_id').value = dancerId;
+            document.getElementById('selected-dancer2-name').textContent = dancerName;
+        }
+
+        // Show summary if both dancers selected
+        if (selectedDancer1 && selectedDancer2) {
+            document.getElementById('duo-summary').style.display = 'block';
+        }
+    }
+
+    function clearDuoSelection() {
+        selectedDancer1 = null;
+        selectedDancer2 = null;
+        document.getElementById('dancer1_id').value = '';
+        document.getElementById('dancer2_id').value = '';
+        document.getElementById('selected-dancer1-name').textContent = '-';
+        document.getElementById('selected-dancer2-name').textContent = '-';
+        document.getElementById('duo-summary').style.display = 'none';
+    }
+    </script>
+</section>
+
+{% else %}
+<!-- SOLO (1v1) REGISTRATION -->
+<section style="max-width: 1200px;">
+    <h3>Register New Dancer</h3>
+
+    <div style="margin-bottom: 15px;">
+        <input type="text"
+               id="search-solo"
+               placeholder="Search by blaze, name, or email..."
+               hx-get="/registration/{{ tournament.id }}/{{ category.id }}/search-dancer"
+               hx-trigger="keyup changed delay:500ms"
+               hx-target="#solo-results"
+               style="width: 400px; padding: 8px;">
+    </div>
+
+    <div id="solo-results">
+        <p style="color: #6c757d;">Start typing to search for dancers...</p>
+    </div>
+</section>
+{% endif %}
+
+<section style="margin-top: 20px;">
+    <div style="padding: 10px; background-color: #d1ecf1; border-left: 3px solid #0c5460;">
+        <p style="margin: 0; font-size: 14px; color: #0c5460;">
+            <strong>Note:</strong> Each dancer can only register in ONE category per tournament.
+        </p>
+    </div>
+    <p style="margin-top: 15px;"><a href="/dancers/create">+ Create New Dancer</a></p>
+</section>
+{% endblock %}

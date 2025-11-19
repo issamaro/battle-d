@@ -8,7 +8,7 @@
 
 Battle-D is a complete tournament management system for dance battle competitions (breakdancing, hip hop, krump, etc.). Designed for a single organization hosting multiple tournaments per year with ~50 dancers.
 
-**Status:** Phase 0 (POC) - ✅ Deployed on Railway
+**Status:** Phase 1 COMPLETE - ✅ 97+ tests passing
 
 **Live Demo:** [To be added after deployment]
 
@@ -60,6 +60,7 @@ uvicorn app.main:app --reload
 ## 📚 Documentation
 
 - **[DOMAIN_MODEL.md](DOMAIN_MODEL.md)** - Complete business rules, entities, workflows
+- **[VALIDATION_RULES.md](VALIDATION_RULES.md)** - Phase transition and tournament validation rules
 - **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** - Development roadmap (Phase 0-5)
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Railway deployment guide (step-by-step)
 - **[TESTING.md](TESTING.md)** - Testing guide and best practices
@@ -68,22 +69,28 @@ uvicorn app.main:app --reload
 
 ## ✨ Features
 
-### **Phase 0 (Current) - POC ✅**
+### **Phase 0 - POC ✅**
 - ✅ Magic link authentication (passwordless)
 - ✅ Role-based access (Admin/Staff/MC)
-- ✅ Hardcoded phase navigation
 - ✅ Minimal HTML (zero CSS, structural only)
 - ✅ **Deployed on Railway** with SQLite
 - ✅ Production emails (Brevo - no domain required)
-- ✅ 79 tests passing (SDK-verified)
 - ✅ Cost: ~$0-5/month
 
-### **Phase 1 (Next) - Database + CRUD** 📋
-- SQLAlchemy models (User, Dancer, Tournament, etc.)
-- Full CRUD interfaces
-- **Dancer fields:** email, first_name, last_name, date_of_birth, blaze, country, city
-- Staff manage dancers and tournaments
-- Admin manage users
+### **Phase 1 - Database + CRUD UI ✅ COMPLETE**
+- ✅ SQLAlchemy 2.0 async models (User, Dancer, Tournament, Category, Performer)
+- ✅ Full CRUD interfaces with HTMX live search
+- ✅ **Dancer fields:** email, first_name, last_name, date_of_birth, blaze, country, city
+- ✅ Staff manage dancers and tournaments
+- ✅ Admin manage users (create, edit, delete, resend magic link)
+- ✅ Tournament management with category creation (1v1 and 2v2)
+- ✅ Duo pairing registration UI with JavaScript partner selection
+- ✅ Database-driven phase navigation with validation
+- ✅ Dynamic minimum performer calculation display
+- ✅ **Service layer architecture** (DancerService, TournamentService, PerformerService)
+- ✅ **Validators & utils** (phase validation, tournament calculations)
+- ✅ **Pydantic schemas** for all entities with field validation
+- ✅ 97+ tests passing (integration + unit tests)
 
 ### **Phase 2 (Future) - Battle Management** ⏳
 - **Mandatory preselection** (always triggered)
@@ -119,9 +126,13 @@ web-app/
 │   ├── main.py            # Application entry point
 │   ├── config.py          # Settings
 │   ├── auth.py            # Magic link authentication
-│   ├── dependencies.py    # Auth & role decorators
+│   ├── dependencies.py    # Auth & role decorators, service factories
+│   ├── exceptions.py      # Custom exceptions (ValidationError)
 │   ├── services/          # Business services (SOLID principles)
-│   │   └── email/         # Email service (Adapter pattern)
+│   │   ├── dancer_service.py       # Dancer CRUD with validation
+│   │   ├── tournament_service.py   # Tournament phase management
+│   │   ├── performer_service.py    # Registration with duo pairing
+│   │   └── email/                  # Email service (Adapter pattern)
 │   │       ├── provider.py         # Provider interface
 │   │       ├── service.py          # EmailService (DI)
 │   │       ├── factory.py          # Provider factory
@@ -131,21 +142,31 @@ web-app/
 │   │           ├── resend_provider.py    # Resend adapter
 │   │           ├── gmail_provider.py     # Gmail adapter
 │   │           └── console_provider.py   # Console adapter (dev)
+│   ├── validators/        # Validation logic
+│   │   ├── result.py              # ValidationResult dataclass
+│   │   └── phase_validators.py    # Phase transition validators
+│   ├── utils/             # Utility functions
+│   │   └── tournament_calculations.py  # Tournament formulas
+│   ├── schemas/           # Pydantic validation schemas
+│   │   ├── user.py, dancer.py, tournament.py, category.py, performer.py
 │   ├── routers/           # API routes
 │   │   ├── auth.py        # Login, magic links
+│   │   ├── admin.py       # User management
+│   │   ├── dancers.py     # Dancer CRUD
+│   │   ├── tournaments.py # Tournament management
+│   │   ├── registration.py # Performer registration
 │   │   └── phases.py      # Phase navigation
-│   └── templates/         # Jinja2 HTML
+│   └── templates/         # Jinja2 HTML with HTMX
 │       ├── base.html
-│       ├── dashboard.html
-│       ├── auth/
-│       └── phases/
+│       ├── auth/, admin/, dancers/, tournaments/, registration/, phases/
 │
-├── tests/                 # 79 tests (auth, permissions, phases, email providers)
+├── tests/                 # 97+ tests (auth, permissions, models, calculations, workflows)
 │   ├── test_auth.py
 │   ├── test_permissions.py
-│   ├── test_phases.py
-│   ├── test_brevo_provider.py
-│   └── test_gmail_provider.py
+│   ├── test_models.py
+│   ├── test_tournament_calculations.py
+│   ├── test_crud_workflows.py
+│   └── test_*_provider.py
 │
 ├── data/                  # SQLite database
 │   └── .gitkeep
@@ -249,8 +270,17 @@ pytest tests/ -v
 pytest tests/ --cov=app --cov-report=html
 
 # Current status
-79/79 tests passing ✅
+97 passed, 8 skipped ✅
 ```
+
+**Test Coverage:**
+- Authentication & sessions (15 tests)
+- Email providers (Brevo, Gmail) (13 tests)
+- Permissions & role-based access (11 tests)
+- Database models & repositories (14 tests)
+- Tournament calculations (24 tests)
+- CRUD workflows integration (9 tests)
+- Email templates (11 tests)
 
 ---
 
@@ -342,14 +372,14 @@ Registration → Preselection → Pools → Finals → Completed
 | Phase | Status | ETA | Description |
 |-------|--------|-----|-------------|
 | **Phase 0** | ✅ Complete | Done | POC + Railway deployment |
-| **Phase 1** | 📋 Next | +7-10 days | Database + CRUD |
-| **Phase 2** | ⏳ Planned | +10-14 days | Battle management |
+| **Phase 1** | ✅ Complete | Done | Database + CRUD UI + Service Layer |
+| **Phase 2** | 📋 Next | +10-14 days | Battle management |
 | **Phase 3** | ⏳ Planned | +3-5 days | Projection screen |
 | **Phase 4** | 🎯 Target | +3-5 days | **V1 RELEASE** |
 | **Phase 5** | 🎯 Extended | +5-7 days | **V2 RELEASE** (Judge interface) |
 
-**Total V1:** ~26-39 days
-**Total V2:** ~31-46 days
+**Total V1:** ~16-22 days remaining
+**Total V2:** ~21-29 days remaining
 
 **Full roadmap:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
 
@@ -384,17 +414,27 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## 🎉 Achievements
 
+### Phase 0 - POC ✅
 - ✅ Zero-CSS, backend-focused architecture
 - ✅ Complete authentication system (magic links)
 - ✅ Role-based access control
-- ✅ Hardcoded phase navigation
-- ✅ 79 tests passing (100%, SDK-verified email providers)
-- ✅ Production deployment (Railway)
-- ✅ Cost-effective (~$0-5/month)
-- ✅ Comprehensive documentation
 - ✅ Multiple email providers (Brevo recommended for Railway)
+- ✅ Production deployment ready (Railway)
+- ✅ Cost-effective (~$0-5/month)
 
-**Next:** Phase 1 - Database + CRUD
+### Phase 1 - Database + CRUD ✅
+- ✅ SQLAlchemy 2.0 async database with repository pattern
+- ✅ Service layer architecture (DancerService, TournamentService, PerformerService)
+- ✅ Validators and utils infrastructure (phase validation, tournament calculations)
+- ✅ Pydantic schemas for all entities with field validation
+- ✅ Full CRUD UIs with HTMX v2.0.4 live search
+- ✅ Duo pairing registration with partner linking
+- ✅ Database-driven phase navigation with validation
+- ✅ Dynamic tournament calculation display
+- ✅ 97+ tests passing (auth, permissions, models, calculations, workflows)
+- ✅ Comprehensive documentation (DOMAIN_MODEL.md, VALIDATION_RULES.md, ARCHITECTURE.md)
+
+**Next:** Phase 2 - Battle Management
 
 ---
 

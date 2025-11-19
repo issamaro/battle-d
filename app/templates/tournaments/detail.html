@@ -1,52 +1,93 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ tournament.name }} - Battle-D</title>
-</head>
-<body>
-    <h1>Tournament: {{ tournament.name }}</h1>
-    <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
+{% extends "base.html" %}
+
+{% block title %}{{ tournament.name }} - Battle-D{% endblock %}
+
+{% block content %}
+<h2>Tournament: {{ tournament.name }}</h2>
+
+<section>
     <p><a href="/tournaments">← Back to Tournaments</a></p>
+</section>
 
-    <h2>Tournament Information</h2>
-    <table border="1" cellpadding="10">
-        <tr>
-            <td><strong>Status:</strong></td>
-            <td>{{ tournament.status.value }}</td>
-        </tr>
-        <tr>
-            <td><strong>Phase:</strong></td>
-            <td>{{ tournament.phase.value }}</td>
-        </tr>
-        <tr>
-            <td><strong>Created:</strong></td>
-            <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-        </tr>
-    </table>
+<section style="max-width: 1200px;">
+    <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+        <div style="flex: 1; padding: 15px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
+            <h3 style="margin-top: 0;">Tournament Information</h3>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="padding: 5px;"><strong>Status:</strong></td>
+                    <td style="padding: 5px;">
+                        <span style="padding: 4px 8px; background-color: {% if tournament.status.value == 'active' %}#28a745{% else %}#6c757d{% endif %}; color: white; border-radius: 4px; font-size: 12px;">
+                            {{ tournament.status.value|upper }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px;"><strong>Phase:</strong></td>
+                    <td style="padding: 5px;">
+                        <span style="padding: 4px 8px; background-color: #007bff; color: white; border-radius: 4px; font-size: 12px;">
+                            {{ tournament.phase.value|upper }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 5px;"><strong>Created:</strong></td>
+                    <td style="padding: 5px;">{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+            </table>
 
-    <h2>Categories</h2>
-    <p><a href="/tournaments/{{ tournament.id }}/add-category">+ Add Category</a></p>
+            {% if current_user.is_admin %}
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                <a href="/tournaments/{{ tournament.id }}/phase" style="padding: 6px 12px; background-color: #ffc107; color: #000; text-decoration: none; border-radius: 4px; font-size: 14px;">
+                    ⚙️ Manage Phase
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section style="max-width: 1200px;">
+    <h3>Categories</h3>
+
+    <div style="margin-bottom: 20px;">
+        <a href="/tournaments/{{ tournament.id }}/add-category" style="padding: 8px 16px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+            + Add Category
+        </a>
+    </div>
 
     {% if category_data %}
-        <table border="1" cellpadding="10">
+        <table border="1" cellpadding="10" style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr>
+                <tr style="background-color: #f4f4f4;">
                     <th>Category Name</th>
                     <th>Type</th>
-                    <th>Registered Performers</th>
-                    <th>Ideal Pool Size</th>
-                    <th>Groups</th>
+                    <th>Registered</th>
+                    <th>Minimum Required</th>
+                    <th>Ideal Capacity</th>
+                    <th>Pools</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in category_data %}
+                {% set minimum_required = (item.category.groups_ideal * 2) + 2 %}
+                {% set is_ready = item.performer_count >= minimum_required %}
                 <tr>
                     <td><strong>{{ item.category.name }}</strong></td>
                     <td>{{ item.category.category_type }}</td>
-                    <td>{{ item.performer_count }}</td>
-                    <td>{{ item.category.ideal_pool_capacity }} ({{ item.category.performers_ideal }} per pool)</td>
-                    <td>{{ item.category.groups_ideal }}</td>
+                    <td style="text-align: center;">
+                        <span style="padding: 4px 8px; background-color: {% if is_ready %}#28a745{% else %}#dc3545{% endif %}; color: white; border-radius: 4px; font-size: 14px; font-weight: bold;">
+                            {{ item.performer_count }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">{{ minimum_required }}</td>
+                    <td style="text-align: center;">
+                        {{ item.category.ideal_pool_capacity }}
+                        <br>
+                        <small style="color: #6c757d;">({{ item.category.performers_ideal }}/pool)</small>
+                    </td>
+                    <td style="text-align: center;">{{ item.category.groups_ideal }}</td>
                     <td>
                         <a href="/registration/{{ tournament.id }}/{{ item.category.id }}">Register Dancers</a>
                     </td>
@@ -54,10 +95,20 @@
                 {% endfor %}
             </tbody>
         </table>
-    {% else %}
-        <p>No categories yet. Add a category to get started.</p>
-    {% endif %}
 
-    <p><a href="/auth/logout">Logout</a></p>
-</body>
-</html>
+        <div style="margin-top: 15px; padding: 10px; background-color: #d1ecf1; border-left: 3px solid #0c5460;">
+            <p style="margin: 0; font-size: 14px; color: #0c5460;">
+                <strong>Legend:</strong>
+                <span style="padding: 2px 6px; background-color: #28a745; color: white; border-radius: 3px; margin-left: 10px;">Green</span> = Ready to advance
+                <span style="padding: 2px 6px; background-color: #dc3545; color: white; border-radius: 3px; margin-left: 10px;">Red</span> = Need more performers
+            </p>
+        </div>
+    {% else %}
+        <div style="padding: 20px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
+            <p style="margin: 0; font-size: 14px;">
+                No categories yet. Add a category to get started with registration!
+            </p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

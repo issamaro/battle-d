@@ -54,6 +54,42 @@ async def list_dancers(
     )
 
 
+@router.get("/api/search", response_class=HTMLResponse)
+async def search_dancers_api(
+    request: Request,
+    query: str = "",
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+):
+    """HTMX endpoint for live dancer search.
+
+    Args:
+        request: FastAPI request
+        query: Search query
+        current_user: Current authenticated user
+        dancer_repo: Dancer repository
+
+    Returns:
+        HTML partial with dancer table
+    """
+    user = require_staff(current_user)
+
+    # Search dancers
+    if query:
+        dancers = await dancer_repo.search(query)
+    else:
+        dancers = await dancer_repo.get_all(limit=100)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="dancers/_table.html",
+        context={
+            "dancers": dancers,
+            "search": query,
+        },
+    )
+
+
 @router.get("/create", response_class=HTMLResponse)
 async def create_dancer_form(
     request: Request,
@@ -137,6 +173,55 @@ async def create_dancer(
     )
 
     return RedirectResponse(url="/dancers", status_code=303)
+
+
+@router.get("/{dancer_id}/profile", response_class=HTMLResponse)
+async def view_dancer_profile(
+    dancer_id: str,
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+):
+    """Display dancer profile with tournament history (staff only).
+
+    Args:
+        dancer_id: Dancer UUID
+        request: FastAPI request
+        current_user: Current authenticated user
+        dancer_repo: Dancer repository
+
+    Returns:
+        HTML page with dancer profile
+    """
+    user = require_staff(current_user)
+
+    # Parse UUID
+    try:
+        dancer_uuid = uuid.UUID(dancer_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid dancer ID",
+        )
+
+    # Get dancer
+    dancer = await dancer_repo.get_by_id(dancer_uuid)
+    if not dancer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dancer not found",
+        )
+
+    # TODO: In Phase 2, fetch tournament history via performer relationships
+    # For now, just show dancer details
+    return templates.TemplateResponse(
+        request=request,
+        name="dancers/profile.html",
+        context={
+            "current_user": user,
+            "dancer": dancer,
+        },
+    )
 
 
 @router.get("/{dancer_id}/edit", response_class=HTMLResponse)
