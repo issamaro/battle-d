@@ -134,97 +134,240 @@ Phased development roadmap from POC to V2.
 
 ## Phase 2: Battle Management + Preselection Logic
 
-**Duration:** 10-14 days
+**Duration:** 7-10 days (reduced from 10-14, infrastructure already complete)
 
-**Objective:** Complete battle system with mandatory preselection.
+**Status:** 🟡 IN PROGRESS (~35% complete - Infrastructure done, Execution logic needed)
 
-### **2.1 Preselection (MANDATORY)**
+**Objective:** Implement battle execution, scoring interfaces, and queue management.
 
-**Pool Structure Calculation:**
-- Input: registered_performers (rp), groups_ideal
-- Output: pool_performers (pp) where pp < rp
-- Constraint: Always eliminate at least 2 performers
-- Adaptive pool sizes (e.g., rp=8 → pp=6, pools of 3)
+### **2.0 Infrastructure Layer (COMPLETED ✅ in Phase 1)**
 
-**Battle Generation:**
-- Mostly 1v1 pairings (random shuffle)
-- 3-way battle if odd number
-- Judges score 0-10 per performer
-- Calculate average score (2 decimals)
+**Database Models:** ✅ COMPLETE
+- Battle model with all phases (PRESELECTION, POOLS, TIEBREAK, FINALS)
+- Battle outcome types (SCORED, WIN_DRAW_LOSS, TIEBREAK, WIN_LOSS)
+- Pool model with performer relationships and winner tracking
+- Performer stats (preselection_score, pool_wins/draws/losses, pool_points computed property)
+- Database migrations applied and tested
 
-**Qualification:**
-- Sort by descending score
-- Top pp performers qualify
-- Detect ties at boundary
-- **Auto-create tiebreak battles** if tied at cutoff
+**Repository Layer:** ✅ COMPLETE
+- `BattleRepository` - CRUD, filter by category/phase/status, get active battle
+- `PoolRepository` - CRUD, get by category, create pools
+- All repository methods tested
 
-### **2.2 Pool Phase**
+**Calculation Utilities:** ✅ COMPLETE
+- `calculate_pool_capacity(registered_performers, groups_ideal)` - Determines pool size with ~20-25% elimination
+- `distribute_performers_to_pools(performer_count, groups_ideal)` - Even distribution (sizes differ by max 1)
+- `calculate_minimum_performers(groups_ideal)` - Formula: (groups_ideal × 2) + 2
+- `calculate_minimum_for_category(groups_ideal, performers_ideal)` - All tournament metrics
+- **24 comprehensive tests** covering all formulas and edge cases
 
-**Pool Creation:**
-- Create groups_ideal pools
-- Distribute performers evenly
-- Round-robin battle generation (all vs all)
+**Phase Validators:** ✅ COMPLETE
+- `validate_registration_to_preselection()` - Checks minimum performers per category
+- `validate_preselection_to_pools()` - Validates battle completion and scores
+- `validate_pools_to_finals()` - Validates pool battles and winners
+- `validate_finals_to_completed()` - Validates finals completion
+- **Note:** Validators assume battles exist (battle creation logic in sections 2.1-2.4 below)
 
-**Battle Execution:**
-- Sequential battles (one active at a time)
-- Interface: Start Battle / End Battle buttons
-- Staff/Admin manually encodes results (Win/Draw/Loss)
+**What This Means:**
+- All data structures ready for battle management
+- All formulas implemented and tested
+- Validation logic ready
+- **Remaining work:** Battle generation services, scoring UI, queue management
 
-**Points Calculation:**
-- Win = 3 points
-- Draw = 1 point
-- Loss = 0 points
-- Computed pool_points property
+---
 
-**Winner Determination:**
-- Highest pool_points wins
-- Detect ties at top
-- **Auto-create tiebreak battles** if tied
+### **2.1 Battle Generation Services** ❌ NOT STARTED (~20% of Phase 2)
 
-### **2.3 Tiebreak Logic (Complete Implementation)**
+**Create BattleService:**
+- [ ] Preselection battle generation
+  - [ ] 1v1 pairing algorithm with random shuffle
+  - [ ] 3-way battle creation if odd number of performers
+  - [ ] Assign outcome_type = SCORED
+- [ ] Pool battle generation
+  - [ ] Round-robin generation (all vs all within pool)
+  - [ ] Assign outcome_type = WIN_DRAW_LOSS
+- [ ] Finals battle generation
+  - [ ] Create battle with pool winners
+  - [ ] Assign outcome_type = WIN_LOSS (no draws)
+- [ ] Battle status transitions
+  - [ ] pending → active (start battle)
+  - [ ] active → completed (encode results)
+- [ ] Queue management
+  - [ ] Enforce one active battle at a time
+  - [ ] Get next pending battle
 
-**Tiebreak Battle Creation:**
-- Triggered automatically when ties detected
-- Input: N tied performers, P winners needed
-- Constraint: P < N
+**Create PoolService:**
+- [ ] Pool creation based on qualification results
+  - [ ] Use `calculate_pool_capacity()` to determine pool size
+  - [ ] Sort performers by preselection_score (descending)
+  - [ ] Select top pp performers
+- [ ] Performer distribution to pools
+  - [ ] Use `distribute_performers_to_pools()` for even distribution
+  - [ ] Assign performers to created pools
+- [ ] Winner determination
+  - [ ] Calculate pool_points for all performers
+  - [ ] Determine highest points per pool
+  - [ ] Detect ties and trigger tiebreak
 
-**Judging Algorithm:**
-- If N=2: Judges vote who to KEEP
-- If N>2: Judges vote who to ELIMINATE (iterative)
-- Rounds continue until exactly P winners
-- Majority vote per round
-- Store all judge votes for audit
+**Create TiebreakService:**
+- [ ] Detect ties at preselection qualification cutoff
+  - [ ] Find performers with same score at boundary
+  - [ ] Calculate how many spots available (P) vs tied (N)
+- [ ] Detect ties for pool winners
+  - [ ] Find performers with same pool_points at top
+  - [ ] Require exactly 1 winner per pool
+- [ ] Generate tiebreak battles
+  - [ ] Create battle with N tied performers
+  - [ ] Assign outcome_type = TIEBREAK
+  - [ ] Set P (winners_needed) in battle
+- [ ] Implement voting logic
+  - [ ] N=2: Judges vote who to KEEP
+  - [ ] N>2: Judges vote who to ELIMINATE (iterative rounds)
+  - [ ] Store all votes in battle.outcome
+
+**Files to Create:**
+- `app/services/battle_service.py`
+- `app/services/pool_service.py`
+- `app/services/tiebreak_service.py`
+
+### **2.2 Battle Routes & UI** ❌ NOT STARTED (~25% of Phase 2)
+
+**Battle Routes** (`app/routers/battles.py`):
+- [ ] `GET /battles` - Battle queue/list view
+  - [ ] Show all battles by status (pending, active, completed)
+  - [ ] Highlight current active battle
+  - [ ] "Next Battle" button (starts next pending)
+- [ ] `GET /battles/{id}` - Battle details view
+  - [ ] Display performers, phase, status
+  - [ ] Show current outcome if completed
+- [ ] `POST /battles/{id}/start` - Start battle (pending → active)
+  - [ ] Validate no other battle is active
+  - [ ] Update status to ACTIVE
+  - [ ] Redirect to encoding interface
+- [ ] `POST /battles/{id}/encode` - Encode battle results
+  - [ ] Route to appropriate encoding handler based on outcome_type
+  - [ ] Validate all required data present
+  - [ ] Store results in battle.outcome
+  - [ ] Update performer stats if needed
+- [ ] `POST /battles/{id}/complete` - Complete battle (active → completed)
+  - [ ] Validate outcome data is present
+  - [ ] Update status to COMPLETED
+  - [ ] Redirect to battle queue
+
+**Templates to Create:**
+- [ ] `battles/list.html` - Queue display with status indicators
+- [ ] `battles/detail.html` - Battle information
+- [ ] `battles/encode_preselection.html` - Scoring grid (judges × performers)
+- [ ] `battles/encode_pool.html` - Winner/draw selection
+- [ ] `battles/encode_tiebreak.html` - Judge voting interface
+- [ ] `pools/overview.html` - Pool standings and points
+
+**HTMX Features:**
+- [ ] Auto-refresh battle queue every 10 seconds
+- [ ] Inline status updates without page reload
+- [ ] Dynamic encoding form based on outcome_type
+
+### **2.3 Scoring & Encoding Logic** ❌ NOT STARTED (~20% of Phase 2)
+
+**Preselection Encoding:**
+- [ ] Input validation
+  - [ ] 0-10 range per performer per judge
+  - [ ] Decimal allowed (e.g., 7.5)
+  - [ ] All judges must submit scores for all performers
+- [ ] Calculate average scores
+  - [ ] Average across all judges per performer
+  - [ ] Round to 2 decimal places
+  - [ ] Store in `performer.preselection_score`
+- [ ] Determine qualification
+  - [ ] Sort performers by score (descending)
+  - [ ] Mark top pp as qualified
+  - [ ] Detect ties at cutoff
+
+**Pool Battle Encoding:**
+- [ ] Winner selection interface
+  - [ ] Radio buttons: Performer 1, Performer 2, Draw
+  - [ ] Validate exactly one option selected
+- [ ] Update performer stats
+  - [ ] Winner: `performer.add_pool_win()`
+  - [ ] Loser: `performer.add_pool_loss()`
+  - [ ] Draw: `performer.add_pool_draw()` for both
+  - [ ] Auto-calculate `pool_points` property
+- [ ] Store outcome
+  - [ ] `battle.set_win_draw_loss_outcome(winner_id, is_draw)`
+
+**Tiebreak Battle Encoding:**
+- [ ] Judge voting interface
+  - [ ] If N=2: Radio buttons "Keep Performer 1" / "Keep Performer 2"
+  - [ ] If N>2: Checkboxes "Eliminate Performer X" (one per judge)
+- [ ] Round management
+  - [ ] Collect votes from all judges
+  - [ ] Determine majority vote
+  - [ ] If N>2: Eliminate one, repeat with N-1
+  - [ ] If N=2: Select winner based on majority
+- [ ] Store all votes
+  - [ ] Format: `{"judge_1_round_1": "performer_id", ...}`
+  - [ ] `battle.set_tiebreak_outcome(n_participants, p_winners_needed, judge_votes, winner_ids)`
+
+**Pydantic Schemas to Create:**
+- [ ] `app/schemas/battle.py` - CreateBattleSchema, EncodeBattleSchema
+- [ ] `app/schemas/pool.py` - CreatePoolSchema, PoolStandingsSchema
+- [ ] `app/schemas/scoring.py` - PreselectionScoreSchema, TiebreakVoteSchema
+
+### **2.4 Phase Transition Hooks** ❌ CRITICAL (~10% of Phase 2)
 
 **Integration Points:**
-- Preselection qualification ties
-- Pool winner ties
-- Multi-round handling
 
-### **2.4 Queue Management**
+**REGISTRATION → PRESELECTION:**
+- [ ] Call `BattleService.generate_preselection_battles(category_id)`
+  - [ ] For each category with sufficient performers
+  - [ ] Create 1v1 or 3-way battles
+  - [ ] Set all battles to status = PENDING
 
-- Global battle queue
-- One battle active at a time
-- Status transitions: pending → active → completed
-- Admin/Staff controls progression
+**PRESELECTION → POOLS:**
+- [ ] Call `PoolService.create_pools_from_qualification(category_id)`
+  - [ ] Use preselection_score to determine top pp performers
+  - [ ] Create pools with even distribution
+  - [ ] Call `BattleService.generate_pool_battles(pool_id)` for each pool
+  - [ ] Set all battles to status = PENDING
 
-### **2.5 Manual Encoding Interface**
+**POOLS → FINALS:**
+- [ ] Call `BattleService.generate_finals_battles(category_id)`
+  - [ ] Extract one winner per pool
+  - [ ] Create finals bracket
+  - [ ] Set all battles to status = PENDING
 
-**Preselection:**
-- Form with 3 judges × N performers
-- Input: scores 0-10
-- Calculate averages automatically
+**Current Gap:**
+`app/routers/phases.py` validates phase transitions but **does NOT create battles**.
 
-**Pools/Finals:**
-- Select winner or mark draw
-- Update performer stats (wins, draws, losses)
-- Compute pool_points
+**Files to Modify:**
+- [ ] `app/routers/phases.py` - Add battle/pool generation calls after validation
+- [ ] `app/services/tournament_service.py` - Coordinate battle/pool/tiebreak services
 
-**Tests:**
-- Battle generation tests
-- Scoring calculation tests
-- Tiebreak algorithm tests
-- Pool structure tests
-- Phase transition tests
+**Example Implementation:**
+```python
+# In app/routers/phases.py - advance_tournament_phase()
+if tournament.phase == Phase.REGISTRATION and validation.success:
+    # Auto-generate preselection battles
+    for category in tournament.categories:
+        await battle_service.generate_preselection_battles(category.id)
+
+    tournament.phase = Phase.PRESELECTION
+    await tournament_repo.update(tournament)
+```
+
+### **2.5 Testing & Documentation**
+
+**Tests to Create:**
+- [ ] `tests/test_battle_service.py` - Battle generation, status transitions
+- [ ] `tests/test_pool_service.py` - Pool creation, distribution, winner determination
+- [ ] `tests/test_tiebreak_service.py` - Tie detection, tiebreak battles, voting logic
+- [ ] `tests/test_battle_routes.py` - HTTP endpoints, encoding, queue management
+- [ ] `tests/test_phase_2_integration.py` - Complete tournament flow (registration → completed)
+
+**Documentation:**
+- [ ] Update ARCHITECTURE.md with battle service patterns
+- [ ] Document battle encoding workflows
+- [ ] Add tiebreak algorithm explanation
 
 ---
 
@@ -391,12 +534,12 @@ Battle starts
 |-------|----------|------------|--------|
 | Phase 0 (POC + Railway) | 3-5 days | 3-5 days | ✅ COMPLETE |
 | Phase 1 (Database + CRUD) | 7-10 days | 10-15 days | ✅ COMPLETE |
-| Phase 2 (Battle Logic) | 10-14 days | 20-29 days | 📋 Next |
-| Phase 3 (Projection) | 3-5 days | 23-34 days | ⏳ Planned |
-| Phase 4 (V1 Complete) | 3-5 days | 26-39 days | ⏳ Planned |
-| **V1 RELEASE** | - | **~26-39 days** | 🎯 Target |
-| Phase 5 (Judge Interface V2) | 5-7 days | 31-46 days | ⏳ Future |
-| **V2 RELEASE** | - | **~31-46 days** | 🎯 Extended |
+| Phase 2 (Battle Logic) | 7-10 days | 17-25 days | 🟡 IN PROGRESS (35% infrastructure done) |
+| Phase 3 (Projection) | 3-5 days | 20-30 days | ⏳ Planned |
+| Phase 4 (V1 Complete) | 3-5 days | 23-35 days | ⏳ Planned |
+| **V1 RELEASE** | - | **~23-35 days** | 🎯 Target |
+| Phase 5 (Judge Interface V2) | 5-7 days | 28-42 days | ⏳ Future |
+| **V2 RELEASE** | - | **~28-42 days** | 🎯 Extended |
 
 **Notes:**
 - Solo developer timeline
@@ -471,9 +614,9 @@ Battle starts
 
 ## Current Status
 
-**Latest:** Phase 1 COMPLETE ✅
-**Next:** Phase 2 (Battle Management + Preselection Logic)
-**Target:** V1 in ~16-24 days remaining
+**Latest:** Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS 🟡
+**Next:** Phase 2 Battle Execution Logic (infrastructure 35% done)
+**Target:** V1 in ~13-20 days remaining
 
 **Live URL:** [To be added after Railway deployment]
 **Cost:** ~$0-5/month (SQLite on Railway free tier)
@@ -484,3 +627,10 @@ Battle starts
 - HTMX integration for live search and dynamic forms
 - Database-driven phase navigation
 - 90%+ test coverage achieved
+
+**Phase 2 Infrastructure Complete (35%):**
+- Database models (Battle, Pool, Performer stats) ✅
+- Repositories (BattleRepository, PoolRepository) ✅
+- Calculation utilities (pool structure, distribution) with 24 tests ✅
+- Phase validators (validation logic ready) ✅
+- **Remaining:** Battle generation services, scoring UI, queue management, phase hooks
