@@ -3,6 +3,7 @@
 This document specifies all validation rules for the Battle-D tournament management system, particularly focusing on phase transitions and tournament constraints.
 
 ## Table of Contents
+- [Tournament Status Lifecycle](#tournament-status-lifecycle)
 - [Performer Registration Validation](#performer-registration-validation)
 - [Phase Transition Validation](#phase-transition-validation)
 - [Tournament Calculations](#tournament-calculations)
@@ -10,31 +11,85 @@ This document specifies all validation rules for the Battle-D tournament managem
 
 ---
 
+## Tournament Status Lifecycle
+
+**Status Enum:** `TournamentStatus(created | active | completed)`
+
+**Lifecycle Flow:**
+```
+CREATED → ACTIVE → COMPLETED
+```
+
+### Status Definitions
+
+**CREATED:**
+- Initial status when tournament is created
+- Tournament setup in progress (adding categories, configuring settings)
+- Not yet open for competition
+- Multiple tournaments can be in CREATED status simultaneously
+
+**ACTIVE:**
+- Tournament is running and open for competition
+- **Only one tournament can be ACTIVE at a time** (enforced constraint)
+- Automatic activation occurs when advancing from REGISTRATION phase if validation passes
+- Cannot manually activate if another tournament is already ACTIVE
+
+**COMPLETED:**
+- Tournament has finished all phases
+- Final results are locked
+- Automatic completion when advancing from FINALS phase
+
+### Activation Rules
+
+**Auto-Activation on Phase Advancement:**
+When advancing from REGISTRATION → PRESELECTION:
+1. Tournament must be in CREATED status
+2. Validation must pass (minimum performers, categories configured)
+3. No other tournament can be ACTIVE
+4. If all checks pass: tournament automatically transitions CREATED → ACTIVE
+
+**Implementation:**
+```python
+# In TournamentService.advance_tournament_phase()
+if tournament.status == TournamentStatus.CREATED and tournament.phase == TournamentPhase.REGISTRATION:
+    active_tournament = await tournament_repo.get_active()
+    if active_tournament and active_tournament.id != tournament.id:
+        raise ValidationError(["Cannot activate: another tournament is already active"])
+
+    tournament.activate()  # CREATED → ACTIVE
+```
+
+**Constraint Enforcement:**
+- Attempting to activate when another tournament is ACTIVE raises `ValidationError`
+- Complete or deactivate the active tournament before activating a new one
+
+---
+
 ## Performer Registration Validation
 
 ### Minimum Performer Requirements
 
-**Formula:** `minimum_performers = (groups_ideal × 2) + 2`
+**Formula:** `minimum_performers = (groups_ideal × 2) + 1`
 
 **Rationale:**
 - Ensures minimum 2 performers per pool group
-- Guarantees at least 2 performers are eliminated in preselection
+- Guarantees at least 1 performer is eliminated in preselection
 - Prevents tournaments with insufficient competition
 
 **Examples:**
 | groups_ideal | Calculation | Minimum Required |
 |--------------|-------------|------------------|
-| 1            | (1 × 2) + 2 | 4                |
-| 2            | (2 × 2) + 2 | 6                |
-| 3            | (3 × 2) + 2 | 8                |
-| 4            | (4 × 2) + 2 | 10               |
+| 1            | (1 × 2) + 1 | 3                |
+| 2            | (2 × 2) + 1 | 5                |
+| 3            | (3 × 2) + 1 | 7                |
+| 4            | (4 × 2) + 1 | 9                |
 
 **Implementation:**
 ```python
 from app.utils.tournament_calculations import calculate_minimum_performers
 
 minimum = calculate_minimum_performers(groups_ideal=2)
-# Returns: 6
+# Returns: 5
 ```
 
 ### One Dancer Per Tournament Rule
@@ -72,7 +127,7 @@ minimum = calculate_minimum_performers(groups_ideal=2)
 Tournaments must progress through phases in strict order:
 
 ```
-REGISTRATION → PRESELECTION → POOLS → FINALS → ARCHIVED
+REGISTRATION → PRESELECTION → POOLS → FINALS → COMPLETED
 ```
 
 **Rules:**
@@ -88,7 +143,7 @@ REGISTRATION → PRESELECTION → POOLS → FINALS → ARCHIVED
    ```python
    for category in tournament.categories:
        performer_count = count_performers(category_id)
-       minimum_required = (category.groups_ideal * 2) + 2
+       minimum_required = (category.groups_ideal * 2) + 1
 
        if performer_count < minimum_required:
            errors.append(f"Category {category.name}: needs {minimum_required - performer_count} more performers")
@@ -158,7 +213,7 @@ Cannot advance to PRESELECTION phase:
 - Create finals bracket with pool winners
 - Seed bracket based on pool performance
 
-### Phase 4: FINALS → ARCHIVED
+### Phase 4: FINALS → COMPLETED
 
 **Validation Rules:**
 
@@ -170,7 +225,7 @@ Cannot advance to PRESELECTION phase:
    - Champion, runner-up, and other placements determined
 
 **Automatic Actions:**
-- Mark tournament as archived
+- Mark tournament as completed
 - Lock all data from further modification
 - Generate final results report
 
@@ -222,6 +277,47 @@ elimination_count = registered_performers - ideal_pool_capacity
 if elimination_count < 2:
     raise ValueError("Must eliminate at least 2 performers in preselection")
 ```
+
+---
+
+## UI Field Validation
+
+### Field Length Requirements
+
+| Field | Min Length | Max Length | Notes |
+|-------|------------|------------|-------|
+| Tournament Name | 1 char | 100 chars | Required, unique |
+| Tournament Description | 0 char | 500 chars | Optional |
+| Blaze Name | 1 char | 50 chars | Required, unique |
+| Real Name | 1 char | 100 chars | Required |
+| Email | Valid format | 255 chars | Required, RFC 5322 format |
+| Category Name | 1 char | 50 chars | Required, unique per tournament |
+
+### Pool Configuration Limits
+
+| Setting | Min | Max | Notes |
+|---------|-----|-----|-------|
+| Pools per Category | 2 | 10 | Minimum 2 required for finals |
+| Performers per Pool | 2 | - | Auto-distributed evenly |
+
+**Pool Distribution:** Pool sizes must differ by at most 1 (automatically balanced by system).
+
+### Magic Link Authentication
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| Link Expiration | 5 minutes | From time of generation |
+| Cooldown | 30 seconds | Between requests for same email |
+| Rate Limit | 5 per 15 minutes | Per email address |
+
+### Deletion Rules
+
+| Entity | Can Delete When | Cannot Delete When |
+|--------|-----------------|-------------------|
+| Dancer | No active tournament registrations | Has registrations in active tournaments |
+| User | Anytime | - |
+| Tournament | Status = CREATED | Status = ACTIVE or COMPLETED |
+| Category | No performers registered | Has performers registered |
 
 ---
 
@@ -282,11 +378,11 @@ performer2.duo_partner_id = performer1.id
 Cannot advance to PRESELECTION phase:
 
 Errors:
-• Category "Hip Hop Boys 1v1": needs 2 more performers (has 4, needs 6)
-• Category "Breaking Girls 1v1": needs 1 more performer (has 5, needs 6)
+• Category "Hip Hop Boys 1v1": needs 1 more performer (has 4, needs 5)
+• Category "Breaking Girls 1v1": has minimum performers (5)
 
 Warnings:
-• Category "Krump Open": has exactly minimum performers (6) - consider getting more
+• Category "Krump Open": has exactly minimum performers (5) - consider getting more
 ```
 
 **Battle Status Errors:**
@@ -321,3 +417,6 @@ All validation rules are tested in:
 
 - **2025-01-19:** Initial documentation of validation rules
 - **2025-01-19:** Corrected minimum performer formula (was 4, now formula-based)
+- **2025-11-19:** Updated minimum formula from `(groups_ideal × 2) + 2` to `(groups_ideal × 2) + 1` (minimum 1 elimination instead of 2)
+- **2025-11-19:** Added tournament status lifecycle documentation (CREATED → ACTIVE → COMPLETED)
+- **2025-11-19:** Removed percentage references from documentation

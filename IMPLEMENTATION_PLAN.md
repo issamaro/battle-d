@@ -132,6 +132,261 @@ Phased development roadmap from POC to V2.
 
 ---
 
+## Phase 1.1: Fixes and Enhancements (COMPLETED ✅)
+
+**Duration:** 1 day (2 sessions)
+**Date:** 2025-11-19 to 2025-11-20
+
+**Objective:** Address critical business logic fixes and UX improvements identified post-Phase 1.
+
+**Context:** After Phase 1 completion, user feedback and internal review identified several critical issues:
+- Formula for minimum performers was too restrictive (+2 should be +1)
+- Tournament status lifecycle lacked a CREATED state (tournaments auto-activated)
+- UI lacked modern styling and proper navigation structure
+- Dashboard page had limited utility
+- Documentation needed UX redesign perspective
+
+### Sprint 1: Core Business Logic Fixes ✅
+
+**Completed:** 2025-11-19
+
+**1. Formula Correction** ✅
+- **Issue:** Minimum performer calculation implied 2 eliminations in preselection (too restrictive)
+- **Old Formula:** `(groups_ideal × 2) + 2`
+- **New Formula:** `(groups_ideal × 2) + 1`
+- **Impact:** Reduces minimum by 1 performer per category (e.g., 2 pools: 6→5, 3 pools: 8→7)
+- **Files Modified:**
+  - `app/utils/tournament_calculations.py` - Core formula function
+  - `app/templates/tournaments/add_category.html` - JavaScript live calculation
+  - `app/schemas/category.py` - Schema documentation
+  - `app/validators/phase_validators.py` - Validation messages
+  - `tests/test_tournament_calculations.py` - All 24 tests updated
+
+**2. Tournament Status Lifecycle** ✅
+- **Issue:** No CREATED status; tournaments started as ACTIVE immediately
+- **Solution:** Added 3-state lifecycle: CREATED → ACTIVE → COMPLETED
+- **New Status Enum:**
+  ```python
+  class TournamentStatus(str, enum.Enum):
+      CREATED = "created"      # Initial status during setup
+      ACTIVE = "active"        # Tournament running (only one allowed)
+      COMPLETED = "completed"  # Tournament finished
+  ```
+- **Auto-Activation:** Tournament activates when advancing from REGISTRATION → PRESELECTION
+- **Constraint:** Only one ACTIVE tournament allowed at a time
+- **Files Modified:**
+  - `app/models/tournament.py` - Added CREATED status, activate() method
+  - `app/services/tournament_service.py` - Auto-activation logic with validation
+  - `app/repositories/tournament.py` - get_active() method, updated create_tournament()
+  - `alembic/versions/2f62eedb0250_*.py` - Database migration
+  - `tests/test_repositories.py` - Updated status expectations
+
+**3. Documentation Updates** ✅
+- **Files Updated:**
+  - `VALIDATION_RULES.md` - Added tournament status lifecycle section, updated formula
+  - `DOMAIN_MODEL.md` - Updated formula, removed percentage claims
+  - `IMPLEMENTATION_PLAN.md` - Updated calculation utilities description
+  - `UI_MOCKUPS.md` - Updated minimum formula example
+- **Removed:** All "~25%" and "~20-25%" elimination percentage claims (formula-based, not percentage-based)
+
+**4. Bug Fixes** ✅
+- Fixed broken `/phases/advance` link in dashboard (route doesn't exist - phase advancement is tournament-specific)
+
+**Test Results:** ✅
+- 97/105 tests passing (8 skipped - phase permissions, intentional)
+- 0 failures, 0 errors
+- All tournament calculation tests updated and passing
+
+### Sprint 2: UI/UX Improvements ✅
+
+**Completed:** 2025-11-20
+
+**1. PicoCSS Integration** ✅
+- **Framework:** PicoCSS 2.x - Minimal, semantic CSS framework
+- **Benefits:**
+  - Class-less design (works with semantic HTML)
+  - Accessibility built-in (ARIA, keyboard nav, WCAG AA)
+  - Dark mode support (automatic via `prefers-color-scheme`)
+  - Minimal footprint (~10KB gzipped)
+  - Responsive by default
+- **Implementation:**
+  - Added PicoCSS CDN to base.html
+  - CSS Grid layout for sidebar + main content
+  - Vertical sidebar navigation (250px, sticky)
+  - Mobile responsive (sidebar collapses to top at 768px)
+- **Files Modified:** `app/templates/base.html`
+
+**2. Vertical Navigation** ✅
+- **Layout:** Sidebar navigation on left (desktop), top (mobile)
+- **Structure:**
+  - App logo/title
+  - Primary nav links (role-based visibility)
+  - Horizontal separator
+  - Logout link (secondary style)
+- **Role-Based Items:**
+  - All: Overview, Phases
+  - Staff+: Dancers, Tournaments
+  - Admin: Users
+- **Accessibility:** `<nav>` landmark, semantic list structure
+
+**3. Dashboard → Overview Rename** ✅
+- **Rationale:** "Overview" better describes page purpose (central hub vs data dashboard)
+- **Changes:**
+  - Renamed template: `dashboard.html` → `overview.html`
+  - New route: `/overview` with active tournament context
+  - Legacy redirect: `/dashboard` → `/overview` (301 Permanent)
+  - Updated login redirect: `/auth/login` → `/overview`
+- **New Features:**
+  - Active tournament status card
+  - Role-specific action sections
+  - Quick links to common tasks
+  - Semantic HTML (`<article>`, `<section>`, `<header>`, `<footer>`)
+- **Files Modified:**
+  - `app/main.py` - Added /overview route, /dashboard redirect
+  - `app/routers/auth.py` - Updated login redirect
+  - `app/templates/overview.html` - New design
+  - `app/templates/dancers/list.html` - Updated back link
+  - `app/templates/tournaments/list.html` - Updated back link
+  - `app/templates/admin/users.html` - Updated back link
+
+**4. Repository Enhancements** ✅
+- Added `get_active()` method to TournamentRepository (returns single active tournament)
+- Updated `create_tournament()` to use CREATED status (not ACTIVE)
+
+**5. Test Suite Updates** ✅
+- **Fixed:** 13 failing tests due to template/status changes
+- **Issues Resolved:**
+  - Jinja2 error: "block 'content' defined twice" (restructured base.html)
+  - Tournament status assertions (CREATED vs ACTIVE)
+  - Dashboard route references (updated to /overview)
+  - Content assertions ("Dashboard" → "Overview")
+- **Final Results:** 97/105 passing, 0 failures
+
+### Sprint 3: Documentation Redesign ✅
+
+**Completed:** 2025-11-20
+
+**1. UI_MOCKUPS.md Complete Rewrite** ✅
+- **Approach:** Fresh UX perspective (not documenting current state)
+- **New Structure:**
+  1. Design Principles (minimalism, accessibility, mobile-first, progressive enhancement)
+  2. Technology Stack (PicoCSS, HTMX, Jinja2)
+  3. Layout Architecture (CSS Grid, responsive breakpoints)
+  4. Component Library (navigation, forms, tables, cards, badges, info boxes)
+  5. User Flows (tournament creation, dancer registration, battle judging, phase advancement)
+  6. Page Designs (wireframes with user goals)
+  7. Accessibility Guidelines (WCAG 2.1 AA compliance, keyboard nav, screen readers)
+  8. Responsive Design (mobile optimizations, touch targets, table transformations)
+  9. Implementation Roadmap (Phase 1.1-5)
+- **Key Features:**
+  - Mobile-first wireframes
+  - HTMX integration patterns
+  - Accessibility annotations
+  - Design token system (PicoCSS variables)
+- **Version:** 2.0 (complete redesign from 1.0)
+
+**2. IMPLEMENTATION_PLAN.md Update** ✅
+- Added Phase 1.1 section (this section!)
+- Documents all 3 sprints with completion status
+- Links to other documentation updates
+
+**Deployment:** ✅
+- Same Railway setup
+- Database migration required: `alembic upgrade head`
+- Migration updates existing ACTIVE tournaments in REGISTRATION phase to CREATED
+- No code changes needed for existing routes
+
+**Final Test Results:** ✅
+```
+============================= test session starts ==============================
+collected 105 items
+
+97 passed, 8 skipped, 773 warnings in 5.89s
+
+=============== 0 failures, 0 errors ===============
+```
+
+**Files Modified Summary:**
+
+**Core Logic (Sprint 1):**
+- `app/utils/tournament_calculations.py`
+- `app/models/tournament.py`
+- `app/services/tournament_service.py`
+- `app/repositories/tournament.py`
+- `app/schemas/category.py`
+- `app/validators/phase_validators.py`
+- `app/templates/tournaments/add_category.html`
+- `alembic/versions/2f62eedb0250_*.py`
+- `tests/test_tournament_calculations.py`
+- `tests/test_repositories.py`
+
+**UI/Templates (Sprint 2):**
+- `app/templates/base.html`
+- `app/templates/overview.html` (renamed from dashboard.html)
+- `app/templates/dancers/list.html`
+- `app/templates/tournaments/list.html`
+- `app/templates/admin/users.html`
+- `app/main.py`
+- `app/routers/auth.py`
+- `tests/test_auth.py`
+- `tests/test_permissions.py`
+
+**Documentation (Sprint 3):**
+- `UI_MOCKUPS.md` (complete v2.0 rewrite)
+- `IMPLEMENTATION_PLAN.md` (this update)
+- `VALIDATION_RULES.md`
+- `DOMAIN_MODEL.md`
+- `PHASE_1.1_PROGRESS.md` (new tracking document)
+
+**Status:** COMPLETE ✅ - All business logic fixes, UI improvements, and documentation updates implemented and tested
+
+---
+
+## Phase 1.2: Documentation Consolidation (COMPLETED ✅)
+
+**Duration:** 1 session
+**Date:** 2025-11-22
+
+**Objective:** Consolidate documentation, fix inconsistencies, and establish documentation management framework.
+
+### Completed Items ✅
+
+**1. Fixed Documentation Inconsistencies**
+- Changed `ARCHIVED` → `COMPLETED` for final phase name (VALIDATION_RULES.md)
+- Fixed formula `+2` → `+1` in ARCHITECTURE.md examples
+- Added `CREATED` status to DOMAIN_MODEL.md Tournament entity
+- Added Tournament `description` and `tournament_date` fields
+
+**2. Created Documentation Framework**
+- **DOCUMENTATION_INDEX.md** - Central navigation hub with document hierarchy
+- **DOCUMENTATION_CHANGE_PROCEDURE.md** - Standard procedure for modifying docs
+- **GLOSSARY.md** - Key term definitions
+- **CHANGELOG.md** - Track documentation changes
+
+**3. Enhanced DOMAIN_MODEL.md**
+- Added "Deletion Rules" section (§8)
+- Added Tournament "Status Lifecycle" section
+- Cross-references to VALIDATION_RULES.md
+
+**4. UI_MOCKUPS.md Corrections**
+- Added V1/V2 badges to relevant sections
+- Removed made-up features (judge-to-pool, pool imbalance errors)
+- Added V1 Battle Encoding Interface
+
+**5. Archived Tracking Documents**
+- `temporary_plan_and_progress.md` → `archive/`
+- `UI_MOCKUP_UPDATE_PROGRESS.md` → `archive/`
+
+### Roadmap Items (Future Clarifications)
+
+The following items should be documented in detail when time permits:
+
+- [ ] **Judge Workflow** - Complete creation, access, and cleanup process in DOMAIN_MODEL.md
+- [ ] **Pool Creation Process** - Detailed steps from preselection to pools in DOMAIN_MODEL.md
+- [ ] **Tiebreak Format** - Full N=2 vs N>2 outcome format explanation in DOMAIN_MODEL.md
+
+---
+
 ## Phase 2: Battle Management + Preselection Logic
 
 **Duration:** 7-10 days (reduced from 10-14, infrastructure already complete)
@@ -155,9 +410,9 @@ Phased development roadmap from POC to V2.
 - All repository methods tested
 
 **Calculation Utilities:** ✅ COMPLETE
-- `calculate_pool_capacity(registered_performers, groups_ideal)` - Determines pool size with ~20-25% elimination
+- `calculate_pool_capacity(registered_performers, groups_ideal)` - Determines pool size with dynamic elimination
 - `distribute_performers_to_pools(performer_count, groups_ideal)` - Even distribution (sizes differ by max 1)
-- `calculate_minimum_performers(groups_ideal)` - Formula: (groups_ideal × 2) + 2
+- `calculate_minimum_performers(groups_ideal)` - Formula: (groups_ideal × 2) + 1
 - `calculate_minimum_for_category(groups_ideal, performers_ideal)` - All tournament metrics
 - **24 comprehensive tests** covering all formulas and edge cases
 
@@ -230,7 +485,7 @@ Phased development roadmap from POC to V2.
 - `app/services/pool_service.py`
 - `app/services/tiebreak_service.py`
 
-### **2.2 Battle Routes & UI** ❌ NOT STARTED (~25% of Phase 2)
+### **2.2 Battle Routes & UI** ❌ NOT STARTED
 
 **Battle Routes** (`app/routers/battles.py`):
 - [ ] `GET /battles` - Battle queue/list view
@@ -570,6 +825,13 @@ Battle starts
 - If scale exceeds SQLite: Migrate to PostgreSQL (Railway makes this easy)
 - If concurrent users increase: Add Redis caching
 - If international: Add i18n support (English base)
+
+### **Roadmap Items (From UI Review):**
+- Configurable HTMX polling intervals (admin parameters page)
+- Security documentation (rate limiting, magic link, auth flows)
+- Deletion policy documentation
+- Sponsor management feature (tournament sponsors display)
+- Dancer analytics/win rate display
 
 ---
 

@@ -234,7 +234,7 @@ async def validate_registration_to_preselection(
     Validate if tournament can advance from Registration to Preselection.
 
     Business Rule:
-    - Each category must have at least (groups_ideal × 2 + 2) performers
+    - Each category must have at least (groups_ideal × 2 + 1) performers
 
     Returns:
         ValidationResult with errors if categories don't meet minimum
@@ -249,7 +249,7 @@ async def validate_registration_to_preselection(
         performer_count = len(performers)
 
         # Calculate minimum required
-        minimum_required = (category.groups_ideal * 2) + 2
+        minimum_required = (category.groups_ideal * 2) + 1
 
         if performer_count < minimum_required:
             needed = minimum_required - performer_count

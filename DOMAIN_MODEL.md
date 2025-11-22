@@ -109,10 +109,19 @@ Represents a competition event.
 **Attributes:**
 - `id`: UUID
 - `name`: string
-- `status`: Enum (active | completed)
+- `description`: string (optional) - Tournament details or subtitle
+- `tournament_date`: Date (optional) - Event date for scheduling
+- `status`: Enum (created | active | completed)
 - `phase`: Enum (registration | preselection | pools | finals | completed)
 - `created_at`: DateTime
 - `categories`: List[Category]
+
+**Status Lifecycle:**
+- **CREATED**: Initial status during setup (categories being configured)
+- **ACTIVE**: Tournament is running (only one ACTIVE at a time)
+- **COMPLETED**: Tournament finished, all phases complete, champions declared
+- Transition: CREATED → ACTIVE (auto-activated when advancing from REGISTRATION)
+- Transition: ACTIVE → COMPLETED (auto-completed when advancing from FINALS)
 
 **Phase Management:**
 - **Global phase**: All categories progress together
@@ -286,14 +295,14 @@ registered_performers (rp) > pool_performers (pp)
 - Keeps tournament interesting even with exact capacity registrations
 
 **Constraint:**
-- **Minimum (groups_ideal × 2) + 2 registered performers** required to start tournament
-  - Example: groups_ideal=2 → minimum 6 performers (NOT 4!)
-  - Formula: `(groups_ideal * 2) + 2` ensures minimum 2 per pool + 2 for elimination
+- **Minimum (groups_ideal × 2) + 1 registered performers** required to start tournament
+  - Example: groups_ideal=2 → minimum 5 performers (NOT 4!)
+  - Formula: `(groups_ideal * 2) + 1` ensures minimum 2 per pool + 1 for elimination
 - Pool sizes adapt dynamically based on registrations
 
 **Adaptation Logic:**
 - System calculates optimal `pp` where `pp < rp`
-- Typically eliminates ~20-25% of registered performers
+- Dynamic elimination based on registrations (minimum 1 eliminated)
 - Ensures balanced pool sizes (equal or differ by max 1)
 - Minimum 2 performers per pool
 
@@ -503,6 +512,25 @@ CHECK (
 5. **Judge Count:**
    - Minimum 1 judge (default 3)
    - Odd number preferred for majority voting
+
+### **8. Deletion Rules**
+
+Certain entities can only be deleted under specific conditions to maintain data integrity:
+
+| Entity | Can Delete When | Cannot Delete When |
+|--------|-----------------|-------------------|
+| **Dancer** | No active tournament registrations | Has registrations in ACTIVE tournament |
+| **User** | Anytime | - |
+| **Tournament** | Status = CREATED | Status = ACTIVE or COMPLETED |
+| **Category** | No performers registered | Has performers registered |
+| **Performer** | Via unregister, if not in battles | Has participated in battles |
+
+**Error Messages:**
+- Dancer: "Cannot delete dancer with active tournament registrations"
+- Tournament: "Cannot delete active or completed tournament"
+- Category: "Cannot delete category with registered performers"
+
+> **See also:** [VALIDATION_RULES.md - Deletion Rules](VALIDATION_RULES.md#deletion-rules) for detailed validation logic.
 
 ---
 
