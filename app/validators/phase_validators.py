@@ -27,8 +27,8 @@ async def validate_registration_to_preselection(
     Business Rules:
     - Tournament must exist
     - Tournament must have at least one category
-    - Each category must have minimum performers: (groups_ideal * 2 + 2)
-    - This ensures preselection will eliminate at least 2 performers
+    - Each category must have minimum performers: (groups_ideal * 2 + 1)
+    - This ensures preselection will eliminate at least 1 performer
 
     Args:
         tournament_id: Tournament UUID
@@ -72,12 +72,12 @@ async def validate_registration_to_preselection(
             errors.append(
                 f"Category '{category.name}': has {performer_count} performers, "
                 f"minimum required: {min_required} "
-                f"({category.groups_ideal} pools × 2 minimum + 2 elimination)"
+                f"({category.groups_ideal} pools × 2 minimum + 1 elimination)"
             )
         elif performer_count == min_required:
             warnings.append(
                 f"Category '{category.name}': has exactly minimum performers "
-                f"({min_required}). Only 2 will be eliminated in preselection."
+                f"({min_required}). Only 1 will be eliminated in preselection."
             )
 
     if errors:

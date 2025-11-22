@@ -79,7 +79,7 @@
             <p style="margin: 0; font-size: 14px; color: #0c5460;">
                 <strong>How it works:</strong><br>
                 • Registration phase: Collect performers (need at least the minimum)<br>
-                • Preselection phase: Eliminate ~25% to reach pool capacity<br>
+                • Preselection phase: Eliminate performers to reach pool capacity<br>
                 • Pools phase: Round-robin battles within each pool<br>
                 • Finals phase: Pool winners compete for championship
             </p>
@@ -97,8 +97,8 @@ function updateMinimumCalculation() {
     const groupsIdeal = parseInt(document.getElementById('groups_ideal').value) || 2;
     const performersIdeal = parseInt(document.getElementById('performers_ideal').value) || 4;
 
-    // Formula: (groups_ideal * 2) + 2
-    const minimum = (groupsIdeal * 2) + 2;
+    // Formula: (groups_ideal * 2) + 1
+    const minimum = (groupsIdeal * 2) + 1;
 
     // Ideal pool capacity: groups_ideal * performers_ideal
     const idealCapacity = groupsIdeal * performersIdeal;
@@ -106,7 +106,7 @@ function updateMinimumCalculation() {
     // Update displays
     document.getElementById('min-display').textContent = minimum;
     document.getElementById('formula-display').textContent =
-        `(${groupsIdeal} pools × 2 minimum) + 2 elimination`;
+        `(${groupsIdeal} pools × 2 minimum) + 1 elimination`;
     document.getElementById('ideal-display').textContent = idealCapacity;
     document.getElementById('pools-display').textContent = groupsIdeal;
     document.getElementById('per-pool-display').textContent = performersIdeal;

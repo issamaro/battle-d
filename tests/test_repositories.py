@@ -8,7 +8,7 @@ from app.repositories import (
     CategoryRepository,
     PerformerRepository,
 )
-from app.models import UserRole, TournamentPhase
+from app.models import UserRole, TournamentPhase, TournamentStatus
 from app.db.database import async_session_maker
 
 
@@ -107,10 +107,15 @@ async def test_tournament_repository():
         assert tournament.id is not None
         assert tournament.name == "Summer Battle 2024"
         assert tournament.phase == TournamentPhase.REGISTRATION
+        assert tournament.status == TournamentStatus.CREATED  # New tournaments start as CREATED
 
-        # Get active tournaments
+        # Get active tournaments (should be empty - new tournaments are CREATED, not ACTIVE)
         active = await tournament_repo.get_active_tournaments()
-        assert len(active) == 1
+        assert len(active) == 0
+
+        # Test get_active() method
+        active_tournament = await tournament_repo.get_active()
+        assert active_tournament is None  # No active tournament yet
 
         # Get by phase
         registration_tournaments = await tournament_repo.get_by_phase(

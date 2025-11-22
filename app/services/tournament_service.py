@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from app.exceptions import ValidationError
-from app.models.tournament import Tournament, TournamentPhase
+from app.models.tournament import Tournament, TournamentPhase, TournamentStatus
 from app.repositories.battle import BattleRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.performer import PerformerRepository
@@ -49,6 +49,9 @@ class TournamentService:
         Validates phase transition rules before advancing. Phases are
         one-way only (no rollback permitted).
 
+        Auto-activates tournament (CREATED → ACTIVE) when advancing from
+        REGISTRATION phase if validation passes and no other tournament is active.
+
         Args:
             tournament_id: Tournament UUID
 
@@ -56,12 +59,13 @@ class TournamentService:
             Updated tournament with new phase
 
         Raises:
-            ValidationError: If validation fails
+            ValidationError: If validation fails or another tournament is active
             ValueError: If already in final phase
 
         Examples:
             >>> tournament = await service.advance_tournament_phase(tournament_id)
             >>> print(tournament.phase)  # PRESELECTION (advanced from REGISTRATION)
+            >>> print(tournament.status)  # ACTIVE (auto-activated)
         """
         tournament = await self.tournament_repo.get_by_id(tournament_id)
         if not tournament:
@@ -71,6 +75,22 @@ class TournamentService:
         result = await self._validate_phase_advance(tournament)
         if not result:
             raise ValidationError(result.errors, result.warnings)
+
+        # Auto-activate tournament when advancing from REGISTRATION
+        if (
+            tournament.status == TournamentStatus.CREATED
+            and tournament.phase == TournamentPhase.REGISTRATION
+        ):
+            # Check: No other active tournament exists
+            active_tournament = await self.tournament_repo.get_active()
+            if active_tournament and active_tournament.id != tournament.id:
+                raise ValidationError([
+                    f"Cannot activate tournament: '{active_tournament.name}' is already active. "
+                    "Complete or deactivate it first."
+                ])
+
+            # Activate tournament
+            tournament.activate()
 
         # Advance phase (uses model method)
         tournament.advance_phase()

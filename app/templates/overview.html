@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Overview - Battle-D{% endblock %}
+
+{% block header_title %}Overview{% endblock %}
+
+{% block content %}
+<article>
+    <header>
+        <h2>Welcome, {{ current_user.email }}!</h2>
+        <p>Role: <strong>{{ current_user.role }}</strong></p>
+    </header>
+
+    <!-- Active Tournament Status -->
+    <section>
+        <h3>Active Tournament</h3>
+        {% if active_tournament %}
+        <article>
+            <header>
+                <strong>{{ active_tournament.name }}</strong>
+                <small>Phase: {{ active_tournament.phase }}</small>
+            </header>
+            <footer>
+                <a href="/tournaments/{{ active_tournament.id }}">View Details</a>
+                {% if current_user.is_admin %}
+                <a href="/phases" role="button">Manage Phases</a>
+                {% endif %}
+            </footer>
+        </article>
+        {% else %}
+        <p>No active tournament. {% if current_user.is_staff %}<a href="/tournaments/create">Create one</a>{% endif %}</p>
+        {% endif %}
+    </section>
+
+    <!-- Role-Specific Quick Actions -->
+    {% if current_user.is_admin %}
+    <section>
+        <h3>Admin Actions</h3>
+        <div role="group">
+            <a href="/admin/users" role="button">Manage Users</a>
+            <a href="/tournaments" role="button" class="secondary">View Tournaments</a>
+            <a href="/phases" role="button" class="secondary">Manage Phases</a>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if current_user.is_staff %}
+    <section>
+        <h3>Staff Actions</h3>
+        <div role="group">
+            <a href="/dancers" role="button">Manage Dancers</a>
+            <a href="/tournaments" role="button" class="secondary">Manage Tournaments</a>
+            <a href="/registration" role="button" class="secondary">Register Performers</a>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if current_user.is_mc %}
+    <section>
+        <h3>MC Actions</h3>
+        <div role="group">
+            <a href="/battles" role="button">Battle Queue</a>
+            <a href="/phases" role="button" class="secondary">View Schedule</a>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if current_user.is_judge %}
+    <section>
+        <h3>Judge Actions</h3>
+        <div role="group">
+            <a href="/battles/current" role="button">Score Current Battle</a>
+            <a href="/battles" role="button" class="secondary">View Assignments</a>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- System Status -->
+    <section>
+        <h3>Your Permissions</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Admin</td>
+                    <td>{{ "✓" if current_user.is_admin else "✗" }}</td>
+                </tr>
+                <tr>
+                    <td>Staff</td>
+                    <td>{{ "✓" if current_user.is_staff else "✗" }}</td>
+                </tr>
+                <tr>
+                    <td>MC</td>
+                    <td>{{ "✓" if current_user.is_mc else "✗" }}</td>
+                </tr>
+                <tr>
+                    <td>Judge</td>
+                    <td>{{ "✓" if current_user.is_judge else "✗" }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</article>
+{% endblock %}

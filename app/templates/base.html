@@ -3,28 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <title>{% block title %}Battle-D{% endblock %}</title>
+
+    <!-- PicoCSS - Minimal CSS Framework -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 
     <!-- HTMX for interactive UI without full page reloads -->
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+
+    <style>
+        {% if current_user %}
+        /* Layout: Sidebar + Main Content */
+        body {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main"
+                "sidebar footer";
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Sidebar Navigation */
+        aside {
+            grid-area: sidebar;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            background: var(--pico-background-color);
+            border-right: 1px solid var(--pico-muted-border-color);
+            padding: 1rem;
+        }
+
+        aside h2 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        aside nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        aside nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        aside nav a {
+            display: block;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            text-decoration: none;
+        }
+
+        aside nav a:hover {
+            background: var(--pico-secondary-hover-background);
+        }
+
+        /* Header */
+        header {
+            grid-area: header;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--pico-muted-border-color);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        header p {
+            margin: 0.5rem 0 0 0;
+            font-size: 0.875rem;
+            color: var(--pico-muted-color);
+        }
+
+        /* Main Content */
+        main {
+            grid-area: main;
+            padding: 2rem;
+        }
+
+        /* Footer */
+        footer {
+            grid-area: footer;
+            padding: 1rem 2rem;
+            border-top: 1px solid var(--pico-muted-border-color);
+            text-align: center;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: var(--pico-muted-color);
+        }
+
+        /* Mobile: Stack vertically */
+        @media (max-width: 768px) {
+            body {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "header"
+                    "sidebar"
+                    "main"
+                    "footer";
+            }
+
+            aside {
+                position: static;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--pico-muted-border-color);
+            }
+        }
+        {% else %}
+        /* Not logged in: Simple centered layout */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+        }
+
+        footer {
+            padding: 1rem 2rem;
+            border-top: 1px solid var(--pico-muted-border-color);
+            text-align: center;
+        }
+
+        footer p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: var(--pico-muted-color);
+        }
+        {% endif %}
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Battle-D - Dance Tournament Management</h1>
-        {% if current_user %}
+    {% if current_user %}
+    <!-- Vertical Sidebar Navigation -->
+    <aside>
+        <h2>Battle-D</h2>
         <nav>
-            <a href="/dashboard">Dashboard</a>
-            <a href="/phases">Phases</a>
-            <a href="/auth/logout">Logout</a>
-        </nav>
-        <p>Logged in as: {{ current_user.email }} ({{ current_user.role }})</p>
-        {% endif %}
-    </header>
+            <ul>
+                <li><a href="/overview">Overview</a></li>
+                <li><a href="/phases">Phases</a></li>
 
-    <main>
+                {% if current_user.is_staff %}
+                <li><a href="/dancers">Dancers</a></li>
+                <li><a href="/tournaments">Tournaments</a></li>
+                {% endif %}
+
+                {% if current_user.is_admin %}
+                <li><a href="/admin/users">Users</a></li>
+                {% endif %}
+
+                <li><hr></li>
+                <li><a href="/auth/logout" class="secondary">Logout</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Header -->
+    <header>
+        <h1>{% block header_title %}Battle-D{% endblock %}</h1>
+        <p>{{ current_user.email }} • {{ current_user.role }}</p>
+    </header>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main {% if current_user %}class="container-fluid"{% else %}class="container"{% endif %}>
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Footer -->
     <footer>
         <p>Battle-D Tournament Management System</p>
     </footer>

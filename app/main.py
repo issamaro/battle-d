@@ -8,7 +8,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from app.config import settings
 from app.routers import auth, phases, admin, dancers, tournaments, registration
-from app.dependencies import get_current_user, require_auth, CurrentUser, set_email_service
+from app.dependencies import (
+    get_current_user,
+    require_auth,
+    CurrentUser,
+    set_email_service,
+    get_tournament_repo,
+)
+from app.repositories.tournament import TournamentRepository
 from app.services.email.factory import create_email_provider
 from app.services.email.service import EmailService
 from app.logging_config import setup_logging
@@ -64,21 +71,33 @@ async def root():
     return RedirectResponse(url="/auth/login")
 
 
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(
+@app.get("/overview", response_class=HTMLResponse)
+async def overview(
     request: Request,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
 ):
-    """Main dashboard - role-specific view."""
+    """Overview page - role-specific view with active tournament context."""
     user = require_auth(current_user)
+
+    # Get active tournament for context
+    active_tournament = await tournament_repo.get_active()
 
     return templates.TemplateResponse(
         request=request,
-        name="dashboard.html",
+        name="overview.html",
         context={
             "current_user": user,
+            "active_tournament": active_tournament,
         },
     )
+
+
+# Legacy redirect: /dashboard -> /overview
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard_redirect(request: Request):
+    """Redirect old /dashboard route to /overview."""
+    return RedirectResponse(url="/overview", status_code=301)
 
 
 @app.get("/health")

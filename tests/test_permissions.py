@@ -71,26 +71,26 @@ class TestRoleBasedAccess:
     """Tests for role-based access control."""
 
     def test_admin_can_access_dashboard(self, client):
-        """Test admin can access dashboard."""
+        """Test admin can access overview page."""
         session = get_session_cookie("admin@battle-d.com", "admin")
-        response = client.get("/dashboard", cookies={settings.SESSION_COOKIE_NAME: session})
+        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session})
         assert response.status_code == 200
 
     def test_staff_can_access_dashboard(self, client):
-        """Test staff can access dashboard."""
+        """Test staff can access overview page."""
         session = get_session_cookie("staff@battle-d.com", "staff")
-        response = client.get("/dashboard", cookies={settings.SESSION_COOKIE_NAME: session})
+        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session})
         assert response.status_code == 200
 
     def test_mc_can_access_dashboard(self, client):
-        """Test MC can access dashboard."""
+        """Test MC can access overview page."""
         session = get_session_cookie("mc@battle-d.com", "mc")
-        response = client.get("/dashboard", cookies={settings.SESSION_COOKIE_NAME: session})
+        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session})
         assert response.status_code == 200
 
     def test_unauthenticated_cannot_access_dashboard(self, client):
-        """Test unauthenticated user cannot access dashboard."""
-        response = client.get("/dashboard")
+        """Test unauthenticated user cannot access overview page."""
+        response = client.get("/overview")
         assert response.status_code == 401
 
 

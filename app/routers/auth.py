@@ -77,7 +77,7 @@ async def verify_magic_link(token: str, response: Response):
         response: FastAPI response object
 
     Returns:
-        Redirect to dashboard
+        Redirect to overview
     """
     # Verify token
     payload = magic_link_auth.verify_token(token)
@@ -94,7 +94,7 @@ async def verify_magic_link(token: str, response: Response):
     )
 
     # Set session cookie
-    redirect_response = RedirectResponse(url="/dashboard", status_code=303)
+    redirect_response = RedirectResponse(url="/overview", status_code=303)
     redirect_response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
         value=session_token,

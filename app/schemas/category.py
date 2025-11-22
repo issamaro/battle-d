@@ -52,11 +52,11 @@ class CreateCategorySchema(BaseModel):
     def minimum_performers_required(self) -> int:
         """Calculate minimum performers based on business rules.
 
-        Formula: (groups_ideal * 2) + 2
+        Formula: (groups_ideal * 2) + 1
 
         This is derived from:
         - groups_ideal * 2: minimum pool performers (2 per pool)
-        - + 2: minimum elimination requirement
+        - + 1: minimum elimination requirement
         """
         return calculate_minimum_performers(self.groups_ideal)
 

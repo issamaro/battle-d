@@ -35,6 +35,17 @@ class TournamentRepository(BaseRepository[Tournament]):
         )
         return result.scalar_one_or_none()
 
+    async def get_active(self) -> Optional[Tournament]:
+        """Get the active tournament (only one allowed at a time).
+
+        Returns:
+            Active tournament or None if no active tournament
+        """
+        result = await self.session.execute(
+            select(Tournament).where(Tournament.status == TournamentStatus.ACTIVE)
+        )
+        return result.scalar_one_or_none()
+
     async def get_active_tournaments(self) -> List[Tournament]:
         """Get all active tournaments.
 
@@ -67,10 +78,10 @@ class TournamentRepository(BaseRepository[Tournament]):
             name: Tournament name
 
         Returns:
-            Created tournament instance
+            Created tournament instance (starts in CREATED status)
         """
         return await self.create(
             name=name,
-            status=TournamentStatus.ACTIVE,
+            status=TournamentStatus.CREATED,  # Start in CREATED status
             phase=TournamentPhase.REGISTRATION,
         )

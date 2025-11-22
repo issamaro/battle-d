@@ -10,8 +10,15 @@ if TYPE_CHECKING:
 
 
 class TournamentStatus(str, enum.Enum):
-    """Tournament status enumeration."""
+    """Tournament status enumeration.
 
+    Status lifecycle:
+    - CREATED: Tournament setup in progress (not yet activated)
+    - ACTIVE: Tournament is running (only one allowed at a time)
+    - COMPLETED: Tournament finished
+    """
+
+    CREATED = "created"
     ACTIVE = "active"
     COMPLETED = "completed"
 
@@ -82,7 +89,7 @@ class Tournament(BaseModel):
 
     status: Mapped[TournamentStatus] = mapped_column(
         SQLEnum(TournamentStatus),
-        default=TournamentStatus.ACTIVE,
+        default=TournamentStatus.CREATED,
         nullable=False,
     )
 
@@ -101,7 +108,22 @@ class Tournament(BaseModel):
 
     def __repr__(self) -> str:
         """String representation."""
-        return f"<Tournament(name={self.name}, phase={self.phase.value})>"
+        return f"<Tournament(name={self.name}, status={self.status.value}, phase={self.phase.value})>"
+
+    def activate(self) -> None:
+        """Activate tournament (CREATED → ACTIVE).
+
+        Should be called when advancing from REGISTRATION phase if validation passes.
+
+        Raises:
+            ValueError: If tournament is not in CREATED status
+        """
+        if self.status != TournamentStatus.CREATED:
+            raise ValueError(
+                f"Cannot activate tournament with status {self.status.value}. "
+                "Only CREATED tournaments can be activated."
+            )
+        self.status = TournamentStatus.ACTIVE
 
     def advance_phase(self) -> None:
         """Advance tournament to the next phase.
