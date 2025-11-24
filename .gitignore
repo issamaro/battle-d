@@ -37,6 +37,7 @@ env/
 htmlcov/
 .tox/
 .hypothesis/
+tests/reports/
 
 # Logs
 *.log

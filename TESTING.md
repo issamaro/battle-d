@@ -13,7 +13,6 @@ tests/
 ├── __init__.py                      # Test configuration and fixtures
 ├── test_auth.py                     # Authentication and magic link tests
 ├── test_permissions.py              # Role-based access control tests
-├── test_phases.py                   # Tournament phase routing tests
 ├── test_models.py                   # Database model tests
 ├── test_repositories.py             # Repository layer tests
 ├── test_tournament_calculations.py  # Calculation utility tests (24 tests)
@@ -49,8 +48,8 @@ pytest tests/test_auth.py
 # Test permissions only
 pytest tests/test_permissions.py
 
-# Test phases only
-pytest tests/test_phases.py
+# Test tournament calculations only
+pytest tests/test_tournament_calculations.py
 ```
 
 ### Running Specific Tests
@@ -78,7 +77,6 @@ Phase 1 maintains high test coverage across core functionality:
 **Phase 0 Tests:**
 - **Authentication**: Magic link generation, validation, expiry (15 tests)
 - **Permissions**: Role-based access control (Admin, Staff, MC, Judge) (11 tests)
-- **Routing**: Phase-specific access and redirects
 - **Email Providers**: Brevo, Gmail, Resend, Console providers (13 tests)
 - **Email Templates**: Template generation and validation (11 tests)
 
@@ -118,7 +116,7 @@ Unit tests focus on individual components and functions in isolation.
 **Current test files:**
 - `test_auth.py` - Authentication flows and token management
 - `test_permissions.py` - Decorator-based access control
-- `test_phases.py` - Route protection and phase access
+- `test_tournament_calculations.py` - Tournament capacity and pool calculations
 
 ### Integration Tests (Planned - Phase 1+)
 
