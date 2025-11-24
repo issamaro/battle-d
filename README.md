@@ -1,4 +1,5 @@
 # Battle-D Web Application
+**Level 2: Derived** | Last Updated: 2025-11-24
 
 **Dance Battle Tournament Management System** - Production web version
 

@@ -1,6 +1,6 @@
 # Documentation Change Procedure
+**Level 3: Operational** | Last Updated: 2025-11-24
 
-**Last Updated:** 2025-11-22
 **Purpose:** Standard procedure for modifying project documentation, designed for both human contributors and AI agents.
 
 ---

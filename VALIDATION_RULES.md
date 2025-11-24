@@ -1,4 +1,5 @@
 # Battle-D Validation Rules
+**Level 1: Source of Truth** | Last Updated: 2025-11-24
 
 This document specifies all validation rules for the Battle-D tournament management system, particularly focusing on phase transitions and tournament constraints.
 

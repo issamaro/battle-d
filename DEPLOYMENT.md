@@ -1,4 +1,5 @@
 # Deployment Guide - Railway + SQLite
+**Level 3: Operational** | Last Updated: 2025-11-24
 
 Step-by-step guide to deploy Battle-D on Railway with SQLite database.
 

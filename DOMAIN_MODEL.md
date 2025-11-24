@@ -1,4 +1,5 @@
 # Battle-D Domain Model
+**Level 1: Source of Truth** | Last Updated: 2025-11-24
 
 ## Overview
 

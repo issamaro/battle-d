@@ -1,6 +1,6 @@
 # Battle-D Glossary
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-11-24
 
-**Last Updated:** 2025-11-22
 **Purpose:** Definitions of key terms used throughout the project documentation
 
 ---

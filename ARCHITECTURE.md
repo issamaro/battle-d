@@ -1,4 +1,5 @@
 # Battle-D Architecture Guide
+**Level 3: Operational** | Last Updated: 2025-11-24
 
 This document describes the architectural patterns, design principles, and best practices used in the Battle-D web application.
 

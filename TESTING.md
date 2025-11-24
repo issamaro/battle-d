@@ -1,4 +1,5 @@
 # Testing Guide
+**Level 3: Operational** | Last Updated: 2025-11-24
 
 This document describes the testing strategy, setup, and practices for the Battle-D web application.
 

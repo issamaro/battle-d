@@ -1,4 +1,5 @@
 # Battle-D Implementation Plan
+**Level 2: Derived** | Last Updated: 2025-11-24
 
 Phased development roadmap from POC to V2.
 
