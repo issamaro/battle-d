@@ -302,13 +302,28 @@ def get_tournament_service(session: AsyncSession = Depends(get_db)):
         TournamentService instance with all required repositories
     """
     from app.services.tournament_service import TournamentService
+    from app.services.battle_service import BattleService
+    from app.services.pool_service import PoolService
+
+    # Create repositories
+    tournament_repo = TournamentRepository(session)
+    category_repo = CategoryRepository(session)
+    performer_repo = PerformerRepository(session)
+    battle_repo = BattleRepository(session)
+    pool_repo = PoolRepository(session)
+
+    # Create battle and pool services for phase transitions
+    battle_service = BattleService(battle_repo, performer_repo)
+    pool_service = PoolService(pool_repo, performer_repo)
 
     return TournamentService(
-        tournament_repo=TournamentRepository(session),
-        category_repo=CategoryRepository(session),
-        performer_repo=PerformerRepository(session),
-        battle_repo=BattleRepository(session),
-        pool_repo=PoolRepository(session),
+        tournament_repo=tournament_repo,
+        category_repo=category_repo,
+        performer_repo=performer_repo,
+        battle_repo=battle_repo,
+        pool_repo=pool_repo,
+        battle_service=battle_service,
+        pool_service=pool_service,
     )
 
 

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Pool Standings{% if pool %} - {{ pool.name }}{% endif %} - Battle-D{% endblock %}
+
+{% block header_title %}Pool Standings{% if pool %} - {{ pool.name }}{% endif %}{% endblock %}
+
+{% block content %}
+<section>
+    <p><a href="/overview">← Back to Overview</a></p>
+</section>
+
+{% if pool %}
+<article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 24px;">
+    <header>
+        <h2>{{ pool.name }}</h2>
+        <p>{{ pool.performer_count }} performers</p>
+        {% if pool.winner_id %}
+        <p style="color: #28a745;"><strong>✅ Pool Complete - Winner Determined</strong></p>
+        {% endif %}
+    </header>
+
+    <section style="margin-top: 24px;">
+        <h3>Standings</h3>
+        {% if pool.performers %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Performer</th>
+                    <th>Wins</th>
+                    <th>Draws</th>
+                    <th>Losses</th>
+                    <th>Points</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for performer in pool.performers|sort(attribute='pool_points', reverse=True) %}
+                <tr {% if pool.winner_id and performer.id == pool.winner_id %}style="background-color: rgba(40, 167, 69, 0.1); font-weight: bold;"{% endif %}>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        🎭 Performer {{ loop.index }}
+                        {% if pool.winner_id and performer.id == pool.winner_id %}🏆{% endif %}
+                    </td>
+                    <td>{{ performer.pool_wins or 0 }}</td>
+                    <td>{{ performer.pool_draws or 0 }}</td>
+                    <td>{{ performer.pool_losses or 0 }}</td>
+                    <td><strong>{{ performer.pool_points }}</strong></td>
+                    <td>
+                        {% if pool.winner_id and performer.id == pool.winner_id %}
+                        <span style="color: #28a745;">✅ Winner</span>
+                        {% elif loop.index <= 2 %}
+                        <span style="color: #28a745;">✅ Advances</span>
+                        {% else %}
+                        <span style="color: #dc3545;">❌ Eliminated</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No performers in this pool yet.</p>
+        {% endif %}
+    </section>
+
+    <section style="margin-top: 24px;">
+        <h3>Advancement</h3>
+        <p>Top performers advance to the next phase based on pool points.</p>
+        <p><strong>Points Formula:</strong> 3 points for win, 1 point for draw, 0 points for loss</p>
+    </section>
+
+    <footer style="margin-top: 24px;">
+        <a href="/battles?category_id={{ pool.category_id }}" role="button" class="secondary">
+            View Pool Battles
+        </a>
+    </footer>
+</article>
+{% else %}
+<p>Pool not found.</p>
+{% endif %}
+{% endblock %}

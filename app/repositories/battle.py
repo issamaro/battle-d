@@ -141,3 +141,49 @@ class BattleRepository(BaseRepository[Battle]):
         await self.session.flush()
         await self.session.refresh(battle)
         return battle
+
+    async def get_by_tournament(self, tournament_id: uuid.UUID) -> List[Battle]:
+        """Get all battles for a tournament.
+
+        Args:
+            tournament_id: Tournament UUID
+
+        Returns:
+            List of battles in the tournament
+        """
+        # Import here to avoid circular dependency
+        from app.models.category import Category
+
+        result = await self.session.execute(
+            select(Battle)
+            .join(Category, Battle.category_id == Category.id)
+            .options(selectinload(Battle.performers))
+            .where(Category.tournament_id == tournament_id)
+        )
+        return list(result.scalars().all())
+
+    async def get_by_tournament_and_status(
+        self, tournament_id: uuid.UUID, status: BattleStatus
+    ) -> List[Battle]:
+        """Get battles by tournament and status.
+
+        Args:
+            tournament_id: Tournament UUID
+            status: Battle status
+
+        Returns:
+            List of battles matching criteria
+        """
+        # Import here to avoid circular dependency
+        from app.models.category import Category
+
+        result = await self.session.execute(
+            select(Battle)
+            .join(Category, Battle.category_id == Category.id)
+            .options(selectinload(Battle.performers))
+            .where(
+                Category.tournament_id == tournament_id,
+                Battle.status == status,
+            )
+        )
+        return list(result.scalars().all())

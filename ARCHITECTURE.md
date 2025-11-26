@@ -1,7 +1,15 @@
 # Battle-D Architecture Guide
-**Level 3: Operational** | Last Updated: 2025-11-24
+**Level 3: Operational** | Last Updated: 2025-11-26
 
 This document describes the architectural patterns, design principles, and best practices used in the Battle-D web application.
+
+---
+
+## Prerequisites
+
+Before reading this document, familiarize yourself with:
+- [DOMAIN_MODEL.md](DOMAIN_MODEL.md) - Entity definitions and business rules
+- [VALIDATION_RULES.md](VALIDATION_RULES.md) - Constraints and validation logic
 
 ---
 
@@ -11,6 +19,8 @@ This document describes the architectural patterns, design principles, and best 
 - [Service Layer Pattern](#service-layer-pattern)
 - [Validation Pattern](#validation-pattern)
 - [Router Pattern with Services](#router-pattern-with-services)
+- [Battle System Architecture](#battle-system-architecture)
+- [Phase Transition Hooks](#phase-transition-hooks)
 - [HTMX Patterns](#htmx-patterns)
 - [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
 - [Service Layer Reference](#service-layer-reference)
@@ -341,6 +351,684 @@ async def create_something(
 
 ---
 
+## Battle System Architecture
+
+### Overview
+
+The battle system (Phase 2) handles all battle generation, pool management, tiebreak resolution, and result encoding. It consists of three coordinated services that work together during tournament execution.
+
+### Battle Services
+
+#### BattleService
+
+**Purpose**: Generate and manage battles across all tournament phases.
+
+**File**: `app/services/battle_service.py` (317 lines)
+
+**Key Methods**:
+
+```python
+class BattleService:
+    """Service for battle generation and lifecycle management."""
+
+    def __init__(
+        self,
+        battle_repo: BattleRepository,
+        performer_repo: PerformerRepository,
+    ):
+        self.battle_repo = battle_repo
+        self.performer_repo = performer_repo
+
+    async def generate_preselection_battles(
+        self, category_id: UUID
+    ) -> list[Battle]:
+        """
+        Generate preselection battles for category.
+
+        Creates one battle per performer with SCORED outcome type.
+        Each performer battles alone (1v1 or 2v2 based on category type).
+
+        Business Rules:
+        - One battle per registered performer
+        - PENDING status initially
+        - SCORED outcome type (0-10 scoring)
+
+        Returns:
+            List of created preselection battles
+        """
+        performers = await self.performer_repo.get_by_category(category_id)
+
+        battles = []
+        for performer in performers:
+            battle = Battle(
+                category_id=category_id,
+                phase=BattlePhase.PRESELECTION,
+                outcome_type=BattleOutcomeType.SCORED,
+                status=BattleStatus.PENDING,
+            )
+            battle = await self.battle_repo.create(battle)
+
+            # Link performer to battle
+            await self.battle_repo.add_performer_to_battle(
+                battle.id, performer.id
+            )
+            battles.append(battle)
+
+        return battles
+
+    async def generate_pool_battles(
+        self, category_id: UUID, pool_id: UUID
+    ) -> list[Battle]:
+        """
+        Generate round-robin pool battles.
+
+        Creates all possible matchups between pool performers.
+        Uses WIN_DRAW_LOSS outcome type for pool standings.
+
+        Returns:
+            List of created pool battles
+        """
+        # Get performers in pool
+        pool = await self.pool_repo.get_pool_with_performers(pool_id)
+        performers = pool.performers
+
+        battles = []
+        # Generate all possible matchups (round robin)
+        for i, p1 in enumerate(performers):
+            for p2 in performers[i+1:]:
+                battle = Battle(
+                    category_id=category_id,
+                    phase=BattlePhase.POOLS,
+                    pool_id=pool_id,
+                    outcome_type=BattleOutcomeType.WIN_DRAW_LOSS,
+                    status=BattleStatus.PENDING,
+                )
+                battle = await self.battle_repo.create(battle)
+
+                # Link both performers
+                await self.battle_repo.add_performer_to_battle(
+                    battle.id, p1.id
+                )
+                await self.battle_repo.add_performer_to_battle(
+                    battle.id, p2.id
+                )
+                battles.append(battle)
+
+        return battles
+
+    async def generate_finals_battles(
+        self, category_id: UUID
+    ) -> list[Battle]:
+        """
+        Generate finals bracket battles from pool winners.
+
+        Creates single-elimination bracket (8→4→2→1).
+        Uses WIN_LOSS outcome type for bracket progression.
+
+        Business Rules:
+        - Extract pool winners (one per pool)
+        - Create bracket battles in rounds
+        - Link to FINALS phase
+
+        Returns:
+            List of created finals battles
+        """
+        # Get pool winners for category
+        winners = await self.pool_repo.get_pool_winners(category_id)
+
+        # Generate bracket battles
+        battles = self._create_bracket_battles(category_id, winners)
+        return battles
+
+    async def start_battle(self, battle_id: UUID) -> Battle:
+        """
+        Start a battle (PENDING → ACTIVE).
+
+        Args:
+            battle_id: Battle UUID
+
+        Returns:
+            Updated battle with ACTIVE status
+        """
+        battle = await self.battle_repo.get_by_id(battle_id)
+        battle.status = BattleStatus.ACTIVE
+        return await self.battle_repo.update(battle)
+
+    async def complete_battle(self, battle_id: UUID) -> Battle:
+        """
+        Complete a battle (ACTIVE → COMPLETED).
+
+        Args:
+            battle_id: Battle UUID
+
+        Returns:
+            Updated battle with COMPLETED status
+        """
+        battle = await self.battle_repo.get_by_id(battle_id)
+        battle.status = BattleStatus.COMPLETED
+        return await self.battle_repo.update(battle)
+```
+
+**Test Coverage**: 25 tests in `tests/test_battle_service.py` (637 lines)
+
+#### PoolService
+
+**Purpose**: Create pools from preselection results and determine winners.
+
+**File**: `app/services/pool_service.py` (236 lines)
+
+**Key Methods**:
+
+```python
+class PoolService:
+    """Service for pool creation and management."""
+
+    def __init__(
+        self,
+        pool_repo: PoolRepository,
+        performer_repo: PerformerRepository,
+    ):
+        self.pool_repo = pool_repo
+        self.performer_repo = performer_repo
+
+    async def create_pools_from_preselection(
+        self, category_id: UUID, num_pools: int
+    ) -> list[Pool]:
+        """
+        Create pools from preselection qualification results.
+
+        Business Rules:
+        - Extract qualified performers (preselection_qualified = True)
+        - Distribute evenly across num_pools pools
+        - Snake draft distribution for fairness
+
+        Args:
+            category_id: Category UUID
+            num_pools: Number of pools to create (from category.groups_ideal)
+
+        Returns:
+            List of created pools with performers assigned
+        """
+        # Get qualified performers, sorted by preselection_score DESC
+        qualified = await self.performer_repo.get_qualified_performers(
+            category_id
+        )
+
+        # Create pools
+        pools = []
+        for i in range(num_pools):
+            pool = Pool(
+                category_id=category_id,
+                name=f"Pool {chr(65 + i)}",  # Pool A, Pool B, etc.
+                status=PoolStatus.PENDING,
+            )
+            pool = await self.pool_repo.create(pool)
+            pools.append(pool)
+
+        # Distribute performers (snake draft)
+        self._distribute_performers_to_pools(pools, qualified)
+
+        return pools
+
+    async def determine_pool_winner(self, pool_id: UUID) -> UUID:
+        """
+        Determine pool winner based on points.
+
+        Points Formula:
+        - Win: 3 points
+        - Draw: 1 point
+        - Loss: 0 points
+
+        Tiebreaker Rules:
+        1. Most points
+        2. If tied, tiebreak battle required
+
+        Returns:
+            UUID of winning performer
+        """
+        pool = await self.pool_repo.get_pool_with_performers(pool_id)
+
+        # Calculate points for each performer
+        standings = []
+        for performer in pool.performers:
+            points = (performer.pool_wins * 3) + (performer.pool_draws * 1)
+            standings.append((performer, points))
+
+        # Sort by points DESC
+        standings.sort(key=lambda x: x[1], reverse=True)
+
+        # Check for tie at top
+        top_points = standings[0][1]
+        tied_performers = [p for p, pts in standings if pts == top_points]
+
+        if len(tied_performers) > 1:
+            raise ValidationError([
+                f"Pool {pool.name} has tie for first place - "
+                "tiebreak battle required"
+            ])
+
+        winner = standings[0][0]
+
+        # Update pool winner
+        pool.winner_id = winner.id
+        pool.status = PoolStatus.COMPLETED
+        await self.pool_repo.update(pool)
+
+        return winner.id
+```
+
+**Test Coverage**: 17 tests in `tests/test_pool_service.py` (445 lines)
+
+#### TiebreakService
+
+**Purpose**: Detect ties and resolve them through tiebreak battles.
+
+**File**: `app/services/tiebreak_service.py` (274 lines)
+
+**Key Methods**:
+
+```python
+class TiebreakService:
+    """Service for detecting and resolving tiebreak situations."""
+
+    def __init__(
+        self,
+        battle_repo: BattleRepository,
+        pool_repo: PoolRepository,
+        performer_repo: PerformerRepository,
+    ):
+        self.battle_repo = battle_repo
+        self.pool_repo = pool_repo
+        self.performer_repo = performer_repo
+
+    async def detect_preselection_tie(
+        self, category_id: UUID, qualification_cutoff: int
+    ) -> list[UUID] | None:
+        """
+        Detect tie at preselection qualification cutoff.
+
+        Args:
+            category_id: Category UUID
+            qualification_cutoff: Number of performers to qualify
+
+        Returns:
+            List of tied performer UUIDs if tie exists, None otherwise
+        """
+        performers = await self.performer_repo.get_by_category(category_id)
+
+        # Sort by preselection_score DESC
+        performers.sort(
+            key=lambda p: p.preselection_score or 0, reverse=True
+        )
+
+        # Check if performers at cutoff have same score
+        cutoff_score = performers[qualification_cutoff - 1].preselection_score
+        tied = [
+            p for p in performers
+            if p.preselection_score == cutoff_score
+        ]
+
+        if len(tied) > 1:
+            return [p.id for p in tied]
+
+        return None
+
+    async def detect_pool_tie(self, pool_id: UUID) -> list[UUID] | None:
+        """
+        Detect tie for first place in pool standings.
+
+        Returns:
+            List of tied performer UUIDs if tie exists, None otherwise
+        """
+        pool = await self.pool_repo.get_pool_with_performers(pool_id)
+
+        # Calculate points
+        standings = []
+        for performer in pool.performers:
+            points = (performer.pool_wins * 3) + (performer.pool_draws * 1)
+            standings.append((performer, points))
+
+        # Check for tie at top
+        standings.sort(key=lambda x: x[1], reverse=True)
+        top_points = standings[0][1]
+        tied = [p for p, pts in standings if pts == top_points]
+
+        if len(tied) > 1:
+            return [p.id for p in tied]
+
+        return None
+
+    async def create_tiebreak_battle(
+        self,
+        category_id: UUID,
+        tied_performer_ids: list[UUID],
+        voting_mode: str,
+    ) -> Battle:
+        """
+        Create a tiebreak battle for tied performers.
+
+        Args:
+            category_id: Category UUID
+            tied_performer_ids: List of performer UUIDs in tiebreak
+            voting_mode: 'KEEP' (N=2) or 'ELIMINATE' (N>2)
+
+        Returns:
+            Created tiebreak battle
+        """
+        battle = Battle(
+            category_id=category_id,
+            phase=BattlePhase.TIEBREAK,
+            outcome_type=BattleOutcomeType.TIEBREAK,
+            status=BattleStatus.PENDING,
+            voting_mode=voting_mode,
+        )
+        battle = await self.battle_repo.create(battle)
+
+        # Link all tied performers
+        for performer_id in tied_performer_ids:
+            await self.battle_repo.add_performer_to_battle(
+                battle.id, performer_id
+            )
+
+        return battle
+```
+
+**Test Coverage**: 22 tests in `tests/test_tiebreak_service.py` (533 lines)
+
+### Battle Routing and Encoding
+
+**File**: `app/routers/battles.py` (262 lines)
+
+**Purpose**: Provide web interface for battle management and result encoding.
+
+**Key Endpoints**:
+
+```python
+@router.get("", response_class=HTMLResponse)
+async def list_battles(...):
+    """
+    List battles with filtering.
+
+    Query Params:
+    - category_id: Filter by category
+    - status_filter: 'pending', 'active', 'completed'
+
+    Template: battles/list.html
+    """
+    battles = await battle_repo.get_by_category(category_id)
+
+    # Apply status filter if provided
+    if status_filter:
+        battles = [b for b in battles if b.status.value == status_filter]
+
+    return templates.TemplateResponse(...)
+
+@router.get("/{battle_id}", response_class=HTMLResponse)
+async def battle_detail(battle_id: UUID, ...):
+    """
+    Show battle details.
+
+    Template: battles/detail.html
+    Features:
+    - Performer cards with winner highlighting
+    - Outcome display
+    - Role-based action buttons (Start, Encode)
+    """
+    battle = await battle_repo.get_battle_with_performers(battle_id)
+    return templates.TemplateResponse(...)
+
+@router.post("/{battle_id}/start")
+async def start_battle(battle_id: UUID, ...):
+    """
+    Start a battle (PENDING → ACTIVE).
+
+    Permissions: Staff only
+    """
+    battle = await battle_repo.get_by_id(battle_id)
+    battle.status = BattleStatus.ACTIVE
+    await battle_repo.update(battle)
+
+    return RedirectResponse(
+        url=f"/battles/{battle_id}", status_code=303
+    )
+
+@router.get("/{battle_id}/encode", response_class=HTMLResponse)
+async def encode_battle_form(battle_id: UUID, ...):
+    """
+    Show encoding form based on battle phase.
+
+    Templates:
+    - battles/encode_preselection.html (score input 0-10)
+    - battles/encode_pool.html (winner selection or draw)
+    - battles/encode_tiebreak.html (winner selection)
+    - battles/encode_finals.html (winner selection)
+
+    Permissions: Staff only
+    """
+    battle = await battle_repo.get_battle_with_performers(battle_id)
+
+    template_map = {
+        BattlePhase.PRESELECTION: "encode_preselection.html",
+        BattlePhase.POOLS: "encode_pool.html",
+        BattlePhase.TIEBREAK: "encode_tiebreak.html",
+        BattlePhase.FINALS: "encode_finals.html",
+    }
+
+    return templates.TemplateResponse(
+        f"battles/{template_map[battle.phase]}",
+        {"battle": battle, ...}
+    )
+
+@router.post("/{battle_id}/encode")
+async def encode_battle(request: Request, battle_id: UUID, ...):
+    """
+    Submit battle results (phase-dependent logic).
+
+    PRESELECTION:
+    - Parse scores from form (score_<performer_id>)
+    - Update performer.preselection_score
+
+    POOLS:
+    - Parse winner_id or is_draw flag
+    - Update pool_wins/draws/losses
+
+    TIEBREAK:
+    - Parse winner_id
+    - Update tiebreak_winner
+
+    FINALS:
+    - Parse winner_id
+    - Update finals_winner
+
+    Permissions: Staff only
+    """
+    form_data = await request.form()
+    battle = await battle_repo.get_battle_with_performers(battle_id)
+
+    if battle.phase == BattlePhase.PRESELECTION:
+        for performer in battle.performers:
+            score_key = f"score_{performer.id}"
+            score = float(form_data[score_key])
+            performer.preselection_score = score
+            await performer_repo.update(performer)
+
+    elif battle.phase == BattlePhase.POOLS:
+        is_draw = form_data.get("is_draw") == "true"
+
+        if is_draw:
+            # Mark draw for both performers
+            for performer in battle.performers:
+                performer.pool_draws = (performer.pool_draws or 0) + 1
+                await performer_repo.update(performer)
+        else:
+            winner_id = UUID(form_data["winner_id"])
+            for performer in battle.performers:
+                if performer.id == winner_id:
+                    performer.pool_wins = (performer.pool_wins or 0) + 1
+                else:
+                    performer.pool_losses = (performer.pool_losses or 0) + 1
+                await performer_repo.update(performer)
+
+    # Mark battle as completed
+    battle.status = BattleStatus.COMPLETED
+    await battle_repo.update(battle)
+
+    return RedirectResponse(
+        url=f"/battles/{battle_id}", status_code=303
+    )
+```
+
+**Templates**:
+- `battles/list.html`: Grid view with status filters
+- `battles/detail.html`: Battle details with performer cards
+- `battles/encode_preselection.html`: Score input (0-10)
+- `battles/encode_pool.html`: Winner selection or draw
+- `battles/encode_tiebreak.html`: Winner selection with stats
+- `pools/overview.html`: Pool standings table
+
+### Battle Outcome Types
+
+The system uses different outcome types for different phases:
+
+| Outcome Type | Used In | Description |
+|--------------|---------|-------------|
+| `SCORED` | Preselection | Performers scored 0-10 by judges |
+| `WIN_DRAW_LOSS` | Pools | Winner/draw/loser for round-robin |
+| `TIEBREAK` | Tiebreak | Special voting (KEEP/ELIMINATE) |
+| `WIN_LOSS` | Finals | Simple winner/loser for bracket |
+
+---
+
+## Phase Transition Hooks
+
+### Purpose
+
+Phase transition hooks automatically generate battles and pools when advancing tournament phases. This ensures all required battles exist before entering a new phase.
+
+### Implementation
+
+**File**: `app/services/tournament_service.py:185-248`
+
+```python
+async def _execute_phase_transition_hooks(
+    self, tournament: Tournament
+) -> None:
+    """
+    Execute phase-specific hooks when transitioning to next phase.
+
+    Generates battles and pools based on current phase before advancing.
+
+    Raises:
+        ValidationError: If battle/pool generation fails
+
+    See: ROADMAP.md §2.4 Phase Transition Hooks
+    """
+
+    # REGISTRATION → PRESELECTION: Generate preselection battles
+    if tournament.phase == TournamentPhase.REGISTRATION:
+        if self._battle_service is None:
+            return
+
+        categories = await self.category_repo.get_by_tournament(
+            tournament.id
+        )
+
+        for category in categories:
+            # Generate one battle per performer
+            await self._battle_service.generate_preselection_battles(
+                category.id
+            )
+
+    # PRESELECTION → POOLS: Create pools + generate pool battles
+    elif tournament.phase == TournamentPhase.PRESELECTION:
+        if self._pool_service is None or self._battle_service is None:
+            return
+
+        categories = await self.category_repo.get_by_tournament(
+            tournament.id
+        )
+
+        for category in categories:
+            # Create pools from qualification results
+            pools = await self._pool_service.create_pools_from_preselection(
+                category.id, category.groups_ideal
+            )
+
+            # Generate round-robin battles for each pool
+            for pool in pools:
+                await self._battle_service.generate_pool_battles(
+                    category.id, pool.id
+                )
+
+    # POOLS → FINALS: Generate finals bracket battles
+    elif tournament.phase == TournamentPhase.POOLS:
+        if self._battle_service is None:
+            return
+
+        categories = await self.category_repo.get_by_tournament(
+            tournament.id
+        )
+
+        for category in categories:
+            # Generate bracket battles from pool winners
+            await self._battle_service.generate_finals_battles(
+                category.id
+            )
+
+    # FINALS → COMPLETED: No hooks needed
+    elif tournament.phase == TournamentPhase.FINALS:
+        pass
+```
+
+### Hook Execution Order
+
+1. **Validation**: Check if tournament can advance (via `_validate_phase_advance()`)
+2. **Auto-Activation**: Activate tournament if advancing from REGISTRATION (if no other active tournament)
+3. **Hook Execution**: Generate battles/pools BEFORE advancing phase
+4. **Phase Advancement**: Update tournament.phase to next phase
+5. **Database Commit**: Persist changes
+
+This order ensures battles/pools exist when entering the new phase.
+
+### Dependency Injection
+
+**File**: `app/dependencies.py:295-327`
+
+```python
+def get_tournament_service(session: AsyncSession = Depends(get_db)):
+    """Get TournamentService with battle/pool services injected."""
+    from app.services.tournament_service import TournamentService
+    from app.services.battle_service import BattleService
+    from app.services.pool_service import PoolService
+
+    # Create repositories
+    tournament_repo = TournamentRepository(session)
+    category_repo = CategoryRepository(session)
+    performer_repo = PerformerRepository(session)
+    battle_repo = BattleRepository(session)
+    pool_repo = PoolRepository(session)
+
+    # Create battle and pool services for phase transitions
+    battle_service = BattleService(battle_repo, performer_repo)
+    pool_service = PoolService(pool_repo, performer_repo)
+
+    return TournamentService(
+        tournament_repo=tournament_repo,
+        category_repo=category_repo,
+        performer_repo=performer_repo,
+        battle_repo=battle_repo,
+        pool_repo=pool_repo,
+        battle_service=battle_service,  # Injected for hooks
+        pool_service=pool_service,      # Injected for hooks
+    )
+```
+
+### Why Optional Services?
+
+The `battle_service` and `pool_service` parameters are optional (`None` default) to maintain backward compatibility and allow TournamentService to be instantiated without them (e.g., in tests that don't need phase transitions).
+
+---
+
 ## HTMX Patterns
 
 ### Live Search with Debounce
@@ -547,6 +1235,53 @@ await performer_service.get_performers_by_category(category_id)
 - Duo pairing validation (both dancers available)
 - Category type validation (1v1 vs 2v2)
 
+#### BattleService
+
+```python
+# app/services/battle_service.py
+await battle_service.generate_preselection_battles(category_id)
+await battle_service.generate_pool_battles(category_id, pool_id)
+await battle_service.generate_finals_battles(category_id)
+await battle_service.start_battle(battle_id)
+await battle_service.complete_battle(battle_id)
+await battle_service.get_battle_queue(category_id, phase, status)
+```
+
+**Business Rules:**
+- Preselection: One battle per performer
+- Pools: Round-robin matchups (all vs all)
+- Finals: Single-elimination bracket
+- Battle lifecycle: PENDING → ACTIVE → COMPLETED
+
+#### PoolService
+
+```python
+# app/services/pool_service.py
+await pool_service.create_pools_from_preselection(category_id, num_pools)
+await pool_service.determine_pool_winner(pool_id)
+await pool_service.get_pool_standings(pool_id)
+```
+
+**Business Rules:**
+- Snake draft distribution for fairness
+- Points: Win=3, Draw=1, Loss=0
+- Tie detection for tiebreak battles
+
+#### TiebreakService
+
+```python
+# app/services/tiebreak_service.py
+await tiebreak_service.detect_preselection_tie(category_id, qualification_cutoff)
+await tiebreak_service.detect_pool_tie(pool_id)
+await tiebreak_service.create_tiebreak_battle(category_id, tied_performer_ids, voting_mode)
+await tiebreak_service.process_tiebreak_votes(battle_id, votes)
+```
+
+**Business Rules:**
+- KEEP mode: N=2 performers (vote for winner)
+- ELIMINATE mode: N>2 performers (vote for who to eliminate)
+- Multiple voting rounds until one winner remains
+
 ---
 
 ## Summary
@@ -564,4 +1299,4 @@ Following these patterns ensures maintainable, testable, and scalable code.
 
 ---
 
-**Last Updated:** 2025-01-19
+**Last Updated:** 2025-11-26

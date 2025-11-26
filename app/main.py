@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from app.config import settings
-from app.routers import auth, phases, admin, dancers, tournaments, registration
+from app.routers import auth, phases, admin, dancers, tournaments, registration, battles
 from app.dependencies import (
     get_current_user,
     require_auth,
@@ -63,6 +63,7 @@ app.include_router(admin.router)
 app.include_router(dancers.router)
 app.include_router(tournaments.router)
 app.include_router(registration.router)
+app.include_router(battles.router)
 
 
 @app.get("/", response_class=HTMLResponse)

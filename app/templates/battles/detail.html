@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Battle Detail - Battle-D{% endblock %}
+
+{% block header_title %}Battle Detail{% endblock %}
+
+{% block content %}
+<section>
+    <p><a href="/battles?category_id={{ battle.category_id }}">← Back to Battles</a></p>
+</section>
+
+<article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 24px;">
+    <header>
+        <h2>Battle - {{ battle.phase.value|title }}</h2>
+        <span style="padding: 6px 12px; background-color:
+            {% if battle.status.value == 'completed' %}#28a745
+            {% elif battle.status.value == 'active' %}#ffc107
+            {% else %}#6c757d{% endif %};
+            color: white; border-radius: 4px; font-size: 14px;">
+            {{ battle.status.value|upper }} {% if battle.status.value == 'completed' %}✅{% elif battle.status.value == 'active' %}🔴{% else %}⏸️{% endif %}
+        </span>
+    </header>
+
+    <section style="margin-top: 24px;">
+        <h3>Battle Information</h3>
+        <dl>
+            <dt><strong>Phase:</strong></dt>
+            <dd>{{ battle.phase.value|title }}</dd>
+
+            <dt><strong>Outcome Type:</strong></dt>
+            <dd>{{ battle.outcome_type.value|replace('_', ' ')|title }}</dd>
+
+            <dt><strong>Created:</strong></dt>
+            <dd>{{ battle.created_at.strftime('%Y-%m-%d %H:%M') }}</dd>
+
+            <dt><strong>Performers:</strong></dt>
+            <dd>{{ battle.performers|length }}</dd>
+        </dl>
+    </section>
+
+    <section style="margin-top: 24px;">
+        <h3>Performers</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            {% for performer in battle.performers %}
+            <article style="border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 12px;
+                {% if battle.winner_id and performer.id == battle.winner_id %}border-color: #28a745; border-width: 2px;{% endif %}">
+                <p><strong>🎭 Performer {{ loop.index }}</strong></p>
+                {% if battle.winner_id and performer.id == battle.winner_id %}
+                <p style="color: #28a745; font-weight: bold;">🏆 Winner</p>
+                {% endif %}
+
+                {% if battle.phase.value == 'preselection' and performer.preselection_score %}
+                <p><small>Score: {{ performer.preselection_score }}</small></p>
+                {% elif battle.phase.value == 'pools' %}
+                <p><small>W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}</small></p>
+                <p><small>Points: {{ performer.pool_points }}</small></p>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    {% if battle.outcome %}
+    <section style="margin-top: 24px;">
+        <h3>Battle Outcome</h3>
+        <details>
+            <summary>View Raw Outcome Data</summary>
+            <pre style="background-color: var(--pico-background-color); padding: 12px; border-radius: 4px; overflow-x: auto;">{{ battle.outcome }}</pre>
+        </details>
+    </section>
+    {% endif %}
+
+    <section style="margin-top: 24px;">
+        <h3>Actions</h3>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            {% if battle.status.value == 'pending' %}
+            <form action="/battles/{{ battle.id }}/start" method="post" style="display: inline;">
+                <button type="submit">Start Battle</button>
+            </form>
+            {% elif battle.status.value == 'active' %}
+            <a href="/battles/{{ battle.id }}/encode" role="button">Encode Result</a>
+            {% else %}
+            <p style="color: var(--pico-muted-color);">Battle is completed. No actions available.</p>
+            {% endif %}
+        </div>
+    </section>
+</article>
+{% endblock %}

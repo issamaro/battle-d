@@ -192,3 +192,54 @@ class PerformerRepository(BaseRepository[Performer]):
 
         # Commit changes
         await self.session.commit()
+
+    async def get_pool_with_performers(self, pool_id: uuid.UUID):
+        """Get a pool with its performers loaded.
+
+        This is a convenience method that delegates to PoolRepository.
+        Kept for backwards compatibility with BattleService.
+
+        Args:
+            pool_id: Pool UUID
+
+        Returns:
+            Pool with performers or None if not found
+
+        Note:
+            This method requires access to PoolRepository.
+            In practice, this should be called from PoolService instead.
+        """
+        # Import here to avoid circular dependency
+        from app.models.pool import Pool
+
+        result = await self.session.execute(
+            select(Pool)
+            .options(selectinload(Pool.performers))
+            .where(Pool.id == pool_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_pool_winners(self, category_id: uuid.UUID) -> List[Performer]:
+        """Get pool winners for a category.
+
+        Returns performers who are marked as winners in their pools.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of performers who are pool winners
+
+        Note:
+            This only returns performers where pool.winner_id is set.
+            Does not calculate winners - that's done by PoolService.
+        """
+        # Import here to avoid circular dependency
+        from app.models.pool import Pool
+
+        result = await self.session.execute(
+            select(Performer)
+            .join(Pool, Pool.winner_id == Performer.id)
+            .where(Pool.category_id == category_id)
+        )
+        return list(result.scalars().all())

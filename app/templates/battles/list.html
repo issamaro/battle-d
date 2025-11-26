@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Battles{% if category %} - {{ category.name }}{% endif %} - Battle-D{% endblock %}
+
+{% block header_title %}Battles{% if category %} - {{ category.name }}{% endif %}{% endblock %}
+
+{% block content %}
+<section>
+    <p><a href="/overview">← Back to Overview</a></p>
+</section>
+
+{% if category %}
+<section>
+    <h3>{{ category.name }}</h3>
+    <p>{{ category.description or "No description" }}</p>
+</section>
+{% endif %}
+
+<section>
+    <h3>Filter by Status</h3>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="?category_id={{ category.id if category else '' }}"
+           role="button"
+           class="{% if not status_filter %}primary{% else %}secondary{% endif %}"
+           style="padding: 8px 16px;">
+            All
+        </a>
+        <a href="?category_id={{ category.id if category else '' }}&status_filter=pending"
+           role="button"
+           class="{% if status_filter == 'pending' %}primary{% else %}secondary{% endif %}"
+           style="padding: 8px 16px;">
+            Pending
+        </a>
+        <a href="?category_id={{ category.id if category else '' }}&status_filter=active"
+           role="button"
+           class="{% if status_filter == 'active' %}primary{% else %}secondary{% endif %}"
+           style="padding: 8px 16px;">
+            Active
+        </a>
+        <a href="?category_id={{ category.id if category else '' }}&status_filter=completed"
+           role="button"
+           class="{% if status_filter == 'completed' %}primary{% else %}secondary{% endif %}"
+           style="padding: 8px 16px;">
+            Completed
+        </a>
+    </div>
+</section>
+
+<section style="margin-top: 30px;">
+    <h3>Battles</h3>
+    {% if battles %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            {% for battle in battles %}
+            <article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 16px;">
+                <header>
+                    <h4>Battle - {{ battle.phase.value|title }}</h4>
+                    <span style="padding: 4px 8px; background-color:
+                        {% if battle.status.value == 'completed' %}#28a745
+                        {% elif battle.status.value == 'active' %}#ffc107
+                        {% else %}#6c757d{% endif %};
+                        color: white; border-radius: 4px; font-size: 12px;">
+                        {{ battle.status.value|upper }}
+                    </span>
+                </header>
+
+                <div style="margin-top: 12px;">
+                    <p><strong>Performers:</strong></p>
+                    <ul style="margin: 8px 0; padding-left: 20px;">
+                        {% for performer in battle.performers[:5] %}
+                        <li>Performer {{ loop.index }}{% if battle.winner_id and performer.id == battle.winner_id %} 🏆{% endif %}</li>
+                        {% endfor %}
+                        {% if battle.performers|length > 5 %}
+                        <li>... and {{ battle.performers|length - 5 }} more</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                {% if battle.status.value == 'completed' and battle.winner_id %}
+                <p style="margin-top: 12px;"><strong>Winner:</strong> 🏆</p>
+                {% endif %}
+
+                <footer style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a href="/battles/{{ battle.id }}" role="button" class="secondary" style="font-size: 14px; padding: 6px 12px;">
+                        View Details
+                    </a>
+
+                    {% if battle.status.value == 'pending' %}
+                    <form action="/battles/{{ battle.id }}/start" method="post" style="display: inline;">
+                        <button type="submit" style="font-size: 14px; padding: 6px 12px;">
+                            Start Battle
+                        </button>
+                    </form>
+                    {% elif battle.status.value == 'active' %}
+                    <a href="/battles/{{ battle.id }}/encode" role="button" style="font-size: 14px; padding: 6px 12px;">
+                        Encode Result
+                    </a>
+                    {% endif %}
+                </footer>
+            </article>
+            {% endfor %}
+        </div>
+
+        <p style="margin-top: 20px;">
+            <strong>Total Battles:</strong> {{ battles|length }}
+        </p>
+    {% else %}
+        <p>No battles found{% if status_filter %} with status "{{ status_filter }}"{% endif %}.</p>
+    {% endif %}
+</section>
+{% endblock %}

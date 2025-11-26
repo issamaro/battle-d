@@ -1,6 +1,7 @@
 """Tournament service for business operations."""
 
 from uuid import UUID
+from typing import TYPE_CHECKING
 
 from app.exceptions import ValidationError
 from app.models.tournament import Tournament, TournamentPhase, TournamentStatus
@@ -11,6 +12,10 @@ from app.repositories.pool import PoolRepository
 from app.repositories.tournament import TournamentRepository
 from app.validators import phase_validators
 from app.validators.result import ValidationResult
+
+if TYPE_CHECKING:
+    from app.services.battle_service import BattleService
+    from app.services.pool_service import PoolService
 
 
 class TournamentService:
@@ -27,6 +32,8 @@ class TournamentService:
         performer_repo: PerformerRepository,
         battle_repo: BattleRepository,
         pool_repo: PoolRepository,
+        battle_service: "BattleService | None" = None,
+        pool_service: "PoolService | None" = None,
     ):
         """Initialize tournament service.
 
@@ -36,12 +43,16 @@ class TournamentService:
             performer_repo: Performer repository
             battle_repo: Battle repository
             pool_repo: Pool repository
+            battle_service: Optional BattleService for phase transitions
+            pool_service: Optional PoolService for phase transitions
         """
         self.tournament_repo = tournament_repo
         self.category_repo = category_repo
         self.performer_repo = performer_repo
         self.battle_repo = battle_repo
         self.pool_repo = pool_repo
+        self._battle_service = battle_service
+        self._pool_service = pool_service
 
     async def advance_tournament_phase(self, tournament_id: UUID) -> Tournament:
         """Advance tournament to next phase after validation.
@@ -91,6 +102,9 @@ class TournamentService:
 
             # Activate tournament
             tournament.activate()
+
+        # Execute phase transition hooks BEFORE advancing
+        await self._execute_phase_transition_hooks(tournament)
 
         # Advance phase (uses model method)
         tournament.advance_phase()
@@ -167,3 +181,67 @@ class TournamentService:
 
         else:
             return ValidationResult.failure(["Tournament already completed"])
+
+    async def _execute_phase_transition_hooks(self, tournament: Tournament) -> None:
+        """Execute phase-specific hooks when transitioning to next phase.
+
+        Generates battles and pools based on current phase before advancing.
+
+        Args:
+            tournament: Tournament instance (current phase)
+
+        Raises:
+            ValidationError: If battle/pool generation fails
+
+        See: ROADMAP.md §2.4 Phase Transition Hooks
+        """
+        # REGISTRATION → PRESELECTION: Generate preselection battles
+        if tournament.phase == TournamentPhase.REGISTRATION:
+            if self._battle_service is None:
+                # No battle service provided - skip battle generation
+                return
+
+            # Get all categories in tournament
+            categories = await self.category_repo.get_by_tournament(tournament.id)
+
+            for category in categories:
+                # Generate preselection battles for each category
+                await self._battle_service.generate_preselection_battles(category.id)
+
+        # PRESELECTION → POOLS: Create pools from preselection results
+        elif tournament.phase == TournamentPhase.PRESELECTION:
+            if self._pool_service is None or self._battle_service is None:
+                # No services provided - skip pool/battle generation
+                return
+
+            # Get all categories in tournament
+            categories = await self.category_repo.get_by_tournament(tournament.id)
+
+            for category in categories:
+                # Create pools from preselection qualification
+                pools = await self._pool_service.create_pools_from_preselection(
+                    category.id, category.groups_ideal
+                )
+
+                # Generate pool battles for each pool
+                for pool in pools:
+                    await self._battle_service.generate_pool_battles(
+                        category.id, pool.id
+                    )
+
+        # POOLS → FINALS: Generate finals battles from pool winners
+        elif tournament.phase == TournamentPhase.POOLS:
+            if self._battle_service is None:
+                # No battle service provided - skip battle generation
+                return
+
+            # Get all categories in tournament
+            categories = await self.category_repo.get_by_tournament(tournament.id)
+
+            for category in categories:
+                # Generate finals battles (bracket style)
+                await self._battle_service.generate_finals_battles(category.id)
+
+        # FINALS → COMPLETED: No hooks needed
+        elif tournament.phase == TournamentPhase.FINALS:
+            pass  # Tournament completion has no generation hooks

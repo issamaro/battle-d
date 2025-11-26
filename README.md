@@ -62,7 +62,7 @@ uvicorn app.main:app --reload
 
 - **[DOMAIN_MODEL.md](DOMAIN_MODEL.md)** - Complete business rules, entities, workflows
 - **[VALIDATION_RULES.md](VALIDATION_RULES.md)** - Phase transition and tournament validation rules
-- **[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)** - Development roadmap (Phase 0-5)
+- **[ROADMAP.md](ROADMAP.md)** - Development roadmap (Phase 0-5)
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Railway deployment guide (step-by-step)
 - **[TESTING.md](TESTING.md)** - Testing guide and best practices
 
@@ -382,7 +382,7 @@ Registration → Preselection → Pools → Finals → Completed
 **Total V1:** ~16-22 days remaining
 **Total V2:** ~21-29 days remaining
 
-**Full roadmap:** [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
+**Full roadmap:** [ROADMAP.md](ROADMAP.md)
 
 ---
 
@@ -402,7 +402,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 **Documentation:**
 - Domain model: [DOMAIN_MODEL.md](DOMAIN_MODEL.md)
-- Implementation plan: [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)
+- Project roadmap: [ROADMAP.md](ROADMAP.md)
 - Deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
 - Testing guide: [TESTING.md](TESTING.md)
 

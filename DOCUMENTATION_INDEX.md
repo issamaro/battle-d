@@ -1,5 +1,5 @@
 # Battle-D Documentation Index
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-11-24
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-11-25
 
 **Purpose:** Central navigation hub for all project documentation
 
@@ -12,7 +12,7 @@
 | Business rules & entities | [DOMAIN_MODEL.md](DOMAIN_MODEL.md) |
 | Validation constraints & limits | [VALIDATION_RULES.md](VALIDATION_RULES.md) |
 | UI designs & wireframes | [UI_MOCKUPS.md](UI_MOCKUPS.md) |
-| Development roadmap | [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) |
+| Development roadmap | [ROADMAP.md](ROADMAP.md) |
 | Architecture patterns | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Deployment guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
 | Testing strategies | [TESTING.md](TESTING.md) |
@@ -36,7 +36,7 @@ LEVEL 1: SOURCE OF TRUTH (Authoritative - change these first)
 LEVEL 2: DERIVED (References Level 1 - update after Level 1)
 ├── UI_MOCKUPS.md               → UI implementation designs
 ├── UI_PATTERNS.md              → Reusable UI patterns (future)
-├── IMPLEMENTATION_PLAN.md      → Roadmap, development phases
+├── ROADMAP.md                  → Project roadmap, development phases
 └── README.md                   → Project overview
 
 LEVEL 3: OPERATIONAL (Procedures & Technical)
@@ -75,7 +75,7 @@ WORKBENCH: (Temporary, per-task tracking)
                          YES                  NO
                           │                   │
                           ▼                   │
-               IMPLEMENTATION_PLAN.md         │
+                    ROADMAP.md                │
                           │                   │
                           └─────────┬─────────┘
                                     ▼
@@ -103,8 +103,11 @@ WORKBENCH: (Temporary, per-task tracking)
 | Pool distribution | VALIDATION_RULES.md §Pool Size | DOMAIN_MODEL.md §4 |
 | Tiebreak logic | DOMAIN_MODEL.md §5 | VALIDATION_RULES.md (summary) |
 | Deletion rules | DOMAIN_MODEL.md §8 | VALIDATION_RULES.md §Deletion Rules |
-| V1/V2 features | DOMAIN_MODEL.md §Judge | IMPLEMENTATION_PLAN.md §Phase 5 |
+| V1/V2 features | DOMAIN_MODEL.md §Judge | ROADMAP.md §Phase 5 |
 | Judge workflow | DOMAIN_MODEL.md §Judge | UI_MOCKUPS.md §21 (V2 Only) |
+| Battle generation | ROADMAP.md §2.1 | ARCHITECTURE.md (future) |
+| Pool distribution | ROADMAP.md §2.2 | VALIDATION_RULES.md §Pool Size |
+| Tiebreak battles | ROADMAP.md §2.3 | DOMAIN_MODEL.md §5 |
 
 ---
 
@@ -120,7 +123,7 @@ WORKBENCH: (Temporary, per-task tracking)
 **V2 Documentation:**
 - DOMAIN_MODEL.md §Judge (V2 Only)
 - UI_MOCKUPS.md §21.1 Judge Scoring Interface (V2 Only)
-- IMPLEMENTATION_PLAN.md Phase 5
+- ROADMAP.md Phase 5
 
 ---
 
@@ -131,7 +134,7 @@ WORKBENCH: (Temporary, per-task tracking)
 | DOMAIN_MODEL.md | Product/Business | Per feature change |
 | VALIDATION_RULES.md | Product/Dev | Per constraint change |
 | UI_MOCKUPS.md | Design/Frontend | Per UI change |
-| IMPLEMENTATION_PLAN.md | Project Lead | Weekly |
+| ROADMAP.md | Project Lead | Weekly |
 | ARCHITECTURE.md | Tech Lead | Per pattern change |
 | README.md | All | Per release |
 

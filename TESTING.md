@@ -1,7 +1,15 @@
 # Testing Guide
-**Level 3: Operational** | Last Updated: 2025-11-24
+**Level 3: Operational** | Last Updated: 2025-11-25
 
 This document describes the testing strategy, setup, and practices for the Battle-D web application.
+
+## Prerequisites
+
+Before reading this document, familiarize yourself with:
+- [ROADMAP.md](ROADMAP.md) - Development phases and testing milestones
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Service patterns and code organization
+
+---
 
 ## Overview
 
