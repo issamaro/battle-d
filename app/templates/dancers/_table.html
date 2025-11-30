@@ -34,5 +34,17 @@
         {% if search %}<em>(Search results for "{{ search }}")</em>{% endif %}
     </p>
 {% else %}
-    <p>No dancers found{% if search %} matching "{{ search }}"{% endif %}.</p>
+    {% if search %}
+        {% set title = "No Dancers Found" %}
+        {% set message = 'No dancers match your search for "' ~ search ~ '"' %}
+        {% set icon = "🔍" %}
+        {% include "components/empty_state.html" %}
+    {% else %}
+        {% set title = "No Dancers Yet" %}
+        {% set message = "Create your first dancer to get started" %}
+        {% set action_url = "/dancers/create" %}
+        {% set action_text = "Create Dancer" %}
+        {% set icon = "👤" %}
+        {% include "components/empty_state.html" %}
+    {% endif %}
 {% endif %}

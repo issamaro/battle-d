@@ -1,0 +1,86 @@
+{#
+  Delete Confirmation Modal Component
+
+  Usage:
+    {% include "components/delete_modal.html" with context %}
+
+  Required context:
+    - modal_id: str (unique ID for this modal, e.g., "delete-dancer-123")
+    - item_name: str (what's being deleted, e.g., "Dancer: John Doe")
+    - delete_url: str (POST endpoint for deletion)
+
+  Optional context:
+    - warning_message: str (additional warning text)
+    - cancel_text: str (default: "Cancel")
+    - confirm_text: str (default: "Delete")
+#}
+
+{% set cancel_text = cancel_text|default("Cancel") %}
+{% set confirm_text = confirm_text|default("Delete") %}
+
+<dialog id="{{ modal_id }}" aria-labelledby="{{ modal_id }}-title" aria-describedby="{{ modal_id }}-desc">
+  <article>
+    <header>
+      <button
+        aria-label="Close"
+        rel="prev"
+        onclick="document.getElementById('{{ modal_id }}').close()"
+      ></button>
+      <h3 id="{{ modal_id }}-title">Confirm Deletion</h3>
+    </header>
+
+    <div id="{{ modal_id }}-desc">
+      <p>Are you sure you want to delete <strong>{{ item_name }}</strong>?</p>
+
+      {% if warning_message %}
+      <p class="warning-text" role="alert" style="color: var(--pico-color-red-500);">
+        <strong>Warning:</strong> {{ warning_message }}
+      </p>
+      {% endif %}
+
+      <p style="color: var(--pico-muted-color); font-size: 0.875rem;">
+        This action cannot be undone.
+      </p>
+    </div>
+
+    <footer>
+      <button
+        class="secondary"
+        onclick="document.getElementById('{{ modal_id }}').close()"
+      >
+        {{ cancel_text }}
+      </button>
+
+      <form
+        method="POST"
+        action="{{ delete_url }}"
+        style="display: inline;"
+      >
+        <button
+          type="submit"
+          class="primary"
+          style="background-color: var(--pico-color-red-500);"
+        >
+          {{ confirm_text }}
+        </button>
+      </form>
+    </footer>
+  </article>
+</dialog>
+
+<script>
+  // Function to open delete modal
+  function openDeleteModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.showModal();
+    }
+  }
+
+  // ESC key handling
+  document.getElementById('{{ modal_id }}').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      this.close();
+    }
+  });
+</script>

@@ -1,0 +1,31 @@
+{#
+  Loading Indicator Component
+
+  Usage (inline):
+    {% include "components/loading.html" with context %}
+
+  Usage (HTMX):
+    <div hx-get="/api/data" hx-indicator="#loading">
+      {% include "components/loading.html" with context %}
+    </div>
+
+  Optional context:
+    - loading_id: str (default: "loading") - ID for HTMX targeting
+    - loading_text: str (default: "Loading...") - Screen reader text
+    - size: str (default: "medium") - "small", "medium", "large"
+#}
+
+{% set loading_id = loading_id|default("loading") %}
+{% set loading_text = loading_text|default("Loading...") %}
+{% set size = size|default("medium") %}
+
+<div
+  id="{{ loading_id }}"
+  class="loading-indicator htmx-indicator loading-{{ size }}"
+  role="status"
+  aria-live="polite"
+  aria-label="{{ loading_text }}"
+>
+  <div class="loading-spinner" aria-hidden="true"></div>
+  <span class="loading-text">{{ loading_text }}</span>
+</div>

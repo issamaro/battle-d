@@ -12,10 +12,12 @@ from app.dependencies import (
     require_admin,
     CurrentUser,
     get_tournament_service,
+    get_flash_messages_dependency,
 )
 from app.exceptions import ValidationError
 from app.models.tournament import TournamentPhase
 from app.services.tournament_service import TournamentService
+from app.utils.flash import add_flash_message
 
 router = APIRouter(prefix="/tournaments", tags=["phases"])
 templates = Jinja2Templates(directory="app/templates")
@@ -27,6 +29,7 @@ async def tournament_phase_overview(
     request: Request,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     tournament_service: TournamentService = Depends(get_tournament_service),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """Display tournament phase overview.
 
@@ -58,6 +61,7 @@ async def tournament_phase_overview(
             "can_advance": next_phase is not None,
             "validation_errors": validation_result.errors if not validation_result else [],
             "validation_warnings": validation_result.warnings if validation_result else [],
+            "flash_messages": flash_messages,
         },
     )
 
@@ -141,10 +145,21 @@ async def advance_tournament_phase(
     # Second request: Confirmed - advance phase
     try:
         tournament = await tournament_service.advance_tournament_phase(tournament_id)
+        next_phase = TournamentPhase.get_next_phase(tournament.phase)
+        add_flash_message(
+            request,
+            f"Tournament advanced to {next_phase.value if next_phase else 'COMPLETED'} phase successfully",
+            "success"
+        )
         return RedirectResponse(
             url=f"/tournaments/{tournament_id}", status_code=status.HTTP_303_SEE_OTHER
         )
     except ValidationError as e:
+        add_flash_message(
+            request,
+            f"Cannot advance phase: {', '.join(e.errors)}",
+            "error"
+        )
         return templates.TemplateResponse(
             request=request,
             name="phases/validation_errors.html",

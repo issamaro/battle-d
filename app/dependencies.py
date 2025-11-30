@@ -1,10 +1,11 @@
 """FastAPI dependencies for authentication and authorization."""
 from typing import Optional
-from fastapi import Cookie, HTTPException, status, Depends
+from fastapi import Cookie, HTTPException, status, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import magic_link_auth
 from app.config import settings
 from app.db.database import get_db
+from app.utils.flash import get_flash_messages
 from app.repositories import (
     UserRepository,
     DancerRepository,
@@ -90,6 +91,18 @@ def get_current_user(
         return None
 
     return CurrentUser(email=payload["email"], role=payload["role"])
+
+
+def get_flash_messages_dependency(request: Request) -> list[dict[str, str]]:
+    """Get flash messages from session for template injection.
+
+    Args:
+        request: FastAPI request object
+
+    Returns:
+        List of flash message dictionaries with 'message' and 'category' keys
+    """
+    return get_flash_messages(request)
 
 
 def require_auth(

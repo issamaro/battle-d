@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}500 - Server Error{% endblock %}
+
+{% block content %}
+<main class="container" style="max-width: 600px; text-align: center; padding: 3rem 1rem;">
+  <div role="alert" aria-live="assertive">
+    <h1 style="font-size: 6rem; margin: 0; color: var(--pico-color-red-500);">500</h1>
+    <h2>Something Went Wrong</h2>
+    <p style="margin-bottom: 1rem;">
+      We encountered an unexpected error. Our team has been notified.
+    </p>
+
+    {% if error_id %}
+    <p style="font-family: monospace; color: var(--pico-muted-color); font-size: 0.875rem; margin-bottom: 2rem;">
+      Error ID: {{ error_id }}
+    </p>
+    {% endif %}
+
+    <nav aria-label="Error navigation">
+      <a href="/overview" role="button" class="primary">
+        Go to Overview
+      </a>
+      <a href="javascript:history.back()" role="button" class="secondary" style="margin-left: 1rem;">
+        Go Back
+      </a>
+    </nav>
+  </div>
+</main>
+{% endblock %}

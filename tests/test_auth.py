@@ -135,30 +135,32 @@ class TestAuthRoutes:
 
         Note: Email sending happens in background task after response.
         The email provider logic is tested separately in provider-specific tests.
+        Routes now return redirects with flash messages instead of JSON.
         """
         response = client.post(
             "/auth/send-magic-link",
             data={"email": "admin@battle-d.com"},
+            follow_redirects=False,
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert "message" in data
-        assert "login link" in data["message"].lower()
+        # Now returns redirect with flash message
+        assert response.status_code == 303
+        assert response.headers["location"] == "/auth/login"
 
     def test_send_magic_link_nonexistent_user(self, client):
         """Test sending magic link to non-existent user (same response for security).
 
         Note: No email is sent for non-existent users, but the response
         is intentionally the same to prevent user enumeration.
+        Routes now return redirects with flash messages instead of JSON.
         """
         response = client.post(
             "/auth/send-magic-link",
             data={"email": "nonexistent@example.com"},
+            follow_redirects=False,
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert "message" in data
-        assert "login link" in data["message"].lower()
+        # Same redirect for security (prevent user enumeration)
+        assert response.status_code == 303
+        assert response.headers["location"] == "/auth/login"
 
     def test_verify_valid_magic_link(self, client):
         """Test verifying a valid magic link."""
@@ -178,9 +180,14 @@ class TestAuthRoutes:
         assert settings.SESSION_COOKIE_NAME in cookies
 
     def test_verify_invalid_magic_link(self, client):
-        """Test verifying an invalid magic link."""
-        response = client.get("/auth/verify?token=invalid-token")
-        assert response.status_code == 401
+        """Test verifying an invalid magic link.
+
+        Routes now return redirects with flash messages instead of HTTP error codes.
+        """
+        response = client.get("/auth/verify?token=invalid-token", follow_redirects=False)
+        # Now returns redirect to login with error flash message
+        assert response.status_code == 303
+        assert response.headers["location"] == "/auth/login"
 
     def test_logout(self, client):
         """Test logout clears session."""

@@ -1,0 +1,32 @@
+{#
+  Empty State Component
+
+  Usage:
+    {% include "components/empty_state.html" with context %}
+
+  Required context:
+    - title: str (e.g., "No Dancers Found")
+    - message: str (e.g., "Create your first dancer to get started")
+
+  Optional context:
+    - action_url: str (e.g., "/dancers/create")
+    - action_text: str (e.g., "Create Dancer")
+    - icon: str (e.g., "👤") - emoji or symbol
+#}
+
+<div class="empty-state" role="status" aria-live="polite">
+  <div class="empty-state-content">
+    {% if icon %}
+    <div class="empty-state-icon" aria-hidden="true">{{ icon }}</div>
+    {% endif %}
+
+    <h3>{{ title }}</h3>
+    <p>{{ message }}</p>
+
+    {% if action_url and action_text %}
+    <a href="{{ action_url }}" role="button" class="primary">
+      {{ action_text }}
+    </a>
+    {% endif %}
+  </div>
+</div>

@@ -104,7 +104,20 @@
             <strong>Total Battles:</strong> {{ battles|length }}
         </p>
     {% else %}
-        <p>No battles found{% if status_filter %} with status "{{ status_filter }}"{% endif %}.</p>
+        {% if status_filter %}
+            {% set title = "No Battles Found" %}
+            {% set message = 'No battles found with status "' ~ status_filter ~ '"' %}
+            {% set icon = "🔍" %}
+        {% elif not category %}
+            {% set title = "No Category Selected" %}
+            {% set message = "Please select a category to view battles" %}
+            {% set icon = "⚔️" %}
+        {% else %}
+            {% set title = "No Battles Yet" %}
+            {% set message = "Battles will be created when the tournament advances to the next phase" %}
+            {% set icon = "⚔️" %}
+        {% endif %}
+        {% include "components/empty_state.html" %}
     {% endif %}
 </section>
 {% endblock %}

@@ -4,6 +4,8 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.exceptions import ValidationError
 from app.models.dancer import Dancer
 from app.repositories.dancer import DancerRepository
@@ -62,16 +64,24 @@ class DancerService:
         if age > 100:
             raise ValidationError(["Invalid birth date (age exceeds 100 years)"])
 
-        # Create dancer
-        dancer = await self.dancer_repo.create_dancer(
-            email=email_lower,
-            first_name=first_name,
-            last_name=last_name,
-            date_of_birth=date_of_birth,
-            blaze=blaze,
-            country=country,
-            city=city,
-        )
+        # Create dancer with IntegrityError fallback
+        try:
+            dancer = await self.dancer_repo.create_dancer(
+                email=email_lower,
+                first_name=first_name,
+                last_name=last_name,
+                date_of_birth=date_of_birth,
+                blaze=blaze,
+                country=country,
+                city=city,
+            )
+        except IntegrityError as e:
+            # Handle race condition: email taken between check and insert
+            error_str = str(e).lower()
+            if "unique" in error_str and "email" in error_str:
+                raise ValidationError([f"Email '{email}' is already registered"])
+            # Generic fallback for other constraint violations
+            raise ValidationError(["Database constraint violation. Please check your input."])
 
         return dancer
 
@@ -139,8 +149,17 @@ class DancerService:
         if city is not None:
             update_data["city"] = city
 
-        # Update dancer
-        updated_dancer = await self.dancer_repo.update(dancer_id, **update_data)
+        # Update dancer with IntegrityError fallback
+        try:
+            updated_dancer = await self.dancer_repo.update(dancer_id, **update_data)
+        except IntegrityError as e:
+            # Handle race condition: email taken between check and update
+            error_str = str(e).lower()
+            if "unique" in error_str and "email" in error_str:
+                raise ValidationError([f"Email '{email}' is already registered"])
+            # Generic fallback for other constraint violations
+            raise ValidationError(["Database constraint violation. Please check your input."])
+
         return updated_dancer
 
     async def search_dancers(self, query: str) -> list[Dancer]:

@@ -9,8 +9,14 @@
     <!-- PicoCSS - Minimal CSS Framework -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
 
+    <!-- Error Handling Styles -->
+    <link rel="stylesheet" href="/static/css/error-handling.css">
+
     <!-- HTMX for interactive UI without full page reloads -->
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+
+    <!-- Error Handling JavaScript -->
+    <script src="/static/js/error-handling.js" defer></script>
 
     <style>
         {% if current_user %}
@@ -180,6 +186,9 @@
         <p>{{ current_user.email }} • {{ current_user.role }}</p>
     </header>
     {% endif %}
+
+    <!-- Flash Messages -->
+    {% include "components/flash_messages.html" %}
 
     <!-- Main Content -->
     <main {% if current_user %}class="container-fluid"{% else %}class="container"{% endif %}>

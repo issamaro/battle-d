@@ -56,7 +56,12 @@
             <strong>Total Tournaments:</strong> {{ tournaments|length }}
         </p>
     {% else %}
-        <p>No tournaments found. Create your first tournament to get started!</p>
+        {% set title = "No Tournaments Yet" %}
+        {% set message = "Create your first tournament to get started" %}
+        {% set action_url = "/tournaments/create" %}
+        {% set action_text = "Create Tournament" %}
+        {% set icon = "🏆" %}
+        {% include "components/empty_state.html" %}
     {% endif %}
 </section>
 {% endblock %}

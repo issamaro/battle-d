@@ -12,11 +12,13 @@ from app.dependencies import (
     get_category_repo,
     get_dancer_repo,
     get_performer_repo,
+    get_flash_messages_dependency,
 )
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.dancer import DancerRepository
 from app.repositories.performer import PerformerRepository
+from app.utils.flash import add_flash_message
 
 router = APIRouter(prefix="/registration", tags=["registration"])
 templates = Jinja2Templates(directory="app/templates")
@@ -33,6 +35,7 @@ async def registration_page(
     category_repo: CategoryRepository = Depends(get_category_repo),
     dancer_repo: DancerRepository = Depends(get_dancer_repo),
     performer_repo: PerformerRepository = Depends(get_performer_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """Dancer registration page for a tournament category (staff only).
 
@@ -46,6 +49,7 @@ async def registration_page(
         category_repo: Category repository
         dancer_repo: Dancer repository
         performer_repo: Performer repository
+        flash_messages: Flash messages from session
 
     Returns:
         HTML page with registration interface
@@ -96,12 +100,14 @@ async def registration_page(
             "performers": performers,
             "dancers": dancers,
             "search": search or "",
+            "flash_messages": flash_messages,
         },
     )
 
 
 @router.post("/{tournament_id}/{category_id}/register")
 async def register_dancer(
+    request: Request,
     tournament_id: str,
     category_id: str,
     dancer_id: str = Form(...),
@@ -114,6 +120,7 @@ async def register_dancer(
     """Register a dancer in a tournament category (staff only).
 
     Args:
+        request: FastAPI request
         tournament_id: Tournament UUID
         category_id: Category UUID
         dancer_id: Dancer UUID to register
@@ -134,42 +141,45 @@ async def register_dancer(
         category_uuid = uuid.UUID(category_id)
         dancer_uuid = uuid.UUID(dancer_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid ID format",
+        add_flash_message(request, "Invalid ID format", "error")
+        return RedirectResponse(
+            url=f"/registration/{tournament_id}/{category_id}",
+            status_code=303,
         )
 
     # Verify tournament exists
     tournament = await tournament_repo.get_by_id(tournament_uuid)
     if not tournament:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tournament not found",
-        )
+        add_flash_message(request, "Tournament not found", "error")
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     # Verify category exists
     category = await category_repo.get_by_id(category_uuid)
     if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Category not found",
-        )
+        add_flash_message(request, "Category not found", "error")
+        return RedirectResponse(url=f"/tournaments/{tournament_id}", status_code=303)
 
     # Verify dancer exists
     dancer = await dancer_repo.get_by_id(dancer_uuid)
     if not dancer:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dancer not found",
+        add_flash_message(request, "Dancer not found", "error")
+        return RedirectResponse(
+            url=f"/registration/{tournament_id}/{category_id}",
+            status_code=303,
         )
 
     # Check if dancer is already registered in this tournament
     if await performer_repo.dancer_registered_in_tournament(
         dancer_uuid, tournament_uuid
     ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Dancer {dancer.blaze} is already registered in this tournament (one category per tournament)",
+        add_flash_message(
+            request,
+            f"Dancer '{dancer.blaze}' is already registered in this tournament",
+            "error"
+        )
+        return RedirectResponse(
+            url=f"/registration/{tournament_id}/{category_id}",
+            status_code=303,
         )
 
     # Register dancer as performer
@@ -178,6 +188,7 @@ async def register_dancer(
         category_id=category_uuid,
         dancer_id=dancer_uuid,
     )
+    add_flash_message(request, f"Dancer '{dancer.blaze}' registered successfully", "success")
 
     return RedirectResponse(
         url=f"/registration/{tournament_id}/{category_id}",
@@ -368,6 +379,7 @@ async def register_duo(
 
 @router.post("/{tournament_id}/{category_id}/unregister/{performer_id}")
 async def unregister_dancer(
+    request: Request,
     tournament_id: str,
     category_id: str,
     performer_id: str,
@@ -377,6 +389,7 @@ async def unregister_dancer(
     """Unregister a dancer from a tournament category (staff only).
 
     Args:
+        request: FastAPI request
         tournament_id: Tournament UUID
         category_id: Category UUID
         performer_id: Performer UUID to unregister
@@ -392,18 +405,18 @@ async def unregister_dancer(
     try:
         performer_uuid = uuid.UUID(performer_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid performer ID",
+        add_flash_message(request, "Invalid performer ID", "error")
+        return RedirectResponse(
+            url=f"/registration/{tournament_id}/{category_id}",
+            status_code=303,
         )
 
     # Delete performer
     deleted = await performer_repo.delete(performer_uuid)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Performer not found",
-        )
+        add_flash_message(request, "Performer not found", "error")
+    else:
+        add_flash_message(request, "Dancer unregistered successfully", "success")
 
     return RedirectResponse(
         url=f"/registration/{tournament_id}/{category_id}",

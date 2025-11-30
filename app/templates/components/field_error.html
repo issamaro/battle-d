@@ -1,0 +1,29 @@
+{#
+  Field Validation Error Component
+
+  Usage (in form fields):
+    <input
+      type="text"
+      name="email"
+      aria-invalid="{% if field_errors.get('email') %}true{% else %}false{% endif %}"
+      aria-describedby="{% if field_errors.get('email') %}email-error{% endif %}"
+    >
+    {% include "components/field_error.html" with field_name="email", error_id="email-error" %}
+
+  Required context:
+    - field_errors: dict (from ValidationError, e.g., {"email": ["Email already exists"]})
+    - field_name: str (the form field name to check)
+
+  Optional context:
+    - error_id: str (default: "{field_name}-error") - ID for aria-describedby
+#}
+
+{% set error_id = error_id|default(field_name ~ "-error") %}
+
+{% if field_errors and field_errors.get(field_name) %}
+  {% for error in field_errors[field_name] %}
+  <small id="{{ error_id }}" class="field-error" role="alert">
+    {{ error }}
+  </small>
+  {% endfor %}
+{% endif %}

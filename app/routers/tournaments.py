@@ -11,10 +11,12 @@ from app.dependencies import (
     get_tournament_repo,
     get_category_repo,
     get_performer_repo,
+    get_flash_messages_dependency,
 )
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.performer import PerformerRepository
+from app.utils.flash import add_flash_message
 
 router = APIRouter(prefix="/tournaments", tags=["tournaments"])
 templates = Jinja2Templates(directory="app/templates")
@@ -25,6 +27,7 @@ async def list_tournaments(
     request: Request,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """List all tournaments (staff only).
 
@@ -32,6 +35,7 @@ async def list_tournaments(
         request: FastAPI request
         current_user: Current authenticated user
         tournament_repo: Tournament repository
+        flash_messages: Flash messages from session
 
     Returns:
         HTML page with tournament list
@@ -47,6 +51,7 @@ async def list_tournaments(
         context={
             "current_user": user,
             "tournaments": tournaments,
+            "flash_messages": flash_messages,
         },
     )
 
@@ -78,6 +83,7 @@ async def create_tournament_form(
 
 @router.post("/create")
 async def create_tournament(
+    request: Request,
     name: str = Form(...),
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     tournament_repo: TournamentRepository = Depends(get_tournament_repo),
@@ -85,6 +91,7 @@ async def create_tournament(
     """Create a new tournament (staff only).
 
     Args:
+        request: FastAPI request
         name: Tournament name
         current_user: Current authenticated user
         tournament_repo: Tournament repository
@@ -96,6 +103,7 @@ async def create_tournament(
 
     # Create tournament
     tournament = await tournament_repo.create_tournament(name=name)
+    add_flash_message(request, f"Tournament '{name}' created successfully", "success")
 
     return RedirectResponse(
         url=f"/tournaments/{tournament.id}", status_code=303
@@ -109,6 +117,7 @@ async def tournament_detail(
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     tournament_repo: TournamentRepository = Depends(get_tournament_repo),
     category_repo: CategoryRepository = Depends(get_category_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """View tournament details with categories (staff only).
 
@@ -118,6 +127,7 @@ async def tournament_detail(
         current_user: Current authenticated user
         tournament_repo: Tournament repository
         category_repo: Category repository
+        flash_messages: Flash messages from session
 
     Returns:
         HTML page with tournament details
@@ -160,6 +170,7 @@ async def tournament_detail(
             "current_user": user,
             "tournament": tournament,
             "category_data": category_data,
+            "flash_messages": flash_messages,
         },
     )
 
@@ -213,6 +224,7 @@ async def add_category_form(
 
 @router.post("/{tournament_id}/add-category")
 async def add_category(
+    request: Request,
     tournament_id: str,
     name: str = Form(...),
     is_duo: bool = Form(False),
@@ -224,6 +236,7 @@ async def add_category(
     """Add a category to a tournament (staff only).
 
     Args:
+        request: FastAPI request
         tournament_id: Tournament UUID
         name: Category name
         is_duo: Whether this is a 2v2 category
@@ -241,10 +254,8 @@ async def add_category(
     try:
         tournament_uuid = uuid.UUID(tournament_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tournament ID",
-        )
+        add_flash_message(request, "Invalid tournament ID", "error")
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     # Create category
     await category_repo.create_category(
@@ -254,6 +265,7 @@ async def add_category(
         groups_ideal=groups_ideal,
         performers_ideal=performers_ideal,
     )
+    add_flash_message(request, f"Category '{name}' added successfully", "success")
 
     return RedirectResponse(
         url=f"/tournaments/{tournament_id}", status_code=303

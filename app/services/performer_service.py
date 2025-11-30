@@ -3,6 +3,8 @@
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.exceptions import ValidationError
 from app.models.performer import Performer
 from app.repositories.category import CategoryRepository
@@ -115,12 +117,25 @@ class PerformerService:
                 raise ValidationError(["Cannot register dancer as their own duo partner"])
 
         # Create performer
-        performer = await self.performer_repo.create_performer(
-            tournament_id=tournament_id,
-            category_id=category_id,
-            dancer_id=dancer_id,
-            duo_partner_id=duo_partner_id,
-        )
+        try:
+            performer = await self.performer_repo.create_performer(
+                tournament_id=tournament_id,
+                category_id=category_id,
+                dancer_id=dancer_id,
+                duo_partner_id=duo_partner_id,
+            )
+        except IntegrityError as e:
+            # Handle unique constraint violations (race conditions)
+            error_msg = str(e.orig) if hasattr(e, 'orig') else str(e)
+
+            if "unique" in error_msg.lower() or "duplicate" in error_msg.lower():
+                raise ValidationError([
+                    f"Dancer '{dancer.full_name}' is already registered in this tournament. "
+                    "This may have occurred due to a concurrent registration."
+                ])
+            else:
+                # Re-raise other integrity errors
+                raise ValidationError(["Database integrity error during registration"])
 
         return performer
 

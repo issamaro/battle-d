@@ -1,0 +1,34 @@
+{#
+  Flash Messages Component
+
+  Usage: {% include "components/flash_messages.html" %}
+
+  Expects: flash_messages list from context (injected via dependency)
+  Categories: success, error, warning, info
+#}
+
+{% if flash_messages %}
+<div class="flash-messages" role="status" aria-live="polite" aria-atomic="true">
+  {% for flash in flash_messages %}
+  <article
+    class="flash-message flash-{{ flash.category }}"
+    data-category="{{ flash.category }}"
+    role="alert"
+  >
+    <div class="flash-content">
+      <span class="flash-icon" aria-hidden="true">
+        {% if flash.category == "success" %}✓{% elif flash.category == "error" %}✕{% elif flash.category == "warning" %}⚠{% else %}ℹ{% endif %}
+      </span>
+      <p>{{ flash.message }}</p>
+    </div>
+    <button
+      class="flash-close"
+      aria-label="Dismiss message"
+      onclick="this.parentElement.remove()"
+    >
+      ×
+    </button>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}

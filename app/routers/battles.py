@@ -16,7 +16,9 @@ from app.dependencies import (
     get_battle_repo,
     get_category_repo,
     get_performer_repo,
+    get_flash_messages_dependency,
 )
+from app.utils.flash import add_flash_message
 from app.repositories.battle import BattleRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.performer import PerformerRepository
@@ -35,6 +37,7 @@ async def list_battles(
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     battle_repo: BattleRepository = Depends(get_battle_repo),
     category_repo: CategoryRepository = Depends(get_category_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """List battles for a category.
 
@@ -78,6 +81,7 @@ async def list_battles(
             "battles": battles,
             "category": category,
             "status_filter": status_filter,
+            "flash_messages": flash_messages,
         },
     )
 
@@ -88,6 +92,7 @@ async def battle_detail(
     battle_id: uuid.UUID,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     battle_repo: BattleRepository = Depends(get_battle_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """View battle details.
 
@@ -115,12 +120,14 @@ async def battle_detail(
         context={
             "current_user": user,
             "battle": battle,
+            "flash_messages": flash_messages,
         },
     )
 
 
 @router.post("/{battle_id}/start")
 async def start_battle(
+    request: Request,
     battle_id: uuid.UUID,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     battle_repo: BattleRepository = Depends(get_battle_repo),
@@ -139,20 +146,27 @@ async def start_battle(
 
     battle = await battle_repo.get_by_id(battle_id)
     if not battle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Battle not found"
+        add_flash_message(request, "Battle not found", "error")
+        return RedirectResponse(
+            url="/battles",
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     if battle.status != BattleStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot start battle with status {battle.status.value}"
+        add_flash_message(
+            request,
+            f"Cannot start battle with status {battle.status.value}",
+            "error"
+        )
+        return RedirectResponse(
+            url=f"/battles/{battle_id}",
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     battle.status = BattleStatus.ACTIVE
     await battle_repo.update(battle)
 
+    add_flash_message(request, "Battle started successfully", "success")
     return RedirectResponse(
         url=f"/battles/{battle_id}",
         status_code=status.HTTP_303_SEE_OTHER
@@ -165,6 +179,7 @@ async def encode_battle_form(
     battle_id: uuid.UUID,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     battle_repo: BattleRepository = Depends(get_battle_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """Display battle encoding form.
 
@@ -202,6 +217,7 @@ async def encode_battle_form(
         context={
             "current_user": user,
             "battle": battle,
+            "flash_messages": flash_messages,
         },
     )
 
@@ -230,9 +246,10 @@ async def encode_battle(
 
     battle = await battle_repo.get_by_id(battle_id)
     if not battle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Battle not found"
+        add_flash_message(request, "Battle not found", "error")
+        return RedirectResponse(
+            url="/battles",
+            status_code=status.HTTP_303_SEE_OTHER
         )
 
     # Parse form data
@@ -278,9 +295,10 @@ async def encode_battle(
                     performer.pool_losses = (performer.pool_losses or 0) + 1
                 await performer_repo.update(performer)
         else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Must specify winner or mark as draw"
+            add_flash_message(request, "Must specify winner or mark as draw", "error")
+            return RedirectResponse(
+                url=f"/battles/{battle_id}/encode",
+                status_code=status.HTTP_303_SEE_OTHER
             )
 
         battle.status = BattleStatus.COMPLETED
@@ -289,9 +307,10 @@ async def encode_battle(
         # Tiebreak outcome
         winner_id = form_data.get("winner_id")
         if not winner_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Must specify tiebreak winner"
+            add_flash_message(request, "Must specify tiebreak winner", "error")
+            return RedirectResponse(
+                url=f"/battles/{battle_id}/encode",
+                status_code=status.HTTP_303_SEE_OTHER
             )
 
         winner_uuid = uuid.UUID(winner_id)
@@ -302,9 +321,10 @@ async def encode_battle(
     else:  # FINALS
         winner_id = form_data.get("winner_id")
         if not winner_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Must specify winner"
+            add_flash_message(request, "Must specify winner", "error")
+            return RedirectResponse(
+                url=f"/battles/{battle_id}/encode",
+                status_code=status.HTTP_303_SEE_OTHER
             )
 
         winner_uuid = uuid.UUID(winner_id)
@@ -314,6 +334,7 @@ async def encode_battle(
 
     await battle_repo.update(battle)
 
+    add_flash_message(request, "Battle results encoded successfully", "success")
     return RedirectResponse(
         url=f"/battles/{battle_id}",
         status_code=status.HTTP_303_SEE_OTHER

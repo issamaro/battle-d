@@ -10,11 +10,13 @@ from app.dependencies import (
     CurrentUser,
     get_user_repo,
     get_email_service,
+    get_flash_messages_dependency,
 )
 from app.repositories.user import UserRepository
 from app.models.user import UserRole
 from app.auth import magic_link_auth
 from app.services.email.service import EmailService
+from app.utils.flash import add_flash_message
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="app/templates")
@@ -26,6 +28,7 @@ async def list_users(
     role_filter: Optional[str] = None,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     user_repo: UserRepository = Depends(get_user_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """List all users (admin only).
 
@@ -34,6 +37,7 @@ async def list_users(
         role_filter: Optional role filter
         current_user: Current authenticated user
         user_repo: User repository
+        flash_messages: Flash messages from session
 
     Returns:
         HTML page with user list
@@ -58,6 +62,7 @@ async def list_users(
             "users": users,
             "roles": [role.value for role in UserRole],
             "selected_role": role_filter,
+            "flash_messages": flash_messages,
         },
     )
 
@@ -90,6 +95,7 @@ async def create_user_form(
 
 @router.post("/users/create")
 async def create_user(
+    request: Request,
     email: str = Form(...),
     first_name: str = Form(...),
     role: str = Form(...),
@@ -101,6 +107,7 @@ async def create_user(
     """Create a new user (admin only).
 
     Args:
+        request: FastAPI request
         email: User email
         first_name: User first name
         role: User role
@@ -118,17 +125,13 @@ async def create_user(
     try:
         user_role = UserRole(role)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role: {role}",
-        )
+        add_flash_message(request, f"Invalid role: {role}", "error")
+        return RedirectResponse(url="/admin/users/create", status_code=303)
 
     # Check if email already exists
     if await user_repo.email_exists(email.lower()):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
+        add_flash_message(request, f"Email '{email}' is already registered", "error")
+        return RedirectResponse(url="/admin/users/create", status_code=303)
 
     # Create user
     new_user = await user_repo.create_user(
@@ -141,12 +144,16 @@ async def create_user(
     if send_magic_link:
         magic_link = magic_link_auth.generate_magic_link(new_user.email, new_user.role.value)
         await email_service.send_magic_link(new_user.email, magic_link, new_user.first_name)
+        add_flash_message(request, f"User '{first_name}' created and magic link sent", "success")
+    else:
+        add_flash_message(request, f"User '{first_name}' created successfully", "success")
 
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
 @router.post("/users/{user_id}/delete")
 async def delete_user(
+    request: Request,
     user_id: str,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     user_repo: UserRepository = Depends(get_user_repo),
@@ -154,6 +161,7 @@ async def delete_user(
     """Delete a user (admin only).
 
     Args:
+        request: FastAPI request
         user_id: User UUID
         current_user: Current authenticated user
         user_repo: User repository
@@ -167,18 +175,15 @@ async def delete_user(
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID",
-        )
+        add_flash_message(request, "Invalid user ID", "error")
+        return RedirectResponse(url="/admin/users", status_code=303)
 
     # Delete user
     deleted = await user_repo.delete(user_uuid)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        add_flash_message(request, "User not found", "error")
+    else:
+        add_flash_message(request, "User deleted successfully", "success")
 
     return RedirectResponse(url="/admin/users", status_code=303)
 
@@ -233,6 +238,7 @@ async def edit_user_form(
 
 @router.post("/users/{user_id}/edit")
 async def update_user(
+    request: Request,
     user_id: str,
     email: str = Form(...),
     first_name: str = Form(...),
@@ -243,6 +249,7 @@ async def update_user(
     """Update a user (admin only).
 
     Args:
+        request: FastAPI request
         user_id: User UUID
         email: User email
         first_name: User first name
@@ -259,36 +266,28 @@ async def update_user(
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID",
-        )
+        add_flash_message(request, "Invalid user ID", "error")
+        return RedirectResponse(url="/admin/users", status_code=303)
 
     # Validate role
     try:
         user_role = UserRole(role)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid role: {role}",
-        )
+        add_flash_message(request, f"Invalid role: {role}", "error")
+        return RedirectResponse(url=f"/admin/users/{user_id}/edit", status_code=303)
 
     # Check if user exists
     existing_user = await user_repo.get_by_id(user_uuid)
     if not existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        add_flash_message(request, "User not found", "error")
+        return RedirectResponse(url="/admin/users", status_code=303)
 
     # Check if email is being changed and if new email already exists
     email_lower = email.lower()
     if email_lower != existing_user.email:
         if await user_repo.email_exists(email_lower):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered",
-            )
+            add_flash_message(request, f"Email '{email}' is already registered", "error")
+            return RedirectResponse(url=f"/admin/users/{user_id}/edit", status_code=303)
 
     # Update user
     await user_repo.update(
@@ -297,12 +296,14 @@ async def update_user(
         first_name=first_name,
         role=user_role,
     )
+    add_flash_message(request, f"User '{first_name}' updated successfully", "success")
 
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
 @router.post("/users/{user_id}/resend-magic-link")
 async def resend_magic_link(
+    request: Request,
     user_id: str,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     user_repo: UserRepository = Depends(get_user_repo),
@@ -311,6 +312,7 @@ async def resend_magic_link(
     """Resend magic link to a user (admin only).
 
     Args:
+        request: FastAPI request
         user_id: User UUID
         current_user: Current authenticated user
         user_repo: User repository
@@ -325,18 +327,14 @@ async def resend_magic_link(
     try:
         user_uuid = uuid.UUID(user_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID",
-        )
+        add_flash_message(request, "Invalid user ID", "error")
+        return RedirectResponse(url="/admin/users", status_code=303)
 
     # Get user
     user_to_send = await user_repo.get_by_id(user_uuid)
     if not user_to_send:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
+        add_flash_message(request, "User not found", "error")
+        return RedirectResponse(url="/admin/users", status_code=303)
 
     # Generate and send magic link
     magic_link = magic_link_auth.generate_magic_link(
@@ -345,5 +343,6 @@ async def resend_magic_link(
     await email_service.send_magic_link(
         user_to_send.email, magic_link, user_to_send.first_name
     )
+    add_flash_message(request, f"Magic link sent to {user_to_send.email}", "success")
 
     return RedirectResponse(url="/admin/users", status_code=303)

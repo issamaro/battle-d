@@ -12,7 +12,7 @@
 <section>
     <h3>Search and Actions</h3>
 
-    <div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
         <input type="text"
                name="query"
                id="search-input"
@@ -21,7 +21,13 @@
                hx-get="/dancers/api/search"
                hx-trigger="keyup changed delay:500ms"
                hx-target="#dancers-table"
-               style="width: 400px; padding: 8px; margin-right: 10px;">
+               hx-indicator="#dancers-loading"
+               style="width: 400px; padding: 8px;">
+
+        {% set loading_id = "dancers-loading" %}
+        {% set loading_text = "Searching dancers..." %}
+        {% set size = "small" %}
+        {% include "components/loading.html" %}
 
         <a href="/dancers/create" style="padding: 8px 16px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
             + Create New Dancer

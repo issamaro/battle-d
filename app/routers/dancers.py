@@ -10,8 +10,12 @@ from app.dependencies import (
     require_staff,
     CurrentUser,
     get_dancer_repo,
+    get_dancer_service,
+    get_flash_messages_dependency,
 )
+from app.exceptions import ValidationError
 from app.repositories.dancer import DancerRepository
+from app.utils.flash import add_flash_message
 
 router = APIRouter(prefix="/dancers", tags=["dancers"])
 templates = Jinja2Templates(directory="app/templates")
@@ -23,6 +27,7 @@ async def list_dancers(
     search: Optional[str] = None,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
     dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
 ):
     """List all dancers with optional search (staff only).
 
@@ -31,6 +36,7 @@ async def list_dancers(
         search: Optional search query
         current_user: Current authenticated user
         dancer_repo: Dancer repository
+        flash_messages: Flash messages from session
 
     Returns:
         HTML page with dancer list
@@ -50,6 +56,7 @@ async def list_dancers(
             "current_user": user,
             "dancers": dancers,
             "search": search or "",
+            "flash_messages": flash_messages,
         },
     )
 
@@ -117,6 +124,7 @@ async def create_dancer_form(
 
 @router.post("/create")
 async def create_dancer(
+    request: Request,
     email: str = Form(...),
     first_name: str = Form(...),
     last_name: str = Form(...),
@@ -125,11 +133,12 @@ async def create_dancer(
     country: Optional[str] = Form(None),
     city: Optional[str] = Form(None),
     current_user: Optional[CurrentUser] = Depends(get_current_user),
-    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    dancer_service = Depends(get_dancer_service),
 ):
     """Create a new dancer (staff only).
 
     Args:
+        request: FastAPI request
         email: Dancer email
         first_name: First name
         last_name: Last name
@@ -138,39 +147,36 @@ async def create_dancer(
         country: Country (optional)
         city: City (optional)
         current_user: Current authenticated user
-        dancer_repo: Dancer repository
+        dancer_service: Dancer service
 
     Returns:
         Redirect to dancer list
     """
     user = require_staff(current_user)
 
-    # Check if email already exists
-    if await dancer_repo.email_exists(email.lower()):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
-        )
-
     # Parse date
     try:
         dob = date.fromisoformat(date_of_birth)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid date format. Use YYYY-MM-DD",
-        )
+        add_flash_message(request, "Invalid date format. Use YYYY-MM-DD", "error")
+        return RedirectResponse(url="/dancers/create", status_code=303)
 
-    # Create dancer
-    await dancer_repo.create_dancer(
-        email=email.lower(),
-        first_name=first_name,
-        last_name=last_name,
-        date_of_birth=dob,
-        blaze=blaze,
-        country=country if country else None,
-        city=city if city else None,
-    )
+    # Create dancer via service (handles validation)
+    try:
+        await dancer_service.create_dancer(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            date_of_birth=dob,
+            blaze=blaze,
+            country=country if country else None,
+            city=city if city else None,
+        )
+        add_flash_message(request, f"Dancer '{blaze}' created successfully", "success")
+    except ValidationError as e:
+        # Add first validation error as flash message
+        add_flash_message(request, e.errors[0] if e.errors else "Validation error", "error")
+        return RedirectResponse(url="/dancers/create", status_code=303)
 
     return RedirectResponse(url="/dancers", status_code=303)
 
