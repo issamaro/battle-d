@@ -1,7 +1,39 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-11-29
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-11-30
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-11-30] - Roadmap Phase Renumbering and Phase Management Framework
+
+### Changed
+- **ROADMAP.md**: Updated to reflect actual development phases
+  - Added Phase 3: Error Handling System (COMPLETED ✅)
+  - Renamed old Phase 3 → Phase 4 (Projection Interface)
+  - Renamed old Phase 4 → Phase 5 (V1 Completion)
+  - Renamed old Phase 5 → Phase 6 (Judge Interface V2)
+  - Updated all subsection numbers in Phase 5 (5.1-5.5) and Phase 6 (6.1-6.4)
+  - Updated timeline summary table with Phase 3 and adjusted cumulative days
+  - Updated "Technology Stack Evolution" section (Phase 0-5 for V1, Phase 6 for V2)
+  - Updated "Current Status" section to reflect Phase 3 completion
+  - Added note pointing to phase management guidance in DOCUMENTATION_CHANGE_PROCEDURE.md
+  - Last Updated: 2025-11-30
+
+### Added
+- **DOCUMENTATION_CHANGE_PROCEDURE.md**: New "Roadmap Phase Management" section
+  - Explains the problem with cascading phase renumbering
+  - Documents sub-phase convention (X.1, X.2, X.3) for unplanned work
+  - Includes decision tree for choosing sub-phases vs renumbering
+  - Provides exception cases when renumbering is acceptable
+  - Includes implementation checklist for adding sub-phases
+  - Documents benefits of stable phase numbering
+- **DOCUMENTATION_INDEX.md**: Added phase numbering reference
+  - Updated "Document Ownership" table with "Notes" column
+  - Added link to phase management guidance for ROADMAP.md
+
+### Rationale
+Phase 3 (Error Handling System) was completed before the originally planned Phase 3 (Projection Interface). To maintain historical accuracy, we renumbered phases to reflect actual development order. This is a one-time correction; future unplanned work will use sub-phases (e.g., 4.1, 4.2) to maintain stable phase numbers.
 
 ---
 

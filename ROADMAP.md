@@ -1,7 +1,9 @@
 # Battle-D Project Roadmap
-**Level 2: Derived** | Last Updated: 2025-11-25
+**Level 2: Derived** | Last Updated: 2025-11-30
 
 Phased development roadmap from POC to V2.
+
+**Note:** When adding unplanned phases, see [Roadmap Phase Management](DOCUMENTATION_CHANGE_PROCEDURE.md#roadmap-phase-management) for phase numbering conventions.
 
 ---
 
@@ -628,7 +630,90 @@ Battles and pools are now generated automatically when admins advance tournament
 
 ---
 
-## Phase 3: Projection Interface
+## Phase 3: Error Handling System (COMPLETED ✅)
+
+**Duration:** 3 days (2025-11-27 to 2025-11-30)
+
+**Status:** ✅ COMPLETE
+
+**Objective:** Implement comprehensive error handling and user feedback system per UI_MOCKUPS.md Section 14.
+
+### Key Deliverables
+
+**Flash Message System:**
+- Session-based flash messages with 4 categories (success, error, warning, info)
+- Auto-dismiss after 5 seconds (except errors which require manual dismissal)
+- Color-coded with animations and accessibility support
+
+**Custom Error Pages:**
+- 404 page with navigation back to app
+- 500 page with error tracking ID for debugging
+
+**Component Library:**
+- `empty_state.html` - Empty state component for lists
+- `loading.html` - Loading indicator (HTMX-ready with spinner)
+- `delete_modal.html` - Delete confirmation modal with accessibility
+- `field_error.html` - Field validation error display
+- `flash_messages.html` - Flash message display with auto-dismiss
+
+**CSS & JavaScript:**
+- `error-handling.css` (300+ lines) - Flash messages, empty states, loading, modals, field errors
+- `error-handling.js` (250+ lines) - Auto-dismiss, modal management, HTMX integration
+- WCAG 2.1 AA compliance (high contrast mode, reduced motion, focus indicators)
+- Keyboard accessibility (ESC to close modals, tab navigation)
+
+**Router Integration:**
+- All 7 routers integrated: auth, admin, dancers, tournaments, registration, phases, battles
+- Flash messages for success/error feedback on all operations
+- ValidationError exceptions automatically converted to flash messages
+
+**Template Updates:**
+- 4 list templates with context-aware empty states (dancers, tournaments, users, battles)
+- 3 delete modals with accessibility (users table, edit user, unregister dancer)
+- 2 loading indicators for HTMX requests (dancer search, registration search)
+
+**Service Layer:**
+- IntegrityError → ValidationError conversion with user-friendly messages
+- Race condition handling in `dancer_service.py` and `performer_service.py`
+
+### Files Created (11 files)
+1. `app/utils/flash.py` (31 lines)
+2. `app/static/css/error-handling.css` (300+ lines)
+3. `app/static/js/error-handling.js` (250+ lines)
+4. `app/templates/errors/404.html`
+5. `app/templates/errors/500.html`
+6. `app/templates/components/flash_messages.html`
+7. `app/templates/components/empty_state.html`
+8. `app/templates/components/loading.html`
+9. `app/templates/components/delete_modal.html`
+10. `app/templates/components/field_error.html`
+11. `tests/test_flash_messages.py` (6 tests)
+
+### Files Modified (23 files)
+- **Core:** `app/main.py` (SessionMiddleware, exception handlers), `app/dependencies.py` (flash dependency)
+- **Services:** `app/services/dancer_service.py`, `app/services/performer_service.py`
+- **Routers (7):** auth, admin, dancers, tournaments, registration, phases, battles
+- **Templates (13):** `base.html`, 4 list templates, 3 forms, 2 detail pages, 3 other pages
+
+### Accessibility Features
+- ARIA attributes (aria-live, aria-atomic, role="alert")
+- Keyboard navigation (ESC to dismiss, tab focus management)
+- Screen reader support (sr-only helper text)
+- Focus visible indicators for keyboard users
+- High contrast mode support
+- Reduced motion support (`prefers-reduced-motion`)
+- Semantic HTML (dialog, nav, article elements)
+
+### Test Results
+- 6 new flash message unit tests
+- All 105 integration tests passing with flash message support
+- Zero test failures
+
+**Release:** Phase 3 COMPLETE ✅
+
+---
+
+## Phase 4: Projection Interface
 
 **Duration:** 3-5 days
 
@@ -659,13 +744,13 @@ Battles and pools are now generated automatically when admins advance tournament
 
 ---
 
-## Phase 4: V1 Completion
+## Phase 5: V1 Completion
 
 **Duration:** 3-5 days
 
 **Objective:** Production-ready V1 release.
 
-### **4.1 End-to-End Tests**
+### **5.1 End-to-End Tests**
 
 **Test Scenarios:**
 - Complete tournament flow (registration → champion)
@@ -677,7 +762,7 @@ Battles and pools are now generated automatically when admins advance tournament
 - Playwright or Selenium
 - pytest integration
 
-### **4.2 CI/CD Setup**
+### **5.2 CI/CD Setup**
 
 **GitHub Actions:**
 - Run tests on every PR
@@ -689,20 +774,20 @@ Battles and pools are now generated automatically when admins advance tournament
 Pull Request → Tests → Review → Merge → Auto-deploy → Railway Production
 ```
 
-### **4.3 Backup Strategy**
+### **5.3 Backup Strategy**
 
 **SQLite Backups:**
 - Manual: `railway run cat /data/battle_d.db > backup.db`
 - Automated: Cron job (Railway cron) daily backups to S3/Cloudflare R2
 - Retention: 30 days
 
-### **4.4 Monitoring**
+### **5.4 Monitoring**
 
 - Railway dashboard (CPU, RAM, requests)
 - Error logging (Sentry optional)
 - Health check endpoint monitoring
 
-### **4.5 Documentation**
+### **5.5 Documentation**
 
 - User guide for Admin/Staff
 - How to create tournament
@@ -713,19 +798,19 @@ Pull Request → Tests → Review → Merge → Auto-deploy → Railway Producti
 
 ---
 
-## Phase 5: Judge Interface (V2)
+## Phase 6: Judge Interface (V2)
 
 **Duration:** 5-7 days
 
 **Objective:** Direct judge scoring, no manual encoding.
 
-### **5.1 Judge Model**
+### **6.1 Judge Model**
 
 - `Judge` table (user_id, tournament_id, deleted_at)
 - Judges are temporary Users (role='judge')
 - Soft-deleted after tournament ends
 
-### **5.2 Judge Interface**
+### **6.2 Judge Interface**
 
 **Authentication:**
 - Admin creates judge accounts
@@ -743,7 +828,7 @@ Pull Request → Tests → Review → Merge → Auto-deploy → Railway Producti
 - No page refresh required
 - Judge cannot change after submission (optional lock)
 
-### **5.3 Admin Aggregation**
+### **6.3 Admin Aggregation**
 
 **Admin View:**
 - See all judge scores
@@ -768,7 +853,7 @@ Battle starts
   → Next battle
 ```
 
-### **5.4 Judge Management**
+### **6.4 Judge Management**
 
 - Admin creates/deletes judge accounts
 - Assign judges to tournaments
@@ -791,12 +876,13 @@ Battle starts
 |-------|----------|------------|--------|
 | Phase 0 (POC + Railway) | 3-5 days | 3-5 days | ✅ COMPLETE |
 | Phase 1 (Database + CRUD) | 7-10 days | 10-15 days | ✅ COMPLETE |
-| Phase 2 (Battle Logic) | 7-10 days | 17-25 days | 🟡 IN PROGRESS (35% infrastructure done) |
-| Phase 3 (Projection) | 3-5 days | 20-30 days | ⏳ Planned |
-| Phase 4 (V1 Complete) | 3-5 days | 23-35 days | ⏳ Planned |
-| **V1 RELEASE** | - | **~23-35 days** | 🎯 Target |
-| Phase 5 (Judge Interface V2) | 5-7 days | 28-42 days | ⏳ Future |
-| **V2 RELEASE** | - | **~28-42 days** | 🎯 Extended |
+| Phase 2 (Battle Logic) | 7-10 days | 17-25 days | ✅ COMPLETE |
+| Phase 3 (Error Handling) | 3 days | 20-28 days | ✅ COMPLETE |
+| Phase 4 (Projection) | 3-5 days | 23-33 days | ⏳ Planned |
+| Phase 5 (V1 Complete) | 3-5 days | 26-38 days | ⏳ Planned |
+| **V1 RELEASE** | - | **~26-38 days** | 🎯 Target |
+| Phase 6 (Judge Interface V2) | 5-7 days | 31-45 days | ⏳ Future |
+| **V2 RELEASE** | - | **~31-45 days** | 🎯 Extended |
 
 **Notes:**
 - Solo developer timeline
@@ -808,7 +894,7 @@ Battle starts
 
 ## Technology Stack Evolution
 
-### **Phase 0-4 (V1):**
+### **Phase 0-5 (V1):**
 - FastAPI + Uvicorn
 - Jinja2 templates
 - HTMX (auto-refresh)
@@ -818,7 +904,7 @@ Battle starts
 - Brevo (emails - recommended for Railway)
 - pytest + pytest-asyncio
 
-### **Phase 5 (V2):**
+### **Phase 6 (V2):**
 - Add: Real-time judge scoring
 - Consider: WebSockets for live updates (optional)
 - Same stack otherwise
@@ -878,23 +964,24 @@ Battle starts
 
 ## Current Status
 
-**Latest:** Phase 1 COMPLETE ✅, Phase 2 IN PROGRESS 🟡
-**Next:** Phase 2 Battle Execution Logic (infrastructure 35% done)
-**Target:** V1 in ~13-20 days remaining
+**Latest:** Phase 3 COMPLETE ✅ (Error Handling System)
+**Next:** Phase 4 (Projection Interface)
+**Target:** V1 in ~6-10 days remaining
 
 **Live URL:** [To be added after Railway deployment]
 **Cost:** ~$0-5/month (SQLite on Railway free tier)
 
-**Phase 1 Highlights:**
-- Complete CRUD UIs for users, dancers, tournaments, and registration
-- Service layer architecture with validators and utils
-- HTMX integration for live search and dynamic forms
-- Database-driven phase navigation
-- 90%+ test coverage achieved
+**Completed Phases:**
+- ✅ Phase 0: POC + Production Railway
+- ✅ Phase 1: Database + CRUD (with 1.1 and 1.2 enhancements)
+- ✅ Phase 2: Battle Management System (complete battle generation, scoring, phase transitions)
+- ✅ Phase 3: Error Handling System (flash messages, error pages, empty states, accessibility)
 
-**Phase 2 Infrastructure Complete (35%):**
-- Database models (Battle, Pool, Performer stats) ✅
-- Repositories (BattleRepository, PoolRepository) ✅
-- Calculation utilities (pool structure, distribution) with 24 tests ✅
-- Phase validators (validation logic ready) ✅
-- **Remaining:** Battle generation services, scoring UI, queue management, phase hooks
+**Phase 3 Highlights:**
+- Comprehensive error handling and user feedback
+- Flash message system across all 7 routers
+- Custom 404/500 error pages
+- Empty states, loading indicators, delete modals
+- Full WCAG 2.1 AA accessibility compliance
+- 11 new files created, 23 files modified
+- 6 new flash message unit tests

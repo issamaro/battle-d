@@ -129,14 +129,14 @@ WORKBENCH: (Temporary, per-task tracking)
 
 ## Document Ownership
 
-| Document | Primary Owner | Review Frequency |
-|----------|--------------|------------------|
-| DOMAIN_MODEL.md | Product/Business | Per feature change |
-| VALIDATION_RULES.md | Product/Dev | Per constraint change |
-| UI_MOCKUPS.md | Design/Frontend | Per UI change |
-| ROADMAP.md | Project Lead | Weekly |
-| ARCHITECTURE.md | Tech Lead | Per pattern change |
-| README.md | All | Per release |
+| Document | Primary Owner | Review Frequency | Notes |
+|----------|--------------|------------------|-------|
+| DOMAIN_MODEL.md | Product/Business | Per feature change | |
+| VALIDATION_RULES.md | Product/Dev | Per constraint change | |
+| UI_MOCKUPS.md | Design/Frontend | Per UI change | |
+| ROADMAP.md | Project Lead | Weekly | See [phase numbering](DOCUMENTATION_CHANGE_PROCEDURE.md#roadmap-phase-management) |
+| ARCHITECTURE.md | Tech Lead | Per pattern change | |
+| README.md | All | Per release | |
 
 ---
 

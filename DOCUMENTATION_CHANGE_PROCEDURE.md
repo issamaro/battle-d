@@ -193,6 +193,101 @@ mv workbench/CHANGE_2025-11-22_topic.md archive/
 
 ---
 
+## Roadmap Phase Management
+
+**Purpose:** Maintain stable phase numbering in ROADMAP.md when adding unplanned work.
+
+### The Problem
+
+When new phases are added that weren't in the original roadmap, renumbering all subsequent phases creates cascading updates across multiple documents and makes it harder to reference historical phases.
+
+**Example of what we want to avoid:**
+- Original: Phase 3 (Projection Interface)
+- New work emerges: Error Handling System
+- ❌ Bad approach: Rename Phase 3 → Phase 4, insert new Phase 3, rename Phase 4 → Phase 5, etc.
+- **Result:** All phase references change, timeline tables need updates, cross-references break
+
+### The Solution: Use Sub-Phases
+
+When implementing work that's not in the current roadmap, add it as a sub-phase instead of renumbering.
+
+**Sub-phase numbering:** X.1, X.2, X.3, etc.
+
+**Example:**
+- Roadmap shows: Phase 3 (Projection Interface), Phase 4 (V1 Completion)
+- New unplanned work: Error Handling System
+- ✅ Good approach: Add Phase 3.1 (Error Handling System)
+- **Result:** Phase 3 and 4 stay stable, new work is clearly marked as unplanned
+
+### Decision Tree: Sub-Phase vs New Phase
+
+```
+Is the work in the current ROADMAP.md?
+│
+├─ YES → Use existing phase number
+│
+└─ NO → Is it a major milestone change?
+    │
+    ├─ NO (minor addition/fix) → Use sub-phase (X.1, X.2)
+    │   Examples: Bug fixes, small features, improvements
+    │
+    └─ YES (major feature) → Consider both options:
+        │
+        ├─ Option A: Use sub-phase if it fits within current phase context
+        │   Example: Phase 2.1 if it extends Phase 2 functionality
+        │
+        └─ Option B: Renumber phases if it's a fundamental shift
+            Example: Phase 3 was actually completed as something else entirely
+            (This is the exception - use sparingly!)
+```
+
+### When to Renumber (Exception Cases)
+
+Renumbering is acceptable when:
+1. **Work replaces a planned phase entirely** - The planned phase is no longer relevant
+2. **Historical accuracy requires it** - Phase was completed with different scope than planned
+3. **Early in project lifecycle** - Minimal cross-references exist yet
+
+**Current situation (2025-11-30):** We renumbered because Phase 3 (Error Handling) was completed before the planned Phase 3 (Projection Interface), and documenting this accurately was more important than stability. This is a one-time correction.
+
+### Future Best Practice
+
+**Going forward, prefer sub-phases:**
+
+| Situation | Approach | Example |
+|-----------|----------|---------|
+| Unplanned feature during Phase 3 | Add Phase 3.1 | Phase 3.1 (Real-time Updates) |
+| Another unplanned feature | Add Phase 3.2 | Phase 3.2 (Advanced Search) |
+| Original Phase 3 starts | Rename to Phase 3.3 or keep as Phase 3 | Phase 3.3 (Projection Interface) or Phase 3 (Projection Interface) |
+
+### Implementation Checklist
+
+When adding a sub-phase to ROADMAP.md:
+
+- [ ] Determine current phase number (check ROADMAP.md "Current Status")
+- [ ] Add new section as Phase X.1 (or X.2, X.3, etc.)
+- [ ] Include all standard phase information:
+  - [ ] Duration and dates
+  - [ ] Status (COMPLETED/IN PROGRESS/Planned)
+  - [ ] Objective
+  - [ ] Key Deliverables
+  - [ ] Files Created/Modified
+  - [ ] Test Results
+- [ ] Update timeline summary table (add row, don't renumber)
+- [ ] Update "Current Status" section
+- [ ] Update "Last Updated" timestamp
+- [ ] Update CHANGELOG.md
+- [ ] Archive workbench file
+
+### Benefits
+
+1. **Stable references** - Phase numbers don't change after being assigned
+2. **Clear history** - Sub-phases show what was added beyond original plan
+3. **Minimal updates** - Only update new section, not entire document
+4. **Easy to track** - Can see planned vs unplanned work at a glance
+
+---
+
 ## Quick Reference Checklist
 
 ```markdown
