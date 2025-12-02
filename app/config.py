@@ -34,8 +34,16 @@ class Settings:
     GMAIL_APP_PASSWORD: Optional[str] = os.getenv("GMAIL_APP_PASSWORD")
 
     # Session
-    SESSION_COOKIE_NAME: str = "battle_d_session"
+    SESSION_COOKIE_NAME: str = "battle_d_session"  # For authentication
+    FLASH_SESSION_COOKIE_NAME: str = "flash_session"  # For flash messages
     SESSION_MAX_AGE_SECONDS: int = 86400 * 7  # 7 days
+
+    # Backdoor Authentication (for emergency access when magic link fails)
+    BACKDOOR_USERS: dict[str, str] = {
+        "aissacasapro@gmail.com": "admin",
+        "aissacasa.perso@gmail.com": "staff",
+        "aissa.c@outlook.fr": "mc",
+    }
 
     # Database
     @property

@@ -3,8 +3,8 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
-from fastapi import FastAPI, Request, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -60,7 +60,7 @@ app = FastAPI(
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
-    session_cookie=settings.SESSION_COOKIE_NAME,
+    session_cookie=settings.FLASH_SESSION_COOKIE_NAME,  # Use separate cookie for flash messages
     max_age=settings.SESSION_MAX_AGE_SECONDS,
     same_site="lax",
     https_only=not settings.DEBUG,
@@ -110,6 +110,40 @@ async def validation_error_handler(request: Request, exc: ValidationError):
 
     # Redirect back to the same page
     return RedirectResponse(url=str(request.url.path), status_code=303)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Handle HTTP exceptions with beautiful error pages for browser requests."""
+    # Check if browser request (expects HTML)
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        # Map status codes to templates
+        template_map = {
+            401: "errors/401.html",
+            403: "errors/403.html",
+            404: "errors/404.html",
+            500: "errors/500.html",
+        }
+
+        template = template_map.get(exc.status_code, "errors/500.html")
+
+        return templates.TemplateResponse(
+            request=request,
+            name=template,
+            context={
+                "request": request,
+                "status_code": exc.status_code,
+                "detail": exc.detail,
+            },
+            status_code=exc.status_code,
+        )
+
+    # API/HTMX request - return JSON
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
 
 
 # Include routers

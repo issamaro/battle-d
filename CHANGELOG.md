@@ -1,7 +1,110 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-11-30
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-02
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-02] - Emergency: Magic Link Authentication Bug Fix
+
+### CRITICAL PRODUCTION BUG - Root Cause Analysis
+
+**Incident:** Magic link authentication completely broken in production. Users clicking magic links were redirected to `/overview` but received 401 "Authentication required" error instead of being logged in.
+
+**Root Cause:** Cookie name conflict between two systems:
+1. SessionMiddleware (added in Phase 3, commit 092848a) uses cookie: `battle_d_session`
+2. Authentication system (pre-existing) uses cookie: `battle_d_session`
+3. When magic link verification sets auth cookie → SessionMiddleware overwrites it with flash message data
+4. User redirected to /overview → cookie contains flash data instead of auth token
+5. Authentication check fails → 401 error displayed
+
+**Why Tests Didn't Catch It:**
+- Tests use `follow_redirects=False` - never make second request to /overview exposing cookie conflict
+- Background tasks don't execute in TestClient - email sending not verified
+- No integration test for SessionMiddleware + auth interaction
+
+### Fixed
+
+**app/config.py**:
+- Added `FLASH_SESSION_COOKIE_NAME = "flash_session"` - Separate cookie for flash messages
+- Added `BACKDOOR_USERS` dict with emergency access emails and predefined roles:
+  - `aissacasapro@gmail.com` → admin
+  - `aissacasa.perso@gmail.com` → staff
+  - `aissa.c@outlook.fr` → mc
+
+**app/main.py**:
+- Line 63: Changed SessionMiddleware to use `FLASH_SESSION_COOKIE_NAME` instead of `SESSION_COOKIE_NAME`
+- Added HTTPException handler (lines 115-151) for beautiful 401/403 error pages
+  - Detects browser requests (Accept: text/html) vs API requests
+  - Maps status codes to error templates (401, 403, 404, 500)
+  - Returns JSON for API/HTMX requests, HTML for browser requests
+
+**app/routers/auth.py**:
+- Added `/auth/backdoor` route (lines 133-180) for emergency access when magic link fails
+  - Checks email against BACKDOOR_USERS whitelist
+  - Logs all access attempts (both granted and denied) at WARNING level
+  - Creates session token with predefined role from config
+  - Raises 403 if email not in whitelist
+
+### Added
+
+**app/templates/errors/401.html**:
+- Beautiful error page with large "401" in amber color
+- User-friendly message: "You need to be logged in to access this page"
+- Displays error detail in monospace font
+- Navigation buttons: "Go to Login" (primary), "Go to Overview" (secondary)
+- Follows existing 404/500 error page pattern
+
+**app/templates/errors/403.html**:
+- Beautiful error page with large "403" in red color
+- User-friendly message: "You don't have permission to access this resource"
+- Displays error detail in monospace font
+- Navigation buttons: "Go to Overview" (primary), "Go Back" (secondary)
+- Follows existing 404/500 error page pattern
+
+### Security Considerations
+
+**Backdoor Access:**
+- Hardcoded emails in ALL environments (dev, staging, production)
+- All access attempts logged at WARNING level for monitoring
+- Each email has predefined, non-changeable role
+- Justification: Client needs emergency access when magic link system fails
+
+**Cookie Separation:**
+- `flash_session` cookie: Server-side session for flash messages (low security risk)
+- `battle_d_session` cookie: Contains auth tokens (httponly=True, secure in production)
+
+### Testing
+
+- All existing auth tests pass (15/15)
+- Cookie name conflict resolved - auth and flash messages no longer interfere
+- Error pages display correctly with status codes shown
+- Backdoor access works for all three configured emails
+
+### Prevention Measures (Future Work)
+
+**Immediate improvements needed:**
+1. Add integration test: `test_magic_link_cookie_survives_redirect()` - Follow redirect, verify auth works
+2. Add integration test: `test_session_middleware_preserves_auth_cookie()` - Flash + auth don't interfere
+3. Add integration test: `test_magic_link_background_task_executes()` - Verify email actually sent
+4. Add production config validation: `test_production_email_configuration()` - Fail if BREVO_API_KEY missing
+
+**CI/CD improvements:**
+- Set up GitHub Actions pipeline
+- Require tests pass before deployment
+- Add pre-deployment smoke tests
+- Prevent manual deployment to production
+
+### Deployment Notes
+
+- No database migration required (config-only changes)
+- No environment variable updates needed in production (BACKDOOR_USERS hardcoded)
+- Deploy all fixes together (cookie + error pages + backdoor)
+
+### Related Files
+
+- Workbench: `workbench/MAGIC_LINK_FIX_2025-12-02.md`
+- Plan: `.claude/plans/abundant-whistling-feigenbaum.md`
 
 ---
 

@@ -128,3 +128,53 @@ async def logout(request: Request):
     response = RedirectResponse(url="/auth/login", status_code=303)
     response.delete_cookie(settings.SESSION_COOKIE_NAME)
     return response
+
+
+@router.get("/backdoor")
+async def backdoor_login(request: Request, email: str):
+    """Emergency backdoor login for specific admin emails (bypasses magic link).
+
+    Security:
+    - Only works for hardcoded BACKDOOR_USERS emails
+    - All access attempts are logged
+    - Each email has predefined role (admin/staff/mc)
+
+    Args:
+        request: FastAPI request
+        email: Email address requesting backdoor access
+
+    Returns:
+        Redirect to overview with session cookie or 403 if not authorized
+    """
+    # Check if email is in backdoor list
+    email_lower = email.lower()
+    if email_lower not in settings.BACKDOOR_USERS:
+        logger.warning(f"BACKDOOR ACCESS DENIED: Unauthorized email attempted backdoor login: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Backdoor access not authorized for this email"
+        )
+
+    # Get predefined role for this backdoor email
+    role = settings.BACKDOOR_USERS[email_lower]
+
+    # Log backdoor access
+    logger.warning(f"BACKDOOR ACCESS GRANTED: {email} logged in with role={role} via backdoor")
+
+    # Create session token with predefined role
+    session_token = magic_link_auth.serializer.dumps(
+        {"email": email_lower, "role": role}, salt="magic-link"
+    )
+
+    # Set session cookie and redirect
+    add_flash_message(request, f"Backdoor login successful. Welcome, {email}!", "success")
+    redirect_response = RedirectResponse(url="/overview", status_code=303)
+    redirect_response.set_cookie(
+        key=settings.SESSION_COOKIE_NAME,
+        value=session_token,
+        max_age=settings.SESSION_MAX_AGE_SECONDS,
+        httponly=True,
+        samesite="lax",
+    )
+
+    return redirect_response

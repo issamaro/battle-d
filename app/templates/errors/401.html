@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}401 - Authentication Required{% endblock %}
+
+{% block content %}
+<main class="container" style="max-width: 600px; text-align: center; padding: 3rem 1rem;">
+  <div role="alert" aria-live="assertive">
+    <h1 style="font-size: 6rem; margin: 0; color: var(--pico-color-amber-500);">401</h1>
+    <h2>Authentication Required</h2>
+    <p style="margin-bottom: 1rem;">
+      You need to be logged in to access this page.
+    </p>
+
+    {% if detail %}
+    <p style="font-family: monospace; color: var(--pico-muted-color); font-size: 0.875rem; margin-bottom: 2rem;">
+      {{ detail }}
+    </p>
+    {% endif %}
+
+    <nav aria-label="Error navigation">
+      <a href="/auth/login" role="button" class="primary">
+        Go to Login
+      </a>
+      <a href="/overview" role="button" class="secondary" style="margin-left: 1rem;">
+        Go to Overview
+      </a>
+    </nav>
+  </div>
+</main>
+{% endblock %}
