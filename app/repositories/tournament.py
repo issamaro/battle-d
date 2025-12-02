@@ -40,11 +40,16 @@ class TournamentRepository(BaseRepository[Tournament]):
 
         Returns:
             Active tournament or None if no active tournament
+
+        Note: If multiple ACTIVE tournaments exist (data integrity violation),
+        returns the most recently created one.
         """
         result = await self.session.execute(
-            select(Tournament).where(Tournament.status == TournamentStatus.ACTIVE)
+            select(Tournament)
+            .where(Tournament.status == TournamentStatus.ACTIVE)
+            .order_by(Tournament.created_at.desc())
         )
-        return result.scalar_one_or_none()
+        return result.scalars().first()
 
     async def get_active_tournaments(self) -> List[Tournament]:
         """Get all active tournaments.
