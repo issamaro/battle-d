@@ -1,7 +1,81 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-02
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-03
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-03] - Fix: Tournament Deactivation Logic Respects Phase/Status Relationship
+
+### Fixed
+
+**Tournament deactivation logic now respects phase/status relationship:**
+- Admin fix UI now intelligently selects deactivation status based on tournament phase
+- Added CANCELLED status for in-progress tournaments that need to be stopped
+- Prevents invalid phase/status combinations (e.g., phase=POOLS + status=CREATED)
+- Simplified admin UX: just select which tournament stays active
+- Files: app/models/tournament.py, app/routers/admin.py, app/templates/admin/fix_active_tournaments.html
+
+**Root Cause:**
+The previous implementation allowed admins to manually choose between CREATED or COMPLETED status when deactivating tournaments, which violated business rules:
+- Setting phase=PRESELECTION tournament to CREATED violated architecture (phases are one-way, no rollback)
+- Setting phase=PRESELECTION tournament to COMPLETED violated model constraints (only phase=COMPLETED should have status COMPLETED)
+- High risk of creating inconsistent phase/status state
+
+### Added
+
+**New TournamentStatus: CANCELLED**
+- For tournaments stopped mid-progress (phases: PRESELECTION, POOLS, FINALS)
+- Database migration: `8d4205ef8195_add_cancelled_status_to_`
+- Status lifecycle now supports:
+  ```
+  CREATED → ACTIVE → COMPLETED (normal flow)
+         ↘       ↓
+           CANCELLED (admin intervention)
+  ```
+
+**Intelligent Status Selection:**
+Admin fix endpoint now automatically determines correct status based on phase:
+- REGISTRATION phase → CREATED (tournament hasn't started yet)
+- PRESELECTION/POOLS/FINALS → CANCELLED (in-progress tournament stopped)
+- COMPLETED phase → COMPLETED (tournament already finished)
+
+**Updated Admin Fix UI:**
+- Simplified form: single radio button group to select which stays ACTIVE
+- "Will Become" column shows predicted status for each tournament
+- Educational explanation of phase-status mapping logic
+- Clear visual indicators with badge colors
+
+### Changed
+
+**app/models/tournament.py:**
+- Added `CANCELLED = "cancelled"` to TournamentStatus enum
+- Updated docstring to document new status and valid transitions
+
+**app/routers/admin.py:**
+- Rewrote `fix_active_tournaments()` endpoint with intelligent logic
+- Simplified form parsing (only `keep_active` field instead of per-tournament choices)
+- Added phase-based status determination
+
+**app/templates/admin/fix_active_tournaments.html:**
+- Complete redesign with "Will Become" column
+- Removed error-prone manual status selection
+- Added helpful info box explaining the logic
+
+**app/templates/tournaments/list.html:**
+- Added CANCELLED badge styling (amber/yellow background)
+
+**VALIDATION_RULES.md:**
+- Updated Tournament Status Lifecycle section
+- Added CANCELLED status definition
+- Updated lifecycle flow diagram
+- Documented valid phases for each status
+
+### Migration
+
+**Database Schema:**
+- SQLite: No schema changes needed (enum values stored as TEXT)
+- PostgreSQL users: Would need `ALTER TYPE tournamentstatus ADD VALUE 'cancelled'`
 
 ---
 

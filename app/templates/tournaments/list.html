@@ -45,11 +45,10 @@
                 <tr>
                     <td><strong>{{ tournament.name }}</strong></td>
                     <td>
-                        <span style="padding: 4px 8px; background-color: {% if tournament.status.value == 'active' %}#28a745{% else %}#6c757d{% endif %}; color: white; border-radius: 4px; font-size: 12px;">
+                        <span style="padding: 4px 8px; background-color: {% if tournament.status.value == 'active' %}#28a745{% elif tournament.status.value == 'cancelled' %}#ffc107{% else %}#6c757d{% endif %}; color: {% if tournament.status.value == 'cancelled' %}#333{% else %}white{% endif %}; border-radius: 4px; font-size: 12px;">
                             {{ tournament.status.value|upper }}
                         </span>
-                    </td>
-                    <td>
+                    </td>                    <td>
                         <span style="padding: 4px 8px; background-color: #007bff; color: white; border-radius: 4px; font-size: 12px;">
                             {{ tournament.phase.value|upper }}
                         </span>

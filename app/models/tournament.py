@@ -15,11 +15,18 @@ class TournamentStatus(str, enum.Enum):
     Status lifecycle:
     - CREATED: Tournament setup in progress (not yet activated)
     - ACTIVE: Tournament is running (only one allowed at a time)
-    - COMPLETED: Tournament finished
+    - CANCELLED: Tournament was active but stopped before completion
+    - COMPLETED: Tournament finished normally
+
+    Valid transitions:
+    - CREATED → ACTIVE (auto when advancing from REGISTRATION phase)
+    - ACTIVE → COMPLETED (auto when advancing to COMPLETED phase)
+    - ACTIVE → CANCELLED (admin intervention to stop in-progress tournament)
     """
 
     CREATED = "created"
     ACTIVE = "active"
+    CANCELLED = "cancelled"
     COMPLETED = "completed"
 
 

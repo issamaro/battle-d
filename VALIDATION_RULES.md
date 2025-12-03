@@ -14,11 +14,13 @@ This document specifies all validation rules for the Battle-D tournament managem
 
 ## Tournament Status Lifecycle
 
-**Status Enum:** `TournamentStatus(created | active | completed)`
+**Status Enum:** `TournamentStatus(created | active | cancelled | completed)`
 
 **Lifecycle Flow:**
 ```
-CREATED → ACTIVE → COMPLETED
+CREATED → ACTIVE → COMPLETED (normal flow)
+       ↘       ↓
+         CANCELLED (admin intervention)
 ```
 
 ### Status Definitions
@@ -28,17 +30,27 @@ CREATED → ACTIVE → COMPLETED
 - Tournament setup in progress (adding categories, configuring settings)
 - Not yet open for competition
 - Multiple tournaments can be in CREATED status simultaneously
+- Valid phase: REGISTRATION only
 
 **ACTIVE:**
 - Tournament is running and open for competition
 - **Only one tournament can be ACTIVE at a time** (enforced constraint)
 - Automatic activation occurs when advancing from REGISTRATION phase if validation passes
 - Cannot manually activate if another tournament is already ACTIVE
+- Valid phases: PRESELECTION, POOLS, FINALS
+
+**CANCELLED:**
+- Tournament was active but stopped before natural completion
+- Set when admin deactivates in-progress tournaments (phases: PRESELECTION, POOLS, FINALS)
+- Cannot advance phases from this status (terminal state for abandoned tournaments)
+- Used for data integrity fixes when multiple ACTIVE tournaments detected
+- Valid phases: PRESELECTION, POOLS, FINALS (any in-progress phase)
 
 **COMPLETED:**
-- Tournament has finished all phases
+- Tournament has finished all phases normally
 - Final results are locked
 - Automatic completion when advancing from FINALS phase
+- Valid phase: COMPLETED only
 
 ### Activation Rules
 
