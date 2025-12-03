@@ -171,8 +171,31 @@ async def overview(
     """Overview page - role-specific view with active tournament context."""
     user = require_auth(current_user)
 
-    # Get active tournament for context
-    active_tournament = await tournament_repo.get_active()
+    # Get all active tournaments to detect data integrity violations
+    active_tournaments = await tournament_repo.get_active_tournaments()
+
+    # Data integrity check: Multiple ACTIVE tournaments violates business rule
+    if len(active_tournaments) > 1:
+        # Multiple ACTIVE tournaments - show fix UI for admins, error for others
+        if user.is_admin:
+            return templates.TemplateResponse(
+                request=request,
+                name="admin/fix_active_tournaments.html",
+                context={
+                    "current_user": user,
+                    "active_tournaments": active_tournaments,
+                },
+            )
+        else:
+            return templates.TemplateResponse(
+                request=request,
+                name="errors/tournament_config_error.html",
+                context={"current_user": user},
+                status_code=500,
+            )
+
+    # Normal case: 0 or 1 active tournament
+    active_tournament = active_tournaments[0] if active_tournaments else None
 
     return templates.TemplateResponse(
         request=request,

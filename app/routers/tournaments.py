@@ -45,6 +45,10 @@ async def list_tournaments(
     # Get all tournaments
     tournaments = await tournament_repo.get_all()
 
+    # Check for data integrity issue: multiple ACTIVE tournaments
+    active_tournaments = await tournament_repo.get_active_tournaments()
+    has_integrity_issue = len(active_tournaments) > 1
+
     return templates.TemplateResponse(
         request=request,
         name="tournaments/list.html",
@@ -52,6 +56,7 @@ async def list_tournaments(
             "current_user": user,
             "tournaments": tournaments,
             "flash_messages": flash_messages,
+            "has_integrity_issue": has_integrity_issue,
         },
     )
 

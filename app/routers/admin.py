@@ -11,9 +11,12 @@ from app.dependencies import (
     get_user_repo,
     get_email_service,
     get_flash_messages_dependency,
+    get_tournament_repo,
 )
 from app.repositories.user import UserRepository
+from app.repositories.tournament import TournamentRepository
 from app.models.user import UserRole
+from app.models.tournament import TournamentStatus
 from app.auth import magic_link_auth
 from app.services.email.service import EmailService
 from app.utils.flash import add_flash_message
@@ -346,3 +349,94 @@ async def resend_magic_link(
     add_flash_message(request, f"Magic link sent to {user_to_send.email}", "success")
 
     return RedirectResponse(url="/admin/users", status_code=303)
+
+
+@router.post("/tournaments/fix-active")
+async def fix_active_tournaments(
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+):
+    """Fix multiple active tournaments data integrity issue (admin only).
+
+    Args:
+        request: FastAPI request with form data
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+
+    Returns:
+        Redirect to overview with success/error message
+    """
+    require_admin(current_user)
+
+    # Get all active tournaments to validate
+    active_tournaments = await tournament_repo.get_active_tournaments()
+
+    if len(active_tournaments) <= 1:
+        add_flash_message(
+            request,
+            "No data integrity issue found. Only one or zero tournaments are active.",
+            "info"
+        )
+        return RedirectResponse(url="/overview", status_code=303)
+
+    # Parse form data: tournament_{id} = 'keep' | 'completed' | 'created'
+    form_data = await request.form()
+
+    # Track which tournament should remain active
+    keep_active_id = None
+    updates_to_apply = []
+
+    for tournament in active_tournaments:
+        field_name = f"tournament_{tournament.id}"
+        action = form_data.get(field_name)
+
+        if not action:
+            add_flash_message(
+                request,
+                f"Missing action for tournament: {tournament.name}",
+                "error"
+            )
+            return RedirectResponse(url="/overview", status_code=303)
+
+        if action == "keep":
+            if keep_active_id is not None:
+                add_flash_message(
+                    request,
+                    "You must select exactly ONE tournament to keep active.",
+                    "error"
+                )
+                return RedirectResponse(url="/overview", status_code=303)
+            keep_active_id = tournament.id
+        elif action == "completed":
+            updates_to_apply.append((tournament.id, TournamentStatus.COMPLETED))
+        elif action == "created":
+            updates_to_apply.append((tournament.id, TournamentStatus.CREATED))
+        else:
+            add_flash_message(
+                request,
+                f"Invalid action '{action}' for tournament: {tournament.name}",
+                "error"
+            )
+            return RedirectResponse(url="/overview", status_code=303)
+
+    # Validate exactly one tournament set to keep active
+    if keep_active_id is None:
+        add_flash_message(
+            request,
+            "You must select exactly ONE tournament to keep active.",
+            "error"
+        )
+        return RedirectResponse(url="/overview", status_code=303)
+
+    # Apply all status updates
+    for tournament_id, new_status in updates_to_apply:
+        await tournament_repo.update(tournament_id, status=new_status)
+
+    add_flash_message(
+        request,
+        f"Tournament configuration fixed successfully. {len(updates_to_apply)} tournament(s) deactivated.",
+        "success"
+    )
+
+    return RedirectResponse(url="/overview", status_code=303)

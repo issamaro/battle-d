@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Fix Tournament Configuration - Battle-D{% endblock %}
+
+{% block content %}
+<h2>⚠️ Data Integrity Issue Detected</h2>
+
+<section style="background-color: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #856404;">⚠️ MULTIPLE ACTIVE TOURNAMENTS FOUND</h3>
+    <p style="color: #856404;">
+        <strong>Data Integrity Violation:</strong> Multiple tournaments are currently in ACTIVE status.
+        Only one tournament can be active at a time according to business rules.
+    </p>
+    <p style="color: #856404;">
+        Please review the list below and choose which tournament should remain active.
+        All others must be set to either COMPLETED or CREATED status.
+    </p>
+</section>
+
+<section>
+    <h3>Active Tournaments ({{ active_tournaments|length }} found)</h3>
+
+    <form method="post" action="/admin/tournaments/fix-active">
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th>Tournament Name</th>
+                    <th>Created Date</th>
+                    <th>Current Phase</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tournament in active_tournaments %}
+                <tr>
+                    <td><strong>{{ tournament.name }}</strong></td>
+                    <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ tournament.phase.value|upper }}</td>
+                    <td>
+                        <label>
+                            <input type="radio" name="tournament_{{ tournament.id }}" value="keep" required>
+                            Keep Active
+                        </label>
+                        <label>
+                            <input type="radio" name="tournament_{{ tournament.id }}" value="completed">
+                            Set to COMPLETED
+                        </label>
+                        <label>
+                            <input type="radio" name="tournament_{{ tournament.id }}" value="created">
+                            Set to CREATED
+                        </label>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <p style="color: #856404; margin-top: 20px;">
+            <strong>Note:</strong> You must select exactly ONE tournament to keep active.
+            All others will be updated to the status you selected.
+        </p>
+
+        <button type="submit" class="primary" style="margin-top: 20px;">
+            Fix Tournament Configuration
+        </button>
+    </form>
+
+    <p style="margin-top: 20px;">
+        <a href="/auth/logout" role="button" class="secondary">Logout (I need to think about this)</a>
+    </p>
+</section>
+{% endblock %}

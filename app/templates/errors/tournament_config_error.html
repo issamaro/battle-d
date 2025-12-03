@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}500 - Tournament Configuration Error{% endblock %}
+
+{% block content %}
+<main class="container" style="max-width: 600px; text-align: center; padding: 3rem 1rem;">
+  <div role="alert" aria-live="assertive">
+    <h1 style="font-size: 6rem; margin: 0; color: var(--pico-color-red-500);">500</h1>
+    <h2>Tournament Configuration Error</h2>
+    <p style="margin-bottom: 1rem;">
+      We've detected a data integrity issue with the tournament configuration.
+      Multiple tournaments are currently active, which violates system rules.
+    </p>
+
+    <p style="color: var(--pico-muted-color); margin-bottom: 2rem;">
+      Please contact an administrator to resolve this issue.
+      They will be able to deactivate the extra tournaments and restore normal operation.
+    </p>
+
+    <nav aria-label="Error navigation">
+      <a href="/auth/logout" role="button" class="primary">
+        Logout
+      </a>
+      <a href="javascript:history.back()" role="button" class="secondary" style="margin-left: 1rem;">
+        Go Back
+      </a>
+    </nav>
+  </div>
+</main>
+{% endblock %}

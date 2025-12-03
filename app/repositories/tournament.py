@@ -1,11 +1,12 @@
 """Tournament repository."""
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Any
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.tournament import Tournament, TournamentStatus, TournamentPhase
 from app.repositories.base import BaseRepository
+from app.exceptions import ValidationError
 
 
 class TournamentRepository(BaseRepository[Tournament]):
@@ -90,3 +91,34 @@ class TournamentRepository(BaseRepository[Tournament]):
             status=TournamentStatus.CREATED,  # Start in CREATED status
             phase=TournamentPhase.REGISTRATION,
         )
+
+    async def update(self, id: uuid.UUID, **kwargs: Any) -> Optional[Tournament]:
+        """Override update to validate ACTIVE status uniqueness.
+
+        This prevents bypassing service-layer validation by ensuring
+        the business rule is enforced at the repository level.
+
+        Args:
+            id: Tournament UUID
+            **kwargs: Fields to update
+
+        Returns:
+            Updated tournament instance or None if not found
+
+        Raises:
+            ValidationError: If attempting to activate tournament when another is active
+        """
+        # Check if trying to set status to ACTIVE
+        if "status" in kwargs and kwargs["status"] == TournamentStatus.ACTIVE:
+            # Validate no other tournament is ACTIVE
+            active_tournaments = await self.get_active_tournaments()
+            existing_active = [t for t in active_tournaments if t.id != id]
+
+            if existing_active:
+                raise ValidationError([
+                    f"Cannot activate tournament: '{existing_active[0].name}' is already active. "
+                    "Deactivate it first."
+                ])
+
+        # Call parent update method
+        return await super().update(id, **kwargs)
