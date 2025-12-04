@@ -30,9 +30,15 @@ from app.repositories.performer import PerformerRepository
 @pytest.fixture
 def mock_session():
     """Mock database session."""
+    from unittest.mock import MagicMock
+
     session = AsyncMock()
-    session.begin.return_value.__aenter__ = AsyncMock()
-    session.begin.return_value.__aexit__ = AsyncMock()
+    # Create an async context manager mock for session.begin()
+    async_cm = AsyncMock()
+    async_cm.__aenter__ = AsyncMock(return_value=async_cm)
+    async_cm.__aexit__ = AsyncMock(return_value=None)
+    # Use MagicMock (not AsyncMock) so begin() returns context manager directly
+    session.begin = MagicMock(return_value=async_cm)
     session.refresh = AsyncMock()
     return session
 

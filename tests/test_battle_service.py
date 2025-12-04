@@ -328,8 +328,9 @@ class TestStartBattle:
         battle_repo.get_by_id.return_value = battle
         battle_repo.get_active_battle.return_value = None  # No active battle
 
-        def update_mock(b):
-            return b
+        def update_mock(battle_id, **kwargs):
+            battle.status = kwargs.get('status', battle.status)
+            return battle
 
         battle_repo.update.side_effect = update_mock
 
@@ -414,8 +415,9 @@ class TestCompleteBattle:
 
         battle_repo.get_by_id.return_value = battle
 
-        def update_mock(b):
-            return b
+        def update_mock(battle_id, **kwargs):
+            battle.status = kwargs.get('status', battle.status)
+            return battle
 
         battle_repo.update.side_effect = update_mock
 
