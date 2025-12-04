@@ -370,3 +370,21 @@ def get_performer_service(session: AsyncSession = Depends(get_db)):
         category_repo=CategoryRepository(session),
         dancer_repo=DancerRepository(session),
     )
+
+
+def get_battle_encoding_service(session: AsyncSession = Depends(get_db)):
+    """Get BattleEncodingService instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        BattleEncodingService instance with all required repositories
+    """
+    from app.services.battle_encoding_service import BattleEncodingService
+
+    return BattleEncodingService(
+        session=session,
+        battle_repo=BattleRepository(session),
+        performer_repo=PerformerRepository(session),
+    )

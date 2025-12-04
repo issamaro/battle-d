@@ -1,5 +1,5 @@
 # Battle-D Validation Rules
-**Level 1: Source of Truth** | Last Updated: 2025-11-24
+**Level 1: Source of Truth** | Last Updated: 2025-12-04
 
 This document specifies all validation rules for the Battle-D tournament management system, particularly focusing on phase transitions and tournament constraints.
 
@@ -9,6 +9,7 @@ This document specifies all validation rules for the Battle-D tournament managem
 - [Phase Transition Validation](#phase-transition-validation)
 - [Tournament Calculations](#tournament-calculations)
 - [Duo Registration Validation](#duo-registration-validation)
+- [Battle Encoding Validation](#battle-encoding-validation)
 
 ---
 
@@ -376,6 +377,239 @@ performer2.duo_partner_id = performer1.id
 
 ---
 
+## Battle Encoding Validation
+
+### Overview
+
+Battle encoding is the process of recording battle results (outcomes) into the system. Different battle phases have different encoding requirements and validation rules. All validation must occur before persisting outcome data to prevent invalid states.
+
+### Battle Status Requirements
+
+**Encoding Preconditions:**
+- Battle must exist and be loaded with performers
+- Battle status must be `ACTIVE` (cannot encode pending or completed battles)
+- User must have staff role
+
+**Status Transitions:**
+```
+PENDING → (start battle) → ACTIVE → (encode result) → COMPLETED
+```
+
+**Validation Error Example:**
+```python
+if battle.status != BattleStatus.ACTIVE:
+    raise ValidationError(["Cannot encode battle: status must be ACTIVE"])
+```
+
+---
+
+### Preselection Battle Encoding
+
+**Phase:** `PRESELECTION`
+
+**Outcome Format:** JSON scores mapping performer IDs to decimal scores
+```json
+{
+  "uuid-performer-1": 8.5,
+  "uuid-performer-2": 7.0,
+  "uuid-performer-3": 9.0
+}
+```
+
+**Validation Rules:**
+
+1. **All Performers Must Be Scored**
+   ```python
+   for performer in battle.performers:
+       if str(performer.id) not in scores:
+           errors.append(f"Missing score for {performer.dancer.blaze}")
+   ```
+
+2. **Score Range: 0.0 - 10.0**
+   ```python
+   for performer_id, score in scores.items():
+       if not (0.0 <= score <= 10.0):
+           errors.append(f"Score {score} out of range (must be 0.0-10.0)")
+   ```
+
+3. **Score Precision: 2 decimal places**
+   ```python
+   score = Decimal(str(score)).quantize(Decimal('0.01'))
+   ```
+
+4. **Performer Stats Update**
+   - Set `performer.preselection_score = score` for each performer
+   - Used for ranking performers to advance to pools
+
+**Implementation Location:** `app/services/battle_encoding_service.py::encode_preselection_battle()`
+
+---
+
+### Pool Battle Encoding
+
+**Phase:** `POOL`
+
+**Outcome Types:**
+- **Win:** One performer wins (winner_id set, is_draw = false)
+- **Draw:** No winner (winner_id = null, is_draw = true)
+
+**Outcome Format:** JSON with winner or draw flag
+```json
+{
+  "winner_id": "uuid-performer-1",
+  "is_draw": false
+}
+```
+
+**Validation Rules:**
+
+1. **Winner OR Draw (Mutually Exclusive)**
+   ```python
+   if is_draw and winner_id:
+       raise ValidationError(["Cannot specify winner and draw simultaneously"])
+   if not is_draw and not winner_id:
+       raise ValidationError(["Must specify winner or mark as draw"])
+   ```
+
+2. **Winner Must Be Battle Participant**
+   ```python
+   if winner_id:
+       performer_ids = {p.id for p in battle.performers}
+       if winner_id not in performer_ids:
+           raise ValidationError(["Winner must be a battle participant"])
+   ```
+
+3. **Pool Points Update**
+   - **Winner:** +3 points, increment wins
+   - **Loser:** +0 points, increment losses
+   - **Draw:** +1 point each, increment draws
+
+**Implementation Location:** `app/services/battle_encoding_service.py::encode_pool_battle()`
+
+---
+
+### Tiebreak Battle Encoding
+
+**Phase:** `TIEBREAK`
+
+**Outcome Type:** Winner required (no draws allowed in tiebreaks)
+
+**Outcome Format:** JSON with winner ID
+```json
+{
+  "winner_id": "uuid-performer-1"
+}
+```
+
+**Validation Rules:**
+
+1. **Winner Required**
+   ```python
+   if not winner_id:
+       raise ValidationError(["Tiebreak battles must have a winner"])
+   ```
+
+2. **No Draw Allowed**
+   ```python
+   if is_draw:
+       raise ValidationError(["Draws are not allowed in tiebreak battles"])
+   ```
+
+3. **Winner Must Be Battle Participant**
+   - Same validation as pool battles
+
+**Implementation Location:** `app/services/battle_encoding_service.py::encode_tiebreak_battle()`
+
+---
+
+### Finals Battle Encoding
+
+**Phase:** `FINALS`
+
+**Outcome Type:** Winner required (tournament champion)
+
+**Outcome Format:** JSON with winner ID
+```json
+{
+  "winner_id": "uuid-performer-1"
+}
+```
+
+**Validation Rules:**
+
+1. **Winner Required**
+   ```python
+   if not winner_id:
+       raise ValidationError(["Finals battle must have a winner"])
+   ```
+
+2. **Winner Must Be Battle Participant**
+   - Same validation as pool/tiebreak battles
+
+3. **Championship Status**
+   - Winner becomes category champion
+   - Marks end of category competition
+
+**Implementation Location:** `app/services/battle_encoding_service.py::encode_finals_battle()`
+
+---
+
+### Transaction Requirements
+
+**All encoding operations must be atomic:**
+
+```python
+async def encode_battle(battle_id: UUID, outcome: dict) -> ValidationResult[Battle]:
+    async with session.begin():  # Start transaction
+        # 1. Validate outcome data
+        validation_errors = validate_outcome(battle, outcome)
+        if validation_errors:
+            return ValidationResult.failure(validation_errors)
+
+        # 2. Update battle.outcome
+        battle.outcome = outcome
+        battle.status = BattleStatus.COMPLETED
+
+        # 3. Update performer stats (preselection_score, pool_points, etc.)
+        update_performer_stats(battle, outcome)
+
+        # 4. Commit or rollback (automatic)
+        return ValidationResult.success(battle)
+```
+
+**Rationale:**
+- Prevents partial updates if encoding fails mid-operation
+- Ensures battle and performer stats remain consistent
+- Allows rollback on validation errors
+
+---
+
+### Error Handling
+
+**Validation Error Format:**
+```python
+ValidationResult.failure([
+    "Missing score for B-Boy John",
+    "Score 11.5 out of range (must be 0.0-10.0)",
+    "Winner must be a battle participant"
+])
+```
+
+**User Feedback:**
+- Flash message with all validation errors
+- Form data preserved (HTMX partial update)
+- Field-level error indicators (aria-invalid)
+
+**Example Error Messages:**
+```
+✗ Missing score for B-Boy Sarah
+✗ Score 11.0 out of range (must be 0.0-10.0)
+✗ Must specify winner or mark as draw
+✗ Tiebreak battles must have a winner (no draws allowed)
+```
+
+---
+
 ## Error Messages
 
 ### Standard Error Format
@@ -413,9 +647,12 @@ Cannot advance to POOLS phase:
 ### Key Files
 
 - **Validation Logic:** `app/services/phase_service.py`
+- **Battle Encoding:** `app/services/battle_encoding_service.py`
+- **Battle Validators:** `app/validators/battle_validators.py`
 - **Calculations:** `app/utils/tournament_calculations.py`
 - **Database Constraints:** `app/models/performer.py`
 - **Phase Router:** `app/routers/phases.py`
+- **Battle Router:** `app/routers/battles.py`
 
 ### Test Coverage
 
@@ -423,6 +660,8 @@ All validation rules are tested in:
 - `tests/test_tournament_calculations.py` - Formula correctness
 - `tests/test_models.py` - Database constraints
 - `tests/test_crud_workflows.py` - Integration workflows
+- `tests/test_battle_encoding_service.py` - Battle encoding validation (preselection, pool, tiebreak, finals)
+- `tests/test_battle_routes.py` - Battle routing and encoding integration
 
 ---
 
@@ -433,3 +672,6 @@ All validation rules are tested in:
 - **2025-11-19:** Updated minimum formula from `(groups_ideal × 2) + 2` to `(groups_ideal × 2) + 1` (minimum 1 elimination instead of 2)
 - **2025-11-19:** Added tournament status lifecycle documentation (CREATED → ACTIVE → COMPLETED)
 - **2025-11-19:** Removed percentage references from documentation
+- **2025-12-04:** Added Battle Encoding Validation section (preselection, pool, tiebreak, finals)
+- **2025-12-04:** Added transaction requirements and error handling documentation
+- **2025-12-04:** Updated implementation reference with battle encoding files

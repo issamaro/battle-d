@@ -5,44 +5,55 @@
 {% block header_title %}Encode Preselection Battle{% endblock %}
 
 {% block content %}
-<section>
-    <p><a href="/battles/{{ battle.id }}">← Cancel</a></p>
-</section>
+<!-- Breadcrumb Navigation -->
+<nav class="battle-breadcrumb" aria-label="Breadcrumb">
+    <a href="/overview" class="breadcrumb-link">Overview</a>
+    <span class="breadcrumb-separator" aria-hidden="true">/</span>
+    <a href="/battles" class="breadcrumb-link">Battles</a>
+    <span class="breadcrumb-separator" aria-hidden="true">/</span>
+    <a href="/battles/{{ battle.id }}" class="breadcrumb-link">Battle Details</a>
+    <span class="breadcrumb-separator" aria-hidden="true">/</span>
+    <span class="breadcrumb-current" aria-current="page">Encode</span>
+</nav>
 
-<article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 24px;">
+<article class="battle-card">
     <header>
         <h2>Encode Preselection Scores</h2>
         <p>Enter scores (0-10) for each performer in this preselection battle.</p>
     </header>
 
-    <form action="/battles/{{ battle.id }}/encode" method="post" style="margin-top: 24px;">
+    <form action="/battles/{{ battle.id }}/encode" method="post" class="encoding-form">
         <section>
             <h3>Performers</h3>
             {% for performer in battle.performers %}
-            <div style="margin-bottom: 20px; padding: 16px; border: 1px solid var(--pico-muted-border-color); border-radius: 4px;">
-                <label for="score_{{ performer.id }}">
-                    <strong>🎭 Performer {{ loop.index }}</strong>
-                    <input
-                        type="number"
-                        id="score_{{ performer.id }}"
-                        name="score_{{ performer.id }}"
-                        min="0"
-                        max="10"
-                        step="0.1"
-                        required
-                        placeholder="Score (0-10)"
-                        {% if performer.preselection_score %}value="{{ performer.preselection_score }}"{% endif %}
-                    >
+            <div class="encoding-form-group">
+                <label for="score_{{ performer.id }}" class="encoding-form-label">
+                    🎭 {{ performer.dancer.dancer_name }}
                 </label>
-                <small>Enter a score from 0 to 10</small>
+                <input
+                    type="number"
+                    id="score_{{ performer.id }}"
+                    name="score_{{ performer.id }}"
+                    class="encoding-form-input"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    required
+                    placeholder="Score (0-10)"
+                    aria-describedby="score_help_{{ performer.id }}"
+                    {% if performer.preselection_score %}value="{{ performer.preselection_score }}"{% endif %}
+                >
+                <span class="encoding-form-help" id="score_help_{{ performer.id }}">
+                    Enter a score from 0 to 10 (decimals allowed)
+                </span>
             </div>
             {% endfor %}
         </section>
 
-        <footer style="margin-top: 24px; display: flex; gap: 12px;">
-            <button type="submit">Submit Scores</button>
-            <a href="/battles/{{ battle.id }}" role="button" class="secondary">Cancel</a>
-        </footer>
+        <div class="battle-actions">
+            <button type="submit" class="battle-action-btn battle-action-primary">Submit Scores</button>
+            <a href="/battles/{{ battle.id }}" class="battle-action-btn battle-action-secondary">Cancel</a>
+        </div>
     </form>
 </article>
 {% endblock %}

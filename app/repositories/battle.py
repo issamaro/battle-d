@@ -35,6 +35,30 @@ class BattleRepository(BaseRepository[Battle]):
         )
         return list(result.scalars().all())
 
+    async def get_by_category_and_status(
+        self, category_id: uuid.UUID, status: BattleStatus
+    ) -> List[Battle]:
+        """Get battles by category and status.
+
+        Performs SQL-level filtering for efficient queries.
+
+        Args:
+            category_id: Category UUID
+            status: Battle status
+
+        Returns:
+            List of battles matching criteria
+        """
+        result = await self.session.execute(
+            select(Battle)
+            .options(selectinload(Battle.performers))
+            .where(
+                Battle.category_id == category_id,
+                Battle.status == status,
+            )
+        )
+        return list(result.scalars().all())
+
     async def get_by_phase(
         self, category_id: uuid.UUID, phase: BattlePhase
     ) -> List[Battle]:

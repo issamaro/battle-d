@@ -5,9 +5,12 @@
 {% block header_title %}Battles{% if category %} - {{ category.name }}{% endif %}{% endblock %}
 
 {% block content %}
-<section>
-    <p><a href="/overview">← Back to Overview</a></p>
-</section>
+<!-- Breadcrumb Navigation -->
+<nav class="battle-breadcrumb" aria-label="Breadcrumb">
+    <a href="/overview" class="breadcrumb-link">Overview</a>
+    <span class="breadcrumb-separator" aria-hidden="true">/</span>
+    <span class="breadcrumb-current" aria-current="page">Battles{% if category %} - {{ category.name }}{% endif %}</span>
+</nav>
 
 {% if category %}
 <section>
@@ -16,91 +19,126 @@
 </section>
 {% endif %}
 
+<!-- Status Filter -->
 <section>
-    <h3>Filter by Status</h3>
-    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <h3 id="filter-heading">Filter by Status</h3>
+    <div class="battle-status-filter" role="group" aria-labelledby="filter-heading">
         <a href="?category_id={{ category.id if category else '' }}"
-           role="button"
-           class="{% if not status_filter %}primary{% else %}secondary{% endif %}"
-           style="padding: 8px 16px;">
+           class="filter-chip {% if not status_filter %}filter-chip-active{% endif %}"
+           aria-label="Show all battles"
+           aria-current="{% if not status_filter %}true{% else %}false{% endif %}">
             All
         </a>
         <a href="?category_id={{ category.id if category else '' }}&status_filter=pending"
-           role="button"
-           class="{% if status_filter == 'pending' %}primary{% else %}secondary{% endif %}"
-           style="padding: 8px 16px;">
+           class="filter-chip {% if status_filter == 'pending' %}filter-chip-active{% endif %}"
+           aria-label="Show pending battles"
+           aria-current="{% if status_filter == 'pending' %}true{% else %}false{% endif %}">
             Pending
         </a>
         <a href="?category_id={{ category.id if category else '' }}&status_filter=active"
-           role="button"
-           class="{% if status_filter == 'active' %}primary{% else %}secondary{% endif %}"
-           style="padding: 8px 16px;">
+           class="filter-chip {% if status_filter == 'active' %}filter-chip-active{% endif %}"
+           aria-label="Show active battles"
+           aria-current="{% if status_filter == 'active' %}true{% else %}false{% endif %}">
             Active
         </a>
         <a href="?category_id={{ category.id if category else '' }}&status_filter=completed"
-           role="button"
-           class="{% if status_filter == 'completed' %}primary{% else %}secondary{% endif %}"
-           style="padding: 8px 16px;">
+           class="filter-chip {% if status_filter == 'completed' %}filter-chip-active{% endif %}"
+           aria-label="Show completed battles"
+           aria-current="{% if status_filter == 'completed' %}true{% else %}false{% endif %}">
             Completed
         </a>
     </div>
 </section>
 
-<section style="margin-top: 30px;">
+<!-- Battle List -->
+<section id="battle-list">
     <h3>Battles</h3>
     {% if battles %}
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        <div class="battle-grid"
+             role="list"
+             aria-label="Battle list"
+             hx-get="/battles?category_id={{ category.id if category else '' }}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}"
+             hx-trigger="every 5s"
+             hx-select=".battle-grid"
+             hx-target="this"
+             hx-swap="outerHTML">
             {% for battle in battles %}
-            <article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 16px;">
-                <header>
-                    <h4>Battle - {{ battle.phase.value|title }}</h4>
-                    <span style="padding: 4px 8px; background-color:
-                        {% if battle.status.value == 'completed' %}#28a745
-                        {% elif battle.status.value == 'active' %}#ffc107
-                        {% else %}#6c757d{% endif %};
-                        color: white; border-radius: 4px; font-size: 12px;">
+            <article class="battle-card" role="listitem" id="battle-card-{{ battle.id }}">
+                <div class="battle-card-header">
+                    <h4 class="battle-card-title">{{ battle.phase.value|title }}</h4>
+                    <span class="badge badge-{{ battle.status.value }}"
+                          role="status"
+                          aria-label="Battle status: {{ battle.status.value }}">
                         {{ battle.status.value|upper }}
                     </span>
-                </header>
-
-                <div style="margin-top: 12px;">
-                    <p><strong>Performers:</strong></p>
-                    <ul style="margin: 8px 0; padding-left: 20px;">
-                        {% for performer in battle.performers[:5] %}
-                        <li>Performer {{ loop.index }}{% if battle.winner_id and performer.id == battle.winner_id %} 🏆{% endif %}</li>
-                        {% endfor %}
-                        {% if battle.performers|length > 5 %}
-                        <li>... and {{ battle.performers|length - 5 }} more</li>
-                        {% endif %}
-                    </ul>
                 </div>
 
-                {% if battle.status.value == 'completed' and battle.winner_id %}
-                <p style="margin-top: 12px;"><strong>Winner:</strong> 🏆</p>
-                {% endif %}
+                <div class="battle-card-body">
+                    <!-- Battle Identifier with Performer Names -->
+                    <div class="battle-identifier" aria-label="Battle participants">
+                        <span class="battle-performer-names">
+                            {% for performer in battle.performers[:3] %}
+                                {{ performer.dancer.dancer_name }}{% if not loop.last %}<span class="battle-vs-separator" aria-hidden="true">vs</span>{% endif %}
+                            {% endfor %}
+                            {% if battle.performers|length > 3 %}
+                                <span class="battle-vs-separator" aria-hidden="true">+</span>{{ battle.performers|length - 3 }} more
+                            {% endif %}
+                        </span>
+                    </div>
 
-                <footer style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
-                    <a href="/battles/{{ battle.id }}" role="button" class="secondary" style="font-size: 14px; padding: 6px 12px;">
+                    <!-- Battle Metadata -->
+                    <div class="battle-meta">
+                        <div class="battle-meta-item">
+                            <span class="battle-meta-label">Phase:</span>
+                            <span class="battle-meta-value">{{ battle.phase.value|title }}</span>
+                        </div>
+                        <div class="battle-meta-item">
+                            <span class="battle-meta-label">Performers:</span>
+                            <span class="battle-meta-value">{{ battle.performers|length }}</span>
+                        </div>
+                        {% if battle.status.value == 'completed' and battle.winner_id %}
+                        <div class="battle-meta-item">
+                            <span class="battle-meta-label">Winner:</span>
+                            <span class="battle-meta-value" aria-label="Winner">
+                                {% for performer in battle.performers %}
+                                    {% if performer.id == battle.winner_id %}
+                                        🏆 {{ performer.dancer.dancer_name }}
+                                    {% endif %}
+                                {% endfor %}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="battle-card-footer battle-actions">
+                    <a href="/battles/{{ battle.id }}"
+                       class="battle-action-btn battle-action-secondary"
+                       aria-label="View details for {{ battle.phase.value }} battle">
                         View Details
                     </a>
 
                     {% if battle.status.value == 'pending' %}
                     <form action="/battles/{{ battle.id }}/start" method="post" style="display: inline;">
-                        <button type="submit" style="font-size: 14px; padding: 6px 12px;">
+                        <button type="submit"
+                                class="battle-action-btn battle-action-primary"
+                                aria-label="Start {{ battle.phase.value }} battle">
                             Start Battle
                         </button>
                     </form>
                     {% elif battle.status.value == 'active' %}
-                    <a href="/battles/{{ battle.id }}/encode" role="button" style="font-size: 14px; padding: 6px 12px;">
+                    <a href="/battles/{{ battle.id }}/encode"
+                       class="battle-action-btn battle-action-primary"
+                       aria-label="Encode result for {{ battle.phase.value }} battle">
                         Encode Result
                     </a>
                     {% endif %}
-                </footer>
+                </div>
             </article>
             {% endfor %}
         </div>
 
-        <p style="margin-top: 20px;">
+        <p aria-live="polite">
             <strong>Total Battles:</strong> {{ battles|length }}
         </p>
     {% else %}

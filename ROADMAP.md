@@ -1,5 +1,5 @@
 # Battle-D Project Roadmap
-**Level 2: Derived** | Last Updated: 2025-11-30
+**Level 2: Derived** | Last Updated: 2025-12-04
 
 Phased development roadmap from POC to V2.
 
@@ -710,6 +710,110 @@ Battles and pools are now generated automatically when admins advance tournament
 - Zero test failures
 
 **Release:** Phase 3 COMPLETE ✅
+
+---
+
+## Phase 3.1: Battle Queue Improvements (IN PROGRESS 🔄)
+
+**Duration:** 3-4 weeks (2025-12-04 to 2025-12-27)
+
+**Status:** 🔄 IN PROGRESS
+
+**Objective:** Fix critical bugs, enforce architectural patterns, modernize frontend (HTMX, accessibility), and enhance UX for battle queue system.
+
+### Problem Statement
+
+The battle queue system has critical bugs and architectural violations:
+- **CRITICAL BUG:** 7 `update()` method calls pass objects instead of `(id, **kwargs)` - causes data corruption
+- **Architecture Issue:** 85 lines of business logic in router, bypassing service layer
+- **Frontend Gap:** Zero HTMX usage despite real-time tournament context and FRONTEND.md requirements
+- **Accessibility Gap:** No ARIA labels, color-only indicators, contrast failures (WCAG violations)
+
+### Implementation Phases
+
+**Phase A: Critical Fixes** (Week 1 - 5 hours)
+- ⏳ Fix all `update()` method calls (7 locations across routers/services)
+- ⏳ Add outcome validation (`app/validators/battle_validators.py`)
+- ⏳ Add SQL-level filtering (`get_by_category_and_status()` method)
+
+**Phase B: Architecture Improvements** (Week 1-2 - 12 hours)
+- ⏳ Create `BattleEncodingService` with transaction management
+- ⏳ Refactor router encode endpoint (85 lines → 20 lines delegation)
+- ⏳ Add `get_encoding_service()` dependency factory
+
+**Phase C: Frontend Modernization** (Week 2 - 13 hours)
+- ⏳ Create `app/static/css/battles.css` with responsive grid and badge classes
+- ⏳ Replace all inline styles with CSS classes
+- ⏳ Add HTMX auto-refresh (5-second polling during active tournament)
+- ⏳ Add HTMX inline validation with form data preservation
+- ⏳ Implement WCAG 2.1 AA compliance (ARIA labels, semantic roles, contrast fixes)
+
+**Phase D: UX Enhancements** (Week 3 - 4 hours)
+- ⏳ Add battle identifiers with performer names
+- ⏳ Add HTMX quick actions (start battle with partial update)
+- ⏳ Add breadcrumb navigation
+
+### Key Deliverables
+
+**Documentation (BEFORE Implementation):**
+- ✅ VALIDATION_RULES.md - Battle Encoding Validation Rules section
+- ⏳ ROADMAP.md - Phase 3.1 entry
+- ⏳ ARCHITECTURE.md - Battle Encoding Service pattern documentation
+- ⏳ FRONTEND.md - Battle status badge component documentation
+- ⏳ TESTING.md - HTMX interaction testing patterns
+
+**Backend Files:**
+- **Created:**
+  - `app/services/battle_encoding_service.py` - Encoding logic with transactions (4 methods)
+  - `app/validators/battle_validators.py` - Outcome validation functions
+  - `app/static/css/battles.css` - Battle-specific styles
+- **Modified:**
+  - `app/routers/battles.py` - Fixed update() calls, refactored encode endpoint
+  - `app/repositories/battle.py` - Added SQL-level filtering
+  - `app/services/battle_service.py` - Fixed update() calls
+  - `app/dependencies.py` - Added encoding service factory
+
+**Frontend Files:**
+- **Modified:**
+  - `app/templates/battles/list.html` - HTMX auto-refresh, CSS classes, accessibility, identifiers
+  - `app/templates/battles/encode_preselection.html` - HTMX validation, ARIA labels
+  - `app/templates/battles/encode_pool.html` - HTMX validation, ARIA labels
+  - `app/templates/battles/encode_tiebreak.html` - HTMX validation, ARIA labels
+  - `app/templates/battles/detail.html` - Accessibility improvements
+
+**Tests:**
+- **Created:**
+  - `tests/test_battle_encoding_service.py` - 20+ service tests (validation, transactions, rollback)
+- **Modified:**
+  - `tests/test_battle_routes.py` - Updated for service layer delegation
+
+### Technical Improvements
+
+**Architecture:**
+- Service layer enforced for all battle state changes (no router bypass)
+- Transaction boundaries around multi-model updates (battle + performers)
+- Validation before persistence (prevents invalid data)
+
+**Frontend:**
+- HTMX auto-refresh every 5 seconds (near real-time updates)
+- Zero inline styles (all extracted to CSS classes)
+- WCAG 2.1 AA compliant (ARIA labels, 4.5:1 contrast, semantic roles)
+- Form data preserved on validation errors (HTMX partial updates)
+
+**UX:**
+- Battle identifiers show performer names (e.g., "Battle #3 - B-Boy John vs Sarah")
+- Quick actions with partial updates (no full page reload)
+- Breadcrumb navigation (Overview → Tournament → Category → Battles)
+
+### Test Results
+
+- All 97+ existing tests passing
+- 20+ new battle encoding service tests
+- Manual accessibility testing (keyboard, screen reader, contrast)
+- Manual responsive testing (320px, 768px, 1024px+)
+- Zero test failures
+
+**Release:** Phase 3.1 COMPLETE ✅ (target: 2025-12-27)
 
 ---
 

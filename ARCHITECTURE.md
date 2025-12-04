@@ -1,5 +1,5 @@
 # Battle-D Architecture Guide
-**Level 3: Operational** | Last Updated: 2025-11-26
+**Level 3: Operational** | Last Updated: 2025-12-04
 
 This document describes the architectural patterns, design principles, and best practices used in the Battle-D web application.
 
@@ -10,6 +10,7 @@ This document describes the architectural patterns, design principles, and best 
 Before reading this document, familiarize yourself with:
 - [DOMAIN_MODEL.md](DOMAIN_MODEL.md) - Entity definitions and business rules
 - [VALIDATION_RULES.md](VALIDATION_RULES.md) - Constraints and validation logic
+- [FRONTEND.md](FRONTEND.md) - Frontend patterns, components, and HTMX usage
 
 ---
 
@@ -1252,6 +1253,81 @@ await battle_service.get_battle_queue(category_id, phase, status)
 - Pools: Round-robin matchups (all vs all)
 - Finals: Single-elimination bracket
 - Battle lifecycle: PENDING → ACTIVE → COMPLETED
+
+#### BattleEncodingService
+
+```python
+# app/services/battle_encoding_service.py
+await encoding_service.encode_preselection_battle(battle_id, scores)
+await encoding_service.encode_pool_battle(battle_id, winner_id, is_draw)
+await encoding_service.encode_tiebreak_battle(battle_id, winner_id)
+await encoding_service.encode_finals_battle(battle_id, winner_id)
+```
+
+**Business Rules:**
+- **Preselection:** Scores 0.0-10.0, all performers must be scored, updates performer.preselection_score
+- **Pool:** Winner OR draw (mutually exclusive), updates pool points (win=+3, draw=+1, loss=+0)
+- **Tiebreak:** Winner required, no draws allowed
+- **Finals:** Winner required, determines category champion
+- All encoding operations use transactions (battle + performer updates are atomic)
+- Validation before persistence (prevents invalid data)
+
+**Transaction Pattern:**
+```python
+async def encode_preselection_battle(
+    self, battle_id: UUID, scores: dict[UUID, Decimal]
+) -> ValidationResult[Battle]:
+    """Encode preselection battle with transaction management.
+
+    Args:
+        battle_id: Battle to encode
+        scores: Mapping of performer_id → score (0.0-10.0)
+
+    Returns:
+        ValidationResult with battle or list of errors
+    """
+    # 1. Get battle and validate status
+    battle = await self.battle_repo.get_by_id(battle_id)
+    if battle.status != BattleStatus.ACTIVE:
+        return ValidationResult.failure(["Battle must be ACTIVE to encode"])
+
+    # 2. Validate scores
+    errors = self._validate_preselection_scores(battle, scores)
+    if errors:
+        return ValidationResult.failure(errors)
+
+    # 3. Begin transaction
+    async with self.session.begin():
+        # Update battle
+        await self.battle_repo.update(
+            battle.id,
+            outcome=scores,
+            status=BattleStatus.COMPLETED
+        )
+
+        # Update performers
+        for performer in battle.performers:
+            score = scores[performer.id]
+            await self.performer_repo.update(
+                performer.id,
+                preselection_score=score
+            )
+
+        # Commit or rollback (automatic)
+
+    return ValidationResult.success(battle)
+```
+
+**Key Features:**
+- **Atomic updates:** All changes committed together or none at all
+- **Validation first:** Check all rules before any database modifications
+- **ValidationResult pattern:** Consistent error handling across all encoding methods
+- **Phase-specific logic:** Each battle phase has its own encoding method with appropriate validations
+
+**Error Handling:**
+- Returns `ValidationResult.failure(errors)` with list of validation errors
+- Transaction automatically rolls back on errors
+- Router converts ValidationResult to flash messages for user feedback
 
 #### PoolService
 

@@ -1,5 +1,5 @@
 # Testing Guide
-**Level 3: Operational** | Last Updated: 2025-11-25
+**Level 3: Operational** | Last Updated: 2025-12-04
 
 This document describes the testing strategy, setup, and practices for the Battle-D web application.
 
@@ -133,6 +133,161 @@ Integration tests will verify interactions between components:
 - Database operations
 - Email service integration
 - External API calls (Stripe, etc.)
+
+### HTMX Interaction Tests
+
+HTMX interactions require special testing patterns to verify partial updates, auto-refresh, and inline validation.
+
+**Key Testing Requirements:**
+- Test with `HX-Request` header to simulate HTMX requests
+- Verify partial HTML responses (not full pages)
+- Test auto-refresh polling endpoints
+- Validate form preservation on errors
+
+**Testing Auto-Refresh:**
+```python
+import pytest
+from httpx import AsyncClient
+from app.main import app
+
+@pytest.mark.asyncio
+async def test_battle_list_auto_refresh():
+    """Test battle list auto-refresh returns partial HTML."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        # Simulate HTMX polling request
+        response = await client.get(
+            "/battles?category_id=test-uuid",
+            headers={"HX-Request": "true"}
+        )
+
+    assert response.status_code == 200
+    # Should return partial HTML (battle grid), not full page
+    assert "<html>" not in response.text  # No full page wrapper
+    assert "battle-grid" in response.text  # Just the grid content
+```
+
+**Testing Partial Updates:**
+```python
+@pytest.mark.asyncio
+async def test_start_battle_returns_updated_card():
+    """Test starting battle returns updated battle card HTML."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        # Simulate HTMX form submission
+        response = await client.post(
+            "/battles/test-battle-id/start",
+            headers={"HX-Request": "true"}
+        )
+
+    assert response.status_code == 200
+    # Should return updated battle card HTML
+    assert 'id="battle-card-' in response.text
+    assert 'badge-active' in response.text  # Status changed to ACTIVE
+```
+
+**Testing Inline Validation:**
+```python
+@pytest.mark.asyncio
+async def test_encode_battle_validation_preserves_form_data():
+    """Test validation errors preserve form data via partial update."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        # Submit incomplete scores
+        response = await client.post(
+            "/battles/test-battle-id/encode",
+            data={
+                "score_performer1": "8.5",
+                # Missing score_performer2
+            },
+            headers={"HX-Request": "true"}
+        )
+
+    # Should return form with errors and preserved data
+    assert response.status_code == 200
+    assert 'value="8.5"' in response.text  # Form data preserved
+    assert "Missing score" in response.text  # Error message shown
+    assert 'aria-invalid="true"' in response.text  # Accessibility
+```
+
+**Testing Form Submission with Errors:**
+```python
+@pytest.mark.asyncio
+async def test_htmx_form_error_returns_partial_html():
+    """Test HTMX form errors return partial HTML, not redirect."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.post(
+            "/battles/test-battle-id/encode",
+            data={"invalid": "data"},
+            headers={"HX-Request": "true"},
+            follow_redirects=False  # Don't follow redirects
+        )
+
+    # HTMX should get partial HTML, not redirect
+    assert response.status_code == 200  # Not 302
+    assert "flash-error" in response.text  # Error in response
+```
+
+**Testing HTMX Response Headers:**
+```python
+@pytest.mark.asyncio
+async def test_htmx_response_includes_triggers():
+    """Test HTMX responses include appropriate triggers."""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.post(
+            "/battles/test-battle-id/start",
+            headers={"HX-Request": "true"}
+        )
+
+    # Check for HTMX response headers (if using triggers/events)
+    # Example: HX-Trigger header for client-side events
+    # assert "HX-Trigger" in response.headers  # Optional
+```
+
+**HTMX Testing Patterns:**
+
+| Pattern | Test Focus | Assertion |
+|---------|-----------|-----------|
+| Auto-refresh | Polling endpoint returns partial HTML | No `<html>` tag, contains target content |
+| Partial update | Form submission returns fragment | Specific element ID, updated content |
+| Inline validation | Errors preserve form data | Input values retained, `aria-invalid` set |
+| Quick actions | Button click updates single card | Card HTML returned, status changed |
+
+**Common HTMX Testing Mistakes:**
+
+- ❌ **Testing without HX-Request header**: Server may return full page instead of partial
+- ❌ **Expecting redirects**: HTMX should get HTML response, not 302 redirect
+- ❌ **Not checking partial HTML**: Verify no full page wrapper (`<html>`, `<head>`, `<body>`)
+- ❌ **Ignoring accessibility**: Check `aria-invalid`, `aria-describedby` on errors
+
+**Integration with Battle Encoding Service:**
+```python
+@pytest.mark.asyncio
+async def test_battle_encoding_service_integration():
+    """Test battle encoding via HTMX integrates with service layer."""
+    # This tests the full stack:
+    # HTMX request → Router → Service → Repository → Response
+
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        # Create test battle and performers
+        # ... setup code ...
+
+        # Encode battle via HTMX
+        response = await client.post(
+            f"/battles/{battle_id}/encode",
+            data={
+                "score_performer1": "9.0",
+                "score_performer2": "8.5"
+            },
+            headers={"HX-Request": "true"}
+        )
+
+    # Verify service layer was called
+    assert response.status_code == 200
+    # Verify database was updated (transaction committed)
+    # Verify performers have updated scores
+```
+
+**Test Files:**
+- `tests/test_battle_routes.py` - HTMX battle route tests
+- `tests/test_htmx_interactions.py` - Generic HTMX pattern tests (future)
 
 ### End-to-End Tests (Planned - Phase 4+)
 

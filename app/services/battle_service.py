@@ -222,8 +222,7 @@ class BattleService:
             )
 
         # Update status to active
-        battle.status = BattleStatus.ACTIVE
-        updated_battle = await self.battle_repo.update(battle)
+        updated_battle = await self.battle_repo.update(battle.id, status=BattleStatus.ACTIVE)
 
         return updated_battle
 
@@ -257,8 +256,7 @@ class BattleService:
             )
 
         # Update status to completed
-        battle.status = BattleStatus.COMPLETED
-        updated_battle = await self.battle_repo.update(battle)
+        updated_battle = await self.battle_repo.update(battle.id, status=BattleStatus.COMPLETED)
 
         return updated_battle
 

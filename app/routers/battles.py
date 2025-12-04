@@ -17,6 +17,7 @@ from app.dependencies import (
     get_category_repo,
     get_performer_repo,
     get_flash_messages_dependency,
+    get_battle_encoding_service,
 )
 from app.utils.flash import add_flash_message
 from app.repositories.battle import BattleRepository
@@ -163,8 +164,7 @@ async def start_battle(
             status_code=status.HTTP_303_SEE_OTHER
         )
 
-    battle.status = BattleStatus.ACTIVE
-    await battle_repo.update(battle)
+    await battle_repo.update(battle.id, status=BattleStatus.ACTIVE)
 
     add_flash_message(request, "Battle started successfully", "success")
     return RedirectResponse(
@@ -227,24 +227,27 @@ async def encode_battle(
     request: Request,
     battle_id: uuid.UUID,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
+    encoding_service=Depends(get_battle_encoding_service),
     battle_repo: BattleRepository = Depends(get_battle_repo),
-    performer_repo: PerformerRepository = Depends(get_performer_repo),
 ):
     """Encode battle results.
+
+    Delegates to BattleEncodingService for validation and atomic updates.
 
     Args:
         request: FastAPI request
         battle_id: Battle UUID
         current_user: Current authenticated user
+        encoding_service: Battle encoding service
         battle_repo: Battle repository
-        performer_repo: Performer repository
 
     Returns:
-        Redirect to battle detail
+        Redirect to battle detail or encode form on validation failure
     """
     user = require_staff(current_user)
 
-    battle = await battle_repo.get_by_id(battle_id)
+    # Get battle to determine phase
+    battle = await battle_repo.get_with_performers(battle_id)
     if not battle:
         add_flash_message(request, "Battle not found", "error")
         return RedirectResponse(
@@ -252,88 +255,69 @@ async def encode_battle(
             status_code=status.HTTP_303_SEE_OTHER
         )
 
-    # Parse form data
+    # Parse form data based on phase
     form_data = await request.form()
+    result = None
 
-    # Handle different outcome types
-    if battle.phase == BattlePhase.PRESELECTION:
-        # Scored outcome: {performer_id: score}
-        scores = {}
-        for performer in battle.performers:
-            score_key = f"score_{performer.id}"
-            if score_key in form_data:
-                score = float(form_data[score_key])
-                scores[str(performer.id)] = score
-                # Update performer's preselection score
-                performer.preselection_score = Decimal(str(score))
-                await performer_repo.update(performer)
+    try:
+        if battle.phase == BattlePhase.PRESELECTION:
+            # Parse scores from form
+            scores = {
+                performer.id: Decimal(str(form_data[f"score_{performer.id}"]))
+                for performer in battle.performers
+                if f"score_{performer.id}" in form_data
+            }
+            result = await encoding_service.encode_preselection_battle(battle_id, scores)
 
-        battle.outcome = scores
-        battle.status = BattleStatus.COMPLETED
+        elif battle.phase == BattlePhase.POOLS:
+            # Parse winner or draw
+            winner_id = uuid.UUID(form_data["winner_id"]) if form_data.get("winner_id") else None
+            is_draw = form_data.get("is_draw") == "true"
+            result = await encoding_service.encode_pool_battle(battle_id, winner_id, is_draw)
 
-    elif battle.phase == BattlePhase.POOLS:
-        # Win/draw/loss outcome
-        winner_id = form_data.get("winner_id")
-        is_draw = form_data.get("is_draw") == "true"
+        elif battle.phase == BattlePhase.TIEBREAK:
+            # Parse winner
+            winner_id_str = form_data.get("winner_id")
+            if not winner_id_str:
+                add_flash_message(request, "Must specify tiebreak winner", "error")
+                return RedirectResponse(
+                    url=f"/battles/{battle_id}/encode",
+                    status_code=status.HTTP_303_SEE_OTHER
+                )
+            winner_id = uuid.UUID(winner_id_str)
+            result = await encoding_service.encode_tiebreak_battle(battle_id, winner_id)
 
-        if is_draw:
-            battle.outcome = {"winner_id": None, "is_draw": True}
-            # Update performer pool draws
-            for performer in battle.performers:
-                performer.pool_draws = (performer.pool_draws or 0) + 1
-                await performer_repo.update(performer)
-        elif winner_id:
-            winner_uuid = uuid.UUID(winner_id)
-            battle.outcome = {"winner_id": str(winner_uuid), "is_draw": False}
-            battle.winner_id = winner_uuid
+        else:  # FINALS
+            # Parse winner
+            winner_id_str = form_data.get("winner_id")
+            if not winner_id_str:
+                add_flash_message(request, "Must specify winner", "error")
+                return RedirectResponse(
+                    url=f"/battles/{battle_id}/encode",
+                    status_code=status.HTTP_303_SEE_OTHER
+                )
+            winner_id = uuid.UUID(winner_id_str)
+            result = await encoding_service.encode_finals_battle(battle_id, winner_id)
 
-            # Update performer pool stats
-            for performer in battle.performers:
-                if performer.id == winner_uuid:
-                    performer.pool_wins = (performer.pool_wins or 0) + 1
-                else:
-                    performer.pool_losses = (performer.pool_losses or 0) + 1
-                await performer_repo.update(performer)
-        else:
-            add_flash_message(request, "Must specify winner or mark as draw", "error")
-            return RedirectResponse(
-                url=f"/battles/{battle_id}/encode",
-                status_code=status.HTTP_303_SEE_OTHER
-            )
+    except (ValueError, KeyError) as e:
+        # Handle form data parsing errors
+        add_flash_message(request, f"Invalid form data: {str(e)}", "error")
+        return RedirectResponse(
+            url=f"/battles/{battle_id}/encode",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
 
-        battle.status = BattleStatus.COMPLETED
+    # Handle validation result
+    if not result:
+        # Validation failed - show errors
+        for error in result.errors:
+            add_flash_message(request, error, "error")
+        return RedirectResponse(
+            url=f"/battles/{battle_id}/encode",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
 
-    elif battle.phase == BattlePhase.TIEBREAK:
-        # Tiebreak outcome
-        winner_id = form_data.get("winner_id")
-        if not winner_id:
-            add_flash_message(request, "Must specify tiebreak winner", "error")
-            return RedirectResponse(
-                url=f"/battles/{battle_id}/encode",
-                status_code=status.HTTP_303_SEE_OTHER
-            )
-
-        winner_uuid = uuid.UUID(winner_id)
-        battle.outcome = {"winners": [str(winner_uuid)]}
-        battle.winner_id = winner_uuid
-        battle.status = BattleStatus.COMPLETED
-
-    else:  # FINALS
-        winner_id = form_data.get("winner_id")
-        if not winner_id:
-            add_flash_message(request, "Must specify winner", "error")
-            return RedirectResponse(
-                url=f"/battles/{battle_id}/encode",
-                status_code=status.HTTP_303_SEE_OTHER
-            )
-
-        winner_uuid = uuid.UUID(winner_id)
-        battle.outcome = {"winner_id": str(winner_uuid)}
-        battle.winner_id = winner_uuid
-        battle.status = BattleStatus.COMPLETED
-
-    await battle_repo.update(battle)
-
+    # Success
     add_flash_message(request, "Battle results encoded successfully", "success")
     return RedirectResponse(
         url=f"/battles/{battle_id}",
