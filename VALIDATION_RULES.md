@@ -441,7 +441,7 @@ if battle.status != BattleStatus.ACTIVE:
    - Set `performer.preselection_score = score` for each performer
    - Used for ranking performers to advance to pools
 
-**Implementation Location:** `app/services/battle_encoding_service.py::encode_preselection_battle()`
+**Implementation Location:** `app/services/battle_results_encoding_service.py::encode_preselection_results()`
 
 ---
 
@@ -484,7 +484,7 @@ if battle.status != BattleStatus.ACTIVE:
    - **Loser:** +0 points, increment losses
    - **Draw:** +1 point each, increment draws
 
-**Implementation Location:** `app/services/battle_encoding_service.py::encode_pool_battle()`
+**Implementation Location:** `app/services/battle_results_encoding_service.py::encode_pool_results()`
 
 ---
 
@@ -518,7 +518,7 @@ if battle.status != BattleStatus.ACTIVE:
 3. **Winner Must Be Battle Participant**
    - Same validation as pool battles
 
-**Implementation Location:** `app/services/battle_encoding_service.py::encode_tiebreak_battle()`
+**Implementation Location:** `app/services/battle_results_encoding_service.py::encode_tiebreak_results()`
 
 ---
 
@@ -550,7 +550,7 @@ if battle.status != BattleStatus.ACTIVE:
    - Winner becomes category champion
    - Marks end of category competition
 
-**Implementation Location:** `app/services/battle_encoding_service.py::encode_finals_battle()`
+**Implementation Location:** `app/services/battle_results_encoding_service.py::encode_finals_results()`
 
 ---
 
@@ -647,7 +647,7 @@ Cannot advance to POOLS phase:
 ### Key Files
 
 - **Validation Logic:** `app/services/phase_service.py`
-- **Battle Encoding:** `app/services/battle_encoding_service.py`
+- **Battle Encoding:** `app/services/battle_results_encoding_service.py`
 - **Battle Validators:** `app/validators/battle_validators.py`
 - **Calculations:** `app/utils/tournament_calculations.py`
 - **Database Constraints:** `app/models/performer.py`
@@ -660,7 +660,7 @@ All validation rules are tested in:
 - `tests/test_tournament_calculations.py` - Formula correctness
 - `tests/test_models.py` - Database constraints
 - `tests/test_crud_workflows.py` - Integration workflows
-- `tests/test_battle_encoding_service.py` - Battle encoding validation (preselection, pool, tiebreak, finals)
+- `tests/test_battle_results_encoding_service.py` - Battle encoding validation (preselection, pool, tiebreak, finals)
 - `tests/test_battle_routes.py` - Battle routing and encoding integration
 
 ---

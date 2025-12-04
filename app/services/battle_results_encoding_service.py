@@ -1,10 +1,10 @@
-"""Battle encoding service with transaction management.
+"""Battle results encoding service with transaction management.
 
-Handles encoding battle results with atomic multi-model updates.
+Handles recording battle results with atomic multi-model updates.
 All encoding operations use transactions to ensure data consistency.
 
 See: ARCHITECTURE.md for service layer patterns
-See: VALIDATION_RULES.md for encoding validation rules
+See: VALIDATION_RULES.md for battle results encoding validation rules
 """
 
 from decimal import Decimal
@@ -25,15 +25,15 @@ from app.validators.battle_validators import (
 from app.validators.result import ValidationResult
 
 
-class BattleEncodingService:
-    """Service for encoding battle results with transaction management.
+class BattleResultsEncodingService:
+    """Service for recording battle results with transaction management.
 
     All encoding methods use database transactions to ensure atomicity.
     If any part of the encoding fails, all changes are rolled back.
 
     Example:
-        >>> service = BattleEncodingService(session, battle_repo, performer_repo)
-        >>> result = await service.encode_preselection_battle(
+        >>> service = BattleResultsEncodingService(session, battle_repo, performer_repo)
+        >>> result = await service.encode_preselection_results(
         ...     battle_id, {performer1_id: Decimal("8.5"), performer2_id: Decimal("9.0")}
         ... )
         >>> if result:
@@ -59,10 +59,10 @@ class BattleEncodingService:
         self.battle_repo = battle_repo
         self.performer_repo = performer_repo
 
-    async def encode_preselection_battle(
+    async def encode_preselection_results(
         self, battle_id: UUID, scores: dict[UUID, Decimal]
     ) -> ValidationResult:
-        """Encode preselection battle with scores.
+        """Record preselection scores.
 
         Updates battle outcome and performer preselection scores atomically.
 
@@ -74,7 +74,7 @@ class BattleEncodingService:
             ValidationResult with success/failure and battle data
 
         Example:
-            >>> result = await service.encode_preselection_battle(
+            >>> result = await service.encode_preselection_results(
             ...     battle_id,
             ...     {uuid1: Decimal("8.5"), uuid2: Decimal("9.0")}
             ... )
@@ -119,13 +119,13 @@ class BattleEncodingService:
 
         return ValidationResult.success(validation.warnings)
 
-    async def encode_pool_battle(
+    async def encode_pool_results(
         self,
         battle_id: UUID,
         winner_id: Optional[UUID],
         is_draw: bool,
     ) -> ValidationResult:
-        """Encode pool battle with winner or draw.
+        """Record pool battle results with winner or draw.
 
         Updates battle outcome and performer pool stats atomically.
 
@@ -144,11 +144,11 @@ class BattleEncodingService:
 
         Example:
             >>> # Record a win
-            >>> result = await service.encode_pool_battle(
+            >>> result = await service.encode_pool_results(
             ...     battle_id, winner_id=uuid1, is_draw=False
             ... )
             >>> # Record a draw
-            >>> result = await service.encode_pool_battle(
+            >>> result = await service.encode_pool_results(
             ...     battle_id, winner_id=None, is_draw=True
             ... )
         """
@@ -213,12 +213,12 @@ class BattleEncodingService:
 
         return ValidationResult.success(validation.warnings)
 
-    async def encode_tiebreak_battle(
+    async def encode_tiebreak_results(
         self,
         battle_id: UUID,
         winner_id: UUID,
     ) -> ValidationResult:
-        """Encode tiebreak battle with winner.
+        """Record tiebreak battle winner.
 
         Tiebreak battles cannot be draws - a winner must be declared.
 
@@ -230,7 +230,7 @@ class BattleEncodingService:
             ValidationResult with success/failure and battle data
 
         Example:
-            >>> result = await service.encode_tiebreak_battle(
+            >>> result = await service.encode_tiebreak_results(
             ...     battle_id, winner_id=uuid1
             ... )
         """
@@ -267,12 +267,12 @@ class BattleEncodingService:
 
         return ValidationResult.success(validation.warnings)
 
-    async def encode_finals_battle(
+    async def encode_finals_results(
         self,
         battle_id: UUID,
         winner_id: UUID,
     ) -> ValidationResult:
-        """Encode finals battle with winner.
+        """Record finals battle winner.
 
         Finals battles cannot be draws - a winner must be declared.
 
@@ -284,7 +284,7 @@ class BattleEncodingService:
             ValidationResult with success/failure and battle data
 
         Example:
-            >>> result = await service.encode_finals_battle(
+            >>> result = await service.encode_finals_results(
             ...     battle_id, winner_id=uuid1
             ... )
         """
@@ -321,12 +321,12 @@ class BattleEncodingService:
 
         return ValidationResult.success(validation.warnings)
 
-    async def encode_battle(
+    async def encode_battle_results(
         self,
         battle_id: UUID,
         **encoding_data,
     ) -> ValidationResult:
-        """Encode a battle based on its phase.
+        """Record battle results based on its phase.
 
         Routes to the appropriate phase-specific encoding method.
 
@@ -346,7 +346,7 @@ class BattleEncodingService:
 
         Example:
             >>> # Automatically routes to correct encoder
-            >>> result = await service.encode_battle(
+            >>> result = await service.encode_battle_results(
             ...     battle_id,
             ...     scores={uuid1: Decimal("8.5"), uuid2: Decimal("9.0")}
             ... )
@@ -359,24 +359,24 @@ class BattleEncodingService:
         # Route to phase-specific encoder
         if battle.phase == BattlePhase.PRESELECTION:
             scores = encoding_data.get("scores", {})
-            return await self.encode_preselection_battle(battle_id, scores)
+            return await self.encode_preselection_results(battle_id, scores)
 
         elif battle.phase == BattlePhase.POOLS:
             winner_id = encoding_data.get("winner_id")
             is_draw = encoding_data.get("is_draw", False)
-            return await self.encode_pool_battle(battle_id, winner_id, is_draw)
+            return await self.encode_pool_results(battle_id, winner_id, is_draw)
 
         elif battle.phase == BattlePhase.TIEBREAK:
             winner_id = encoding_data.get("winner_id")
             if not winner_id:
                 return ValidationResult.failure(["Winner ID required for tiebreak battles"])
-            return await self.encode_tiebreak_battle(battle_id, winner_id)
+            return await self.encode_tiebreak_results(battle_id, winner_id)
 
         elif battle.phase == BattlePhase.FINALS:
             winner_id = encoding_data.get("winner_id")
             if not winner_id:
                 return ValidationResult.failure(["Winner ID required for finals battles"])
-            return await self.encode_finals_battle(battle_id, winner_id)
+            return await self.encode_finals_results(battle_id, winner_id)
 
         else:
             raise ValueError(f"Unknown battle phase: {battle.phase}")

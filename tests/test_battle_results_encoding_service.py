@@ -1,4 +1,4 @@
-"""Tests for Battle Encoding Service.
+"""Tests for Battle Results Encoding Service.
 
 Focused tests for validation logic and service orchestration.
 Integration with database is tested through existing repository tests.
@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock
 from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeType
 from app.models.performer import Performer
 from app.models.dancer import Dancer
-from app.services.battle_encoding_service import BattleEncodingService
+from app.services.battle_results_encoding_service import BattleResultsEncodingService
 from app.repositories.battle import BattleRepository
 from app.repositories.performer import PerformerRepository
 
@@ -51,8 +51,8 @@ def performer_repo():
 
 @pytest.fixture
 def encoding_service(mock_session, battle_repo, performer_repo):
-    """Battle encoding service with mocked dependencies."""
-    return BattleEncodingService(mock_session, battle_repo, performer_repo)
+    """Battle results encoding service with mocked dependencies."""
+    return BattleResultsEncodingService(mock_session, battle_repo, performer_repo)
 
 
 # ==================== Helper Functions ====================
@@ -97,7 +97,7 @@ def create_test_battle(phase: BattlePhase, status: BattleStatus, num_performers:
 
 @pytest.mark.asyncio
 async def test_encode_preselection_battle_success(encoding_service, battle_repo, performer_repo):
-    """Test successful preselection encoding."""
+    """Test successful preselection results recording."""
     # Setup
     battle = create_test_battle(BattlePhase.PRESELECTION, BattleStatus.ACTIVE, 2)
     battle_repo.get_with_performers.return_value = battle
@@ -109,7 +109,7 @@ async def test_encode_preselection_battle_success(encoding_service, battle_repo,
         battle.performers[0].id: Decimal("8.5"),
         battle.performers[1].id: Decimal("9.0"),
     }
-    result = await encoding_service.encode_preselection_battle(battle.id, scores)
+    result = await encoding_service.encode_preselection_results(battle.id, scores)
 
     # Assert
     assert result.valid
@@ -126,7 +126,7 @@ async def test_encode_preselection_missing_scores(encoding_service, battle_repo)
 
     # Missing one performer's score
     scores = {battle.performers[0].id: Decimal("8.5")}
-    result = await encoding_service.encode_preselection_battle(battle.id, scores)
+    result = await encoding_service.encode_preselection_results(battle.id, scores)
 
     assert not result.valid
     assert "Missing scores" in result.errors[0]
@@ -140,7 +140,7 @@ async def test_encode_preselection_invalid_score_range(encoding_service, battle_
 
     # Score out of range
     scores = {battle.performers[0].id: Decimal("15.0")}
-    result = await encoding_service.encode_preselection_battle(battle.id, scores)
+    result = await encoding_service.encode_preselection_results(battle.id, scores)
 
     assert not result.valid
     assert "out of range" in result.errors[0].lower()
@@ -157,7 +157,7 @@ async def test_encode_pool_with_winner(encoding_service, battle_repo, performer_
     performer_repo.update = AsyncMock()
 
     winner_id = battle.performers[0].id
-    result = await encoding_service.encode_pool_battle(battle.id, winner_id, is_draw=False)
+    result = await encoding_service.encode_pool_results(battle.id, winner_id, is_draw=False)
 
     assert result.valid
     battle_repo.update.assert_called_once()
@@ -172,7 +172,7 @@ async def test_encode_pool_with_draw(encoding_service, battle_repo, performer_re
     battle_repo.update = AsyncMock()
     performer_repo.update = AsyncMock()
 
-    result = await encoding_service.encode_pool_battle(battle.id, winner_id=None, is_draw=True)
+    result = await encoding_service.encode_pool_results(battle.id, winner_id=None, is_draw=True)
 
     assert result.valid
     battle_repo.update.assert_called_once()
@@ -186,7 +186,7 @@ async def test_encode_pool_winner_and_draw_mutually_exclusive(encoding_service, 
     battle_repo.get_with_performers.return_value = battle
 
     # Try to specify both
-    result = await encoding_service.encode_pool_battle(
+    result = await encoding_service.encode_pool_results(
         battle.id,
         winner_id=battle.performers[0].id,
         is_draw=True
@@ -206,7 +206,7 @@ async def test_encode_tiebreak_success(encoding_service, battle_repo):
     battle_repo.update = AsyncMock()
 
     winner_id = battle.performers[0].id
-    result = await encoding_service.encode_tiebreak_battle(battle.id, winner_id)
+    result = await encoding_service.encode_tiebreak_results(battle.id, winner_id)
 
     assert result.valid
     battle_repo.update.assert_called_once()
@@ -220,7 +220,7 @@ async def test_encode_tiebreak_no_draws_allowed(encoding_service, battle_repo):
 
     # Winner ID is required
     fake_winner = uuid.uuid4()  # Not in battle
-    result = await encoding_service.encode_tiebreak_battle(battle.id, fake_winner)
+    result = await encoding_service.encode_tiebreak_results(battle.id, fake_winner)
 
     assert not result.valid
 
@@ -235,7 +235,7 @@ async def test_encode_finals_success(encoding_service, battle_repo):
     battle_repo.update = AsyncMock()
 
     winner_id = battle.performers[0].id
-    result = await encoding_service.encode_finals_battle(battle.id, winner_id)
+    result = await encoding_service.encode_finals_results(battle.id, winner_id)
 
     assert result.valid
     battle_repo.update.assert_called_once()
@@ -249,7 +249,7 @@ async def test_encode_battle_not_found(encoding_service, battle_repo):
     battle_repo.get_with_performers.return_value = None
 
     fake_id = uuid.uuid4()
-    result = await encoding_service.encode_preselection_battle(fake_id, {})
+    result = await encoding_service.encode_preselection_results(fake_id, {})
 
     assert not result.valid
     assert "not found" in result.errors[0].lower()
@@ -263,7 +263,7 @@ async def test_encode_wrong_phase_fails(encoding_service, battle_repo):
     battle_repo.get_with_performers.return_value = battle
 
     scores = {battle.performers[0].id: Decimal("8.5")}
-    result = await encoding_service.encode_preselection_battle(battle.id, scores)
+    result = await encoding_service.encode_preselection_results(battle.id, scores)
 
     assert not result.valid
     assert "PRESELECTION" in result.errors[0]
@@ -273,7 +273,7 @@ async def test_encode_wrong_phase_fails(encoding_service, battle_repo):
 
 @pytest.mark.asyncio
 async def test_generic_encode_battle_routes_correctly(encoding_service, battle_repo, performer_repo):
-    """Test generic encode_battle routes to correct encoder."""
+    """Test generic encode_battle_results routes to correct encoder."""
     battle = create_test_battle(BattlePhase.PRESELECTION, BattleStatus.ACTIVE, 1)
     battle_repo.get_by_id.return_value = battle
     battle_repo.get_with_performers.return_value = battle
@@ -281,7 +281,7 @@ async def test_generic_encode_battle_routes_correctly(encoding_service, battle_r
     performer_repo.update = AsyncMock()
 
     scores = {battle.performers[0].id: Decimal("7.5")}
-    result = await encoding_service.encode_battle(battle.id, scores=scores)
+    result = await encoding_service.encode_battle_results(battle.id, scores=scores)
 
     assert result.valid
     battle_repo.update.assert_called_once()

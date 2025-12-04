@@ -257,10 +257,10 @@ async def test_htmx_response_includes_triggers():
 - ❌ **Not checking partial HTML**: Verify no full page wrapper (`<html>`, `<head>`, `<body>`)
 - ❌ **Ignoring accessibility**: Check `aria-invalid`, `aria-describedby` on errors
 
-**Integration with Battle Encoding Service:**
+**Integration with Battle Results Encoding Service:**
 ```python
 @pytest.mark.asyncio
-async def test_battle_encoding_service_integration():
+async def test_battle_results_encoding_service_integration():
     """Test battle encoding via HTMX integrates with service layer."""
     # This tests the full stack:
     # HTMX request → Router → Service → Repository → Response

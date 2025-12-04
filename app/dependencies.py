@@ -372,18 +372,18 @@ def get_performer_service(session: AsyncSession = Depends(get_db)):
     )
 
 
-def get_battle_encoding_service(session: AsyncSession = Depends(get_db)):
-    """Get BattleEncodingService instance for dependency injection.
+def get_battle_results_encoding_service(session: AsyncSession = Depends(get_db)):
+    """Get BattleResultsEncodingService instance for dependency injection.
 
     Args:
         session: Database session
 
     Returns:
-        BattleEncodingService instance with all required repositories
+        BattleResultsEncodingService instance with all required repositories
     """
-    from app.services.battle_encoding_service import BattleEncodingService
+    from app.services.battle_results_encoding_service import BattleResultsEncodingService
 
-    return BattleEncodingService(
+    return BattleResultsEncodingService(
         session=session,
         battle_repo=BattleRepository(session),
         performer_repo=PerformerRepository(session),

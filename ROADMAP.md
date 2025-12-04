@@ -737,7 +737,7 @@ The battle queue system has critical bugs and architectural violations:
 - ⏳ Add SQL-level filtering (`get_by_category_and_status()` method)
 
 **Phase B: Architecture Improvements** (Week 1-2 - 12 hours)
-- ⏳ Create `BattleEncodingService` with transaction management
+- ⏳ Create `BattleResultsEncodingService` with transaction management
 - ⏳ Refactor router encode endpoint (85 lines → 20 lines delegation)
 - ⏳ Add `get_encoding_service()` dependency factory
 
@@ -764,7 +764,7 @@ The battle queue system has critical bugs and architectural violations:
 
 **Backend Files:**
 - **Created:**
-  - `app/services/battle_encoding_service.py` - Encoding logic with transactions (4 methods)
+  - `app/services/battle_results_encoding_service.py` - Encoding logic with transactions (4 methods)
   - `app/validators/battle_validators.py` - Outcome validation functions
   - `app/static/css/battles.css` - Battle-specific styles
 - **Modified:**
@@ -783,7 +783,7 @@ The battle queue system has critical bugs and architectural violations:
 
 **Tests:**
 - **Created:**
-  - `tests/test_battle_encoding_service.py` - 20+ service tests (validation, transactions, rollback)
+  - `tests/test_battle_results_encoding_service.py` - 20+ service tests (validation, transactions, rollback)
 - **Modified:**
   - `tests/test_battle_routes.py` - Updated for service layer delegation
 

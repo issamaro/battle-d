@@ -1254,14 +1254,14 @@ await battle_service.get_battle_queue(category_id, phase, status)
 - Finals: Single-elimination bracket
 - Battle lifecycle: PENDING → ACTIVE → COMPLETED
 
-#### BattleEncodingService
+#### BattleResultsEncodingService
 
 ```python
-# app/services/battle_encoding_service.py
-await encoding_service.encode_preselection_battle(battle_id, scores)
-await encoding_service.encode_pool_battle(battle_id, winner_id, is_draw)
-await encoding_service.encode_tiebreak_battle(battle_id, winner_id)
-await encoding_service.encode_finals_battle(battle_id, winner_id)
+# app/services/battle_results_encoding_service.py
+await encoding_service.encode_preselection_results(battle_id, scores)
+await encoding_service.encode_pool_results(battle_id, winner_id, is_draw)
+await encoding_service.encode_tiebreak_results(battle_id, winner_id)
+await encoding_service.encode_finals_results(battle_id, winner_id)
 ```
 
 **Business Rules:**

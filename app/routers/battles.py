@@ -17,7 +17,7 @@ from app.dependencies import (
     get_category_repo,
     get_performer_repo,
     get_flash_messages_dependency,
-    get_battle_encoding_service,
+    get_battle_results_encoding_service,
 )
 from app.utils.flash import add_flash_message
 from app.repositories.battle import BattleRepository
@@ -227,12 +227,12 @@ async def encode_battle(
     request: Request,
     battle_id: uuid.UUID,
     current_user: Optional[CurrentUser] = Depends(get_current_user),
-    encoding_service=Depends(get_battle_encoding_service),
+    encoding_service=Depends(get_battle_results_encoding_service),
     battle_repo: BattleRepository = Depends(get_battle_repo),
 ):
     """Encode battle results.
 
-    Delegates to BattleEncodingService for validation and atomic updates.
+    Delegates to BattleResultsEncodingService for validation and atomic updates.
 
     Args:
         request: FastAPI request

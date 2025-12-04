@@ -9,11 +9,11 @@
 
 ### Added
 
-**BattleEncodingService with Transaction Management:**
-- Created `app/services/battle_encoding_service.py` - Centralized battle result encoding with atomic transactions
-- Phase-specific encoders: `encode_preselection_battle()`, `encode_pool_battle()`, `encode_tiebreak_battle()`, `encode_finals_battle()`
+**BattleResultsEncodingService with Transaction Management:**
+- Created `app/services/battle_results_encoding_service.py` - Centralized battle result encoding with atomic transactions
+- Phase-specific encoders: `encode_preselection_results()`, `encode_pool_results()`, `encode_tiebreak_results()`, `encode_finals_results()`
 - Automatic transaction rollback on validation failures
-- Generic `encode_battle()` router method for phase-agnostic encoding
+- Generic `encode_battle_results()` router method for phase-agnostic encoding
 
 **Battle Validators:**
 - Created `app/validators/battle_validators.py` - Comprehensive validation for all battle phases
@@ -38,7 +38,7 @@
 - 44x44px minimum touch targets (WCAG 2.1 AA)
 
 **Tests:**
-- Created `tests/test_battle_encoding_service.py` - 12 test cases for validation logic
+- Created `tests/test_battle_results_encoding_service.py` - 12 test cases for validation logic
 - Covers: preselection, pool, tiebreak, finals, error handling, phase mismatches
 - 6/12 passing (validation logic), 6 pending (transaction mocking refinement)
 - **171 existing tests passing** - NO REGRESSIONS
@@ -55,7 +55,7 @@
 
 **Refactored Battle Encoding Endpoint:**
 - `app/routers/battles.py::encode_battle()`: 134 lines → 101 lines (-33 lines, -25%)
-- Delegated business logic to BattleEncodingService
+- Delegated business logic to BattleResultsEncodingService
 - Router now handles: form parsing, error flash messages, redirects
 - Service handles: validation, database transactions, multi-model updates
 - Improved separation of concerns per ARCHITECTURE.md patterns
@@ -78,7 +78,7 @@
 - HTMX integration: `hx-get`, `hx-trigger="every 5s"`, `hx-swap="outerHTML"`
 
 **Dependency Injection:**
-- Added `get_battle_encoding_service()` factory to `app/dependencies.py`
+- Added `get_battle_results_encoding_service()` factory to `app/dependencies.py`
 - Follows established pattern for service instantiation
 
 ### Documentation
@@ -86,7 +86,7 @@
 **Updated Documentation (5 files):**
 - `VALIDATION_RULES.md`: Added "Battle Encoding Validation" section with phase-specific rules
 - `ROADMAP.md`: Added Phase 3.1 entry with problem statement, 4-phase solution, and 44-hour estimate
-- `ARCHITECTURE.md`: Documented BattleEncodingService pattern with transaction examples
+- `ARCHITECTURE.md`: Documented BattleResultsEncodingService pattern with transaction examples
 - `FRONTEND.md`: Added Battle Status Badge component documentation with WCAG compliance notes
 - `TESTING.md`: Added "HTMX Interaction Tests" section with patterns, examples, and common mistakes
 
