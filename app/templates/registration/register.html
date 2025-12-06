@@ -98,11 +98,13 @@
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <input type="text"
                        id="search-dancer1"
+                       name="query"
                        placeholder="Search by blaze, name, or email..."
                        hx-get="/registration/{{ tournament.id }}/{{ category.id }}/search-dancer"
                        hx-trigger="keyup changed delay:500ms"
                        hx-target="#dancer1-results"
                        hx-indicator="#dancer1-loading"
+                       hx-vals='{"dancer_number": 1}'
                        style="flex: 1; padding: 8px;">
                 {% set loading_id = "dancer1-loading" %}
                 {% set loading_text = "Searching..." %}
@@ -120,11 +122,13 @@
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                 <input type="text"
                        id="search-dancer2"
+                       name="query"
                        placeholder="Search by blaze, name, or email..."
                        hx-get="/registration/{{ tournament.id }}/{{ category.id }}/search-dancer"
                        hx-trigger="keyup changed delay:500ms"
                        hx-target="#dancer2-results"
                        hx-indicator="#dancer2-loading"
+                       hx-vals='{"dancer_number": 2}'
                        style="flex: 1; padding: 8px;">
                 {% set loading_id = "dancer2-loading" %}
                 {% set loading_text = "Searching..." %}
@@ -195,6 +199,7 @@
     <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
         <input type="text"
                id="search-solo"
+               name="query"
                placeholder="Search by blaze, name, or email..."
                hx-get="/registration/{{ tournament.id }}/{{ category.id }}/search-dancer"
                hx-trigger="keyup changed delay:500ms"
