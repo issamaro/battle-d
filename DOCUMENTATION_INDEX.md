@@ -11,7 +11,7 @@
 |-----------------|------|
 | Business rules & entities | [DOMAIN_MODEL.md](DOMAIN_MODEL.md) |
 | Validation constraints & limits | [VALIDATION_RULES.md](VALIDATION_RULES.md) |
-| UI designs & wireframes | [UI_MOCKUPS.md](UI_MOCKUPS.md) |
+| Frontend patterns & components | [FRONTEND.md](FRONTEND.md) |
 | Development roadmap | [ROADMAP.md](ROADMAP.md) |
 | Architecture patterns | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Deployment guide | [DEPLOYMENT.md](DEPLOYMENT.md) |
@@ -34,13 +34,12 @@ LEVEL 1: SOURCE OF TRUTH (Authoritative - change these first)
 └── VALIDATION_RULES.md         → All constraints, limits, validations
 
 LEVEL 2: DERIVED (References Level 1 - update after Level 1)
-├── UI_MOCKUPS.md               → UI implementation designs
-├── UI_PATTERNS.md              → Reusable UI patterns (future)
 ├── ROADMAP.md                  → Project roadmap, development phases
 └── README.md                   → Project overview
 
 LEVEL 3: OPERATIONAL (Procedures & Technical)
 ├── ARCHITECTURE.md             → Technical patterns, code examples
+├── FRONTEND.md                 → Frontend patterns, components, HTMX
 ├── TESTING.md                  → Test strategies
 ├── DEPLOYMENT.md               → Infrastructure setup
 └── DOCUMENTATION_CHANGE_PROCEDURE.md → How to modify docs
@@ -64,7 +63,7 @@ WORKBENCH: (Temporary, per-task tracking)
    "What & Why"    "Boundaries"         "User sees"       "Implementation"
         │               │                       │                │
         ▼               ▼                       ▼                ▼
-  DOMAIN_MODEL.md  VALIDATION_RULES.md   UI_MOCKUPS.md    ARCHITECTURE.md
+  DOMAIN_MODEL.md  VALIDATION_RULES.md   FRONTEND.md     ARCHITECTURE.md
         │               │                       │                │
         └───────────────┴───────────┬───────────┴────────────────┘
                                     ▼
@@ -95,19 +94,21 @@ WORKBENCH: (Temporary, per-task tracking)
 
 | Concept | Defined In | Referenced In |
 |---------|-----------|---------------|
-| Tournament entity | DOMAIN_MODEL.md §Tournament | VALIDATION_RULES.md, UI_MOCKUPS.md |
+| Tournament entity | DOMAIN_MODEL.md §Tournament | VALIDATION_RULES.md, FRONTEND.md |
 | Tournament phases | DOMAIN_MODEL.md §1 | VALIDATION_RULES.md §Phase Transitions |
-| Minimum performers formula | VALIDATION_RULES.md §3 | DOMAIN_MODEL.md §2, UI_MOCKUPS.md §4 |
-| Field length limits | VALIDATION_RULES.md §UI Field Validation | UI_MOCKUPS.md (referenced) |
-| Magic link settings | VALIDATION_RULES.md §Magic Link Auth | UI_MOCKUPS.md §Login |
+| Minimum performers formula | VALIDATION_RULES.md §3 | DOMAIN_MODEL.md §2, FRONTEND.md §4 |
+| Field length limits | VALIDATION_RULES.md §UI Field Validation | FRONTEND.md (referenced) |
+| Magic link settings | VALIDATION_RULES.md §Magic Link Auth | FRONTEND.md §Login |
 | Pool distribution | VALIDATION_RULES.md §Pool Size | DOMAIN_MODEL.md §4 |
 | Tiebreak logic | DOMAIN_MODEL.md §5 | VALIDATION_RULES.md (summary) |
 | Deletion rules | DOMAIN_MODEL.md §8 | VALIDATION_RULES.md §Deletion Rules |
 | V1/V2 features | DOMAIN_MODEL.md §Judge | ROADMAP.md §Phase 5 |
-| Judge workflow | DOMAIN_MODEL.md §Judge | UI_MOCKUPS.md §21 (V2 Only) |
+| Judge workflow | DOMAIN_MODEL.md §Judge | FRONTEND.md §Judge Scoring (V2) |
 | Battle generation | ROADMAP.md §2.1 | ARCHITECTURE.md (future) |
 | Pool distribution | ROADMAP.md §2.2 | VALIDATION_RULES.md §Pool Size |
 | Tiebreak battles | ROADMAP.md §2.3 | DOMAIN_MODEL.md §5 |
+| Frontend components | FRONTEND.md §Component Library | ARCHITECTURE.md |
+| HTMX patterns | FRONTEND.md §HTMX Patterns | ARCHITECTURE.md |
 
 ---
 
@@ -122,7 +123,7 @@ WORKBENCH: (Temporary, per-task tracking)
 
 **V2 Documentation:**
 - DOMAIN_MODEL.md §Judge (V2 Only)
-- UI_MOCKUPS.md §21.1 Judge Scoring Interface (V2 Only)
+- FRONTEND.md §Judge Scoring Interface (V2 Future)
 - ROADMAP.md Phase 5
 
 ---
@@ -133,7 +134,7 @@ WORKBENCH: (Temporary, per-task tracking)
 |----------|--------------|------------------|-------|
 | DOMAIN_MODEL.md | Product/Business | Per feature change | |
 | VALIDATION_RULES.md | Product/Dev | Per constraint change | |
-| UI_MOCKUPS.md | Design/Frontend | Per UI change | |
+| FRONTEND.md | Design/Frontend | Per UI change | |
 | ROADMAP.md | Project Lead | Weekly | See [phase numbering](DOCUMENTATION_CHANGE_PROCEDURE.md#roadmap-phase-management) |
 | ARCHITECTURE.md | Tech Lead | Per pattern change | |
 | README.md | All | Per release | |
@@ -152,6 +153,6 @@ WORKBENCH: (Temporary, per-task tracking)
 
 1. **New to the project?** Start with [README.md](README.md)
 2. **Understanding the domain?** Read [DOMAIN_MODEL.md](DOMAIN_MODEL.md)
-3. **Building UI?** Reference [UI_MOCKUPS.md](UI_MOCKUPS.md)
+3. **Building UI?** Reference [FRONTEND.md](FRONTEND.md)
 4. **Adding validation?** Check [VALIDATION_RULES.md](VALIDATION_RULES.md)
 5. **Changing documentation?** Follow [DOCUMENTATION_CHANGE_PROCEDURE.md](DOCUMENTATION_CHANGE_PROCEDURE.md)

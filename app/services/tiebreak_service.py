@@ -1,6 +1,7 @@
 """Tiebreak service for tie detection and tiebreak battle management.
 
 See: ROADMAP.md §2.3 Tiebreak Service
+See: DOMAIN_MODEL.md §5 Tie-Breaking Logic (BR-TIE-001, BR-TIE-002, BR-TIE-003)
 """
 import uuid
 from typing import List, Dict, Optional
@@ -12,6 +13,8 @@ from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeTy
 from app.models.performer import Performer
 from app.repositories.battle import BattleRepository
 from app.repositories.performer import PerformerRepository
+from app.repositories.category import CategoryRepository
+from app.utils.tournament_calculations import calculate_pool_capacity
 
 
 class TiebreakService:
@@ -28,16 +31,21 @@ class TiebreakService:
     """
 
     def __init__(
-        self, battle_repo: BattleRepository, performer_repo: PerformerRepository
+        self,
+        battle_repo: BattleRepository,
+        performer_repo: PerformerRepository,
+        category_repo: Optional[CategoryRepository] = None,
     ):
         """Initialize tiebreak service.
 
         Args:
             battle_repo: Battle repository
             performer_repo: Performer repository
+            category_repo: Category repository (optional, needed for auto-detection)
         """
         self.battle_repo = battle_repo
         self.performer_repo = performer_repo
+        self.category_repo = category_repo
 
     async def detect_preselection_ties(
         self, category_id: uuid.UUID, pool_capacity: int
@@ -288,3 +296,186 @@ class TiebreakService:
             List of remaining performers
         """
         return [p for p in current_performers if p.id not in eliminated_ids]
+
+    async def detect_and_create_preselection_tiebreak(
+        self, category_id: uuid.UUID
+    ) -> Optional[Battle]:
+        """Detect preselection ties and create tiebreak battle if needed.
+
+        Called automatically when last preselection battle is completed.
+
+        Business Rule BR-TIE-001: Tiebreak auto-created when last battle scored.
+        Business Rule BR-TIE-003: ALL performers with boundary score compete.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            Created tiebreak battle or None if no tie
+
+        Raises:
+            ValidationError: If category_repo not configured
+        """
+        if not self.category_repo:
+            raise ValidationError(["Category repository required for auto-detection"])
+
+        # Check if tiebreak already exists to prevent duplicates
+        if await self.battle_repo.has_pending_tiebreak(category_id):
+            return None
+
+        # Get category config
+        category = await self.category_repo.get_by_id(category_id)
+        if not category:
+            raise ValidationError([f"Category {category_id} not found"])
+
+        # Get performers for this category
+        performers = await self.performer_repo.get_by_category(category_id)
+
+        # Calculate pool capacity using BR-POOL-001 rules
+        pool_capacity, _, _ = calculate_pool_capacity(
+            len(performers),
+            category.groups_ideal,
+            category.performers_ideal,
+        )
+
+        # Detect ties at boundary
+        tied_performers = await self.detect_preselection_ties(category_id, pool_capacity)
+
+        if not tied_performers:
+            return None
+
+        # Calculate winners needed
+        # Count performers with scores ABOVE the boundary score
+        boundary_score = tied_performers[0].preselection_score
+        performers_above = [
+            p for p in performers
+            if p.preselection_score is not None and p.preselection_score > boundary_score
+        ]
+        spots_remaining = pool_capacity - len(performers_above)
+        winners_needed = spots_remaining
+
+        # Create tiebreak battle
+        tiebreak = await self.create_tiebreak_battle(
+            category_id,
+            tied_performers,
+            winners_needed,
+        )
+
+        return tiebreak
+
+    async def detect_and_create_pool_winner_tiebreak(
+        self, pool_id: uuid.UUID, category_id: uuid.UUID
+    ) -> Optional[Battle]:
+        """Detect pool winner ties and create tiebreak battle if needed.
+
+        Called when last pool battle in a pool is completed.
+
+        Business Rule BR-TIE-002: Pool winner tiebreak auto-created.
+
+        Args:
+            pool_id: Pool UUID
+            category_id: Category UUID
+
+        Returns:
+            Created tiebreak battle or None if no tie
+        """
+        # Import here to avoid circular dependency
+        from app.repositories.pool import PoolRepository
+
+        # Check if tiebreak already exists for this category
+        if await self.battle_repo.has_pending_tiebreak(category_id):
+            return None
+
+        # Get pool with performers
+        pool_repo = PoolRepository(self.battle_repo.session)
+        pool = await pool_repo.get_with_performers(pool_id)
+
+        if not pool or not pool.performers:
+            return None
+
+        # Find performers with highest points
+        max_points = max(
+            p.pool_points or 0 for p in pool.performers
+        )
+        tied_performers = [
+            p for p in pool.performers
+            if (p.pool_points or 0) == max_points
+        ]
+
+        if len(tied_performers) == 1:
+            # Clear winner, no tiebreak needed
+            return None
+
+        # Create tiebreak for pool winner (exactly 1 winner needed)
+        tiebreak = await self.create_tiebreak_battle(
+            category_id,
+            tied_performers,
+            winners_needed=1,
+        )
+
+        return tiebreak
+
+    async def detect_and_create_pool_winner_tiebreaks(
+        self, category_id: uuid.UUID
+    ) -> List[Battle]:
+        """Detect pool winner ties for ALL pools and create tiebreak battles.
+
+        Called when ALL pool-phase battles in a category are complete.
+        Checks each pool for tied winners and creates tiebreak battles.
+
+        Business Rule BR-TIE-002: Pool winner tiebreak auto-created.
+
+        Design Decision: Check all pools at once (not per-pool) to:
+        - Add audience tension by grouping tiebreaks at end of pool phase
+        - Avoid needing pool_id on Battle model
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of created tiebreak battles (may be empty if no ties)
+        """
+        from app.repositories.pool import PoolRepository
+
+        pool_repo = PoolRepository(self.battle_repo.session)
+        pools = await pool_repo.get_by_category(category_id)
+
+        if not pools:
+            return []
+
+        created_tiebreaks: List[Battle] = []
+
+        for pool in pools:
+            # Skip if pool already has a winner set
+            if pool.winner_id:
+                continue
+
+            # Load performers for this pool
+            pool_with_performers = await pool_repo.get_with_performers(pool.id)
+            if not pool_with_performers or not pool_with_performers.performers:
+                continue
+
+            # Find performers with highest points
+            max_points = max(
+                p.pool_points or 0 for p in pool_with_performers.performers
+            )
+            tied_performers = [
+                p for p in pool_with_performers.performers
+                if (p.pool_points or 0) == max_points
+            ]
+
+            if len(tied_performers) == 1:
+                # Clear winner - set on pool
+                pool_with_performers.winner_id = tied_performers[0].id
+                await pool_repo.update(pool_with_performers)
+                continue
+
+            # Multiple tied - create tiebreak battle
+            tiebreak = await self.create_tiebreak_battle(
+                category_id,
+                tied_performers,
+                winners_needed=1,
+            )
+            created_tiebreaks.append(tiebreak)
+
+        return created_tiebreaks

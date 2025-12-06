@@ -1,5 +1,5 @@
 # Battle-D Frontend Architecture
-**Level 3: Operational** | Last Updated: 2025-12-04
+**Level 3: Operational** | Last Updated: 2025-12-06
 
 **Purpose:** Frontend architectural patterns, component library, and accessibility guidelines for the Battle-D tournament management system.
 
@@ -917,6 +917,255 @@ async def delete_dancer(id: UUID):
 
 ---
 
+### Pattern 6: Drag-and-Drop List Reordering (SortableJS + HTMX)
+
+**Use Case:** Battle queue reordering with constraints
+
+**Library:** SortableJS 1.15.x (CDN)
+
+**Business Rules (BR-SCHED-002):**
+- COMPLETED battles cannot be moved
+- ACTIVE battle cannot be moved
+- First PENDING battle ("on deck") is locked
+- Only battles 2+ positions after first pending can be reordered
+
+**HTML Structure:**
+```html
+<!-- CDN include in base.html -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<!-- Battle queue with sortable items -->
+<div
+  id="battle-queue"
+  class="sortable-list"
+  hx-get="/battles/queue?category_id={{ category_id }}"
+  hx-trigger="every 5s"
+  hx-swap="outerHTML"
+  role="list"
+  aria-label="Battle queue"
+>
+  {% for battle in battles %}
+  <article
+    class="battle-card {% if battle.is_locked %}battle-locked{% endif %}"
+    data-battle-id="{{ battle.id }}"
+    data-position="{{ loop.index }}"
+    {% if not battle.is_locked %}draggable="true"{% endif %}
+    role="listitem"
+    aria-label="Battle {{ loop.index }}: {{ battle.performers | join(' vs ') }}"
+  >
+    <!-- Drag handle (only for movable battles) -->
+    {% if not battle.is_locked %}
+    <div class="drag-handle" aria-label="Drag to reorder">
+      <span aria-hidden="true">⋮⋮</span>
+    </div>
+    {% else %}
+    <div class="lock-indicator" role="img" aria-label="Battle is locked">
+      <span aria-hidden="true">🔒</span>
+    </div>
+    {% endif %}
+
+    <!-- Battle content -->
+    <div class="battle-content">
+      <span class="badge badge-{{ battle.status.value }}">{{ battle.status.value }}</span>
+      <span>{{ battle.performers[0].dancer.blaze }} vs {{ battle.performers[1].dancer.blaze }}</span>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+<!-- Hidden form for HTMX submission -->
+<form id="reorder-form" hx-post="/battles/reorder" hx-swap="outerHTML" hx-target="#battle-queue">
+  <input type="hidden" name="battle_id" id="reorder-battle-id">
+  <input type="hidden" name="new_position" id="reorder-new-position">
+</form>
+```
+
+**JavaScript Initialization:**
+```javascript
+// app/static/js/battle-reorder.js
+document.addEventListener('DOMContentLoaded', function() {
+  const queue = document.getElementById('battle-queue');
+  if (!queue) return;
+
+  const sortable = Sortable.create(queue, {
+    handle: '.drag-handle',           // Only drag by handle
+    filter: '.battle-locked',         // Exclude locked battles
+    animation: 150,                   // Smooth animation
+    ghostClass: 'sortable-ghost',     // Class for placeholder
+    chosenClass: 'sortable-chosen',   // Class for dragged item
+
+    // Prevent dropping in locked positions
+    onMove: function(evt) {
+      // Cannot drop before locked items
+      const related = evt.related;
+      if (related.classList.contains('battle-locked')) {
+        const relatedIndex = [...queue.children].indexOf(related);
+        const draggedIndex = [...queue.children].indexOf(evt.dragged);
+        // Don't allow dropping before locked item
+        if (draggedIndex > relatedIndex) {
+          return false;
+        }
+      }
+      return true;
+    },
+
+    // Submit reorder via HTMX
+    onEnd: function(evt) {
+      if (evt.oldIndex === evt.newIndex) return;
+
+      const battleId = evt.item.dataset.battleId;
+      const newPosition = evt.newIndex + 1; // 1-indexed
+
+      // Update hidden form and submit via HTMX
+      document.getElementById('reorder-battle-id').value = battleId;
+      document.getElementById('reorder-new-position').value = newPosition;
+      htmx.trigger('#reorder-form', 'submit');
+
+      // Announce to screen readers
+      announceReorder(evt.item, evt.newIndex + 1);
+    }
+  });
+
+  // Keyboard navigation for accessibility
+  queue.addEventListener('keydown', function(evt) {
+    if (!evt.target.classList.contains('battle-card')) return;
+    if (evt.target.classList.contains('battle-locked')) return;
+
+    const items = [...queue.querySelectorAll('.battle-card:not(.battle-locked)')];
+    const currentIndex = items.indexOf(evt.target);
+
+    if (evt.key === 'ArrowUp' && evt.altKey && currentIndex > 0) {
+      evt.preventDefault();
+      moveItem(evt.target, currentIndex - 1);
+    } else if (evt.key === 'ArrowDown' && evt.altKey && currentIndex < items.length - 1) {
+      evt.preventDefault();
+      moveItem(evt.target, currentIndex + 1);
+    }
+  });
+
+  function moveItem(item, newIndex) {
+    const battleId = item.dataset.battleId;
+    document.getElementById('reorder-battle-id').value = battleId;
+    document.getElementById('reorder-new-position').value = newIndex + 1;
+    htmx.trigger('#reorder-form', 'submit');
+  }
+
+  function announceReorder(item, newPosition) {
+    const announcement = document.getElementById('reorder-status');
+    if (announcement) {
+      announcement.textContent = `Battle moved to position ${newPosition}`;
+    }
+  }
+});
+```
+
+**CSS Styles:**
+```css
+/* app/static/css/battles.css */
+.sortable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.battle-card {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: var(--pico-card-background-color);
+  border-radius: 0.25rem;
+  border: 1px solid var(--pico-muted-border-color);
+}
+
+.battle-card.battle-locked {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.drag-handle {
+  cursor: grab;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  color: var(--pico-muted-color);
+  user-select: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.lock-indicator {
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  color: var(--pico-muted-color);
+}
+
+/* Drag states */
+.sortable-ghost {
+  opacity: 0.5;
+  background: var(--pico-primary-background);
+}
+
+.sortable-chosen {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Keyboard focus */
+.battle-card:focus {
+  outline: 3px solid var(--pico-primary);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .sortable-ghost,
+  .battle-card {
+    transition: none;
+  }
+}
+```
+
+**Backend Route:**
+```python
+@router.post("/battles/reorder")
+async def reorder_battle(
+    request: Request,
+    battle_id: UUID = Form(...),
+    new_position: int = Form(...),
+    battle_service: BattleService = Depends(get_battle_service),
+    current_user = Depends(require_staff),
+):
+    """Reorder a battle in the queue via HTMX."""
+    result = await battle_service.reorder_battle(battle_id, new_position)
+
+    if not result:
+        for error in result.errors:
+            add_flash_message(request, error, "error")
+
+    # Return updated queue partial
+    battles = await battle_service.get_battle_queue(...)
+    return templates.TemplateResponse(
+        "battles/_battle_queue.html",
+        {"request": request, "battles": battles}
+    )
+```
+
+**Accessibility Features:**
+- **ARIA live region** announces reorder to screen readers
+- **Keyboard navigation** with Alt+Arrow keys
+- **Focus indicators** visible during keyboard interaction
+- **Reduced motion** support disables animations
+- **Lock indicators** explain why items can't be moved
+
+**Key Points:**
+- `handle: '.drag-handle'` - Only drag by handle, allows text selection elsewhere
+- `filter: '.battle-locked'` - Exclude locked items from drag
+- `onMove` - Prevents dropping before locked items
+- `onEnd` - Submits reorder via HTMX hidden form
+- Keyboard fallback for accessibility (Alt+Arrow to move)
+
+---
+
 ## Accessibility Guidelines
 
 ### Keyboard Navigation
@@ -1318,6 +1567,11 @@ app/static/
   - Reorganized into frontend architecture document
   - Page-by-page wireframes (sections 6-14) archived separately
   - Clear purpose: "Frontend architectural patterns and component library"
+
+- **v1.1** (2025-12-06) - Added drag-and-drop reordering pattern
+  - Added Pattern 6: Drag-and-Drop List Reordering (SortableJS + HTMX)
+  - Business rules: BR-SCHED-002 battle reordering constraints
+  - Accessibility: Keyboard navigation, ARIA live regions, reduced motion
 
 ---
 

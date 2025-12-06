@@ -1,5 +1,5 @@
 # Battle-D Architecture Guide
-**Level 3: Operational** | Last Updated: 2025-12-04
+**Level 3: Operational** | Last Updated: 2025-12-06
 
 This document describes the architectural patterns, design principles, and best practices used in the Battle-D web application.
 
@@ -22,6 +22,7 @@ Before reading this document, familiarize yourself with:
 - [Router Pattern with Services](#router-pattern-with-services)
 - [Battle System Architecture](#battle-system-architecture)
 - [Phase Transition Hooks](#phase-transition-hooks)
+- [Tiebreak Auto-Detection Pattern](#tiebreak-auto-detection-pattern)
 - [HTMX Patterns](#htmx-patterns)
 - [Common Pitfalls to Avoid](#common-pitfalls-to-avoid)
 - [Service Layer Reference](#service-layer-reference)
@@ -991,7 +992,204 @@ async def _execute_phase_transition_hooks(
 
 This order ensures battles/pools exist when entering the new phase.
 
+---
+
+## Tiebreak Auto-Detection Pattern
+
+### Purpose
+
+Tiebreak auto-detection ensures that tie situations are automatically detected and tiebreak battles are created without manual intervention. This is triggered when the last battle of a phase is completed.
+
+### Business Rules
+
+- **BR-TIE-001**: Preselection tiebreak auto-created when last preselection battle scored
+- **BR-TIE-002**: Pool winner tiebreak auto-created when last pool battle completed
+- **BR-TIE-003**: All performers with the boundary score must compete in tiebreak
+
+### Implementation Pattern
+
+**Integration Point**: `BattleResultsEncodingService` triggers tiebreak detection after encoding.
+
+```python
+# app/services/battle_results_encoding_service.py
+
+async def encode_preselection_battle(
+    self, battle_id: UUID, scores: dict[UUID, Decimal]
+) -> ValidationResult[Battle]:
+    """Encode preselection battle and trigger tiebreak detection.
+
+    After encoding, checks if this was the last preselection battle
+    and triggers tiebreak detection if needed.
+    """
+    # 1. Validate and encode (existing logic)
+    # ... validation code ...
+
+    async with self.session.begin():
+        # Update battle and performers
+        # ... encoding code ...
+
+        # 2. Check if this was the last preselection battle
+        remaining_battles = await self.battle_repo.count_pending_by_category_and_phase(
+            battle.category_id, BattlePhase.PRESELECTION
+        )
+
+        if remaining_battles == 0:
+            # 3. Last battle completed - check for ties
+            tiebreak = await self.tiebreak_service.detect_and_create_preselection_tiebreak(
+                battle.category_id
+            )
+            if tiebreak:
+                return ValidationResult.success(
+                    battle,
+                    warnings=[f"Tiebreak battle created for {len(tiebreak.performers)} tied performers"]
+                )
+
+    return ValidationResult.success(battle)
+```
+
+### TiebreakService Methods
+
+```python
+# app/services/tiebreak_service.py
+
+async def detect_and_create_preselection_tiebreak(
+    self, category_id: UUID
+) -> Optional[Battle]:
+    """Detect preselection ties and create tiebreak battle if needed.
+
+    Called automatically when last preselection battle is completed.
+
+    Business Rule BR-TIE-001: Tiebreak auto-created when last battle scored.
+    Business Rule BR-TIE-003: ALL performers with boundary score compete.
+
+    Returns:
+        Created tiebreak battle or None if no tie
+    """
+    # 1. Get category config and performers
+    category = await self.category_repo.get_by_id(category_id)
+    performers = await self.performer_repo.get_by_category(category_id)
+
+    # 2. Calculate pool capacity (how many qualify)
+    pool_capacity, _, _ = calculate_pool_capacity(
+        len(performers),
+        category.groups_ideal,
+        category.performers_ideal
+    )
+
+    # 3. Detect ties at boundary
+    tied_performers = await self.detect_preselection_ties(
+        category_id, pool_capacity
+    )
+
+    if not tied_performers:
+        return None
+
+    # 4. Calculate winners needed
+    boundary_score = tied_performers[0].preselection_score
+    performers_above = [
+        p for p in performers
+        if p.preselection_score > boundary_score
+    ]
+    winners_needed = pool_capacity - len(performers_above)
+
+    # 5. Create tiebreak battle
+    return await self.create_tiebreak_battle(
+        category_id,
+        tied_performers,
+        winners_needed
+    )
+
+
+async def detect_and_create_pool_winner_tiebreak(
+    self, pool_id: UUID
+) -> Optional[Battle]:
+    """Detect pool winner ties and create tiebreak battle if needed.
+
+    Called when last pool battle is completed.
+
+    Business Rule BR-TIE-002: Pool winner tiebreak auto-created.
+    """
+    pool = await self.pool_repo.get_by_id(pool_id)
+
+    # Find performers with highest points
+    max_points = max(p.pool_points for p in pool.performers)
+    tied_performers = [
+        p for p in pool.performers
+        if p.pool_points == max_points
+    ]
+
+    if len(tied_performers) == 1:
+        # Clear winner, no tiebreak needed
+        return None
+
+    # Create tiebreak for pool winner (exactly 1 winner needed)
+    return await self.create_tiebreak_battle(
+        pool.category_id,
+        tied_performers,
+        winners_needed=1
+    )
+```
+
+### Sequence Diagram
+
+```
+┌────────────┐    ┌─────────────────────┐    ┌────────────────┐    ┌────────────┐
+│   Router   │    │ EncodingService     │    │ TiebreakService│    │ BattleRepo │
+└─────┬──────┘    └──────────┬──────────┘    └───────┬────────┘    └─────┬──────┘
+      │                      │                       │                   │
+      │ encode_preselection()│                       │                   │
+      │─────────────────────>│                       │                   │
+      │                      │                       │                   │
+      │                      │ update battle/perfs   │                   │
+      │                      │───────────────────────│───────────────────>
+      │                      │                       │                   │
+      │                      │ count_pending_battles │                   │
+      │                      │───────────────────────│───────────────────>
+      │                      │                       │                   │
+      │                      │ (remaining = 0)       │                   │
+      │                      │                       │                   │
+      │                      │ detect_and_create_tiebreak()              │
+      │                      │──────────────────────>│                   │
+      │                      │                       │                   │
+      │                      │                       │ calculate capacity│
+      │                      │                       │ detect ties       │
+      │                      │                       │ create battle     │
+      │                      │                       │───────────────────>
+      │                      │                       │                   │
+      │                      │<──────────────────────│                   │
+      │                      │    tiebreak_battle    │                   │
+      │                      │                       │                   │
+      │<─────────────────────│                       │                   │
+      │  ValidationResult    │                       │                   │
+      │  (with warning)      │                       │                   │
+```
+
+### Why Trigger on Last Battle Completion (Not Phase Advance)?
+
+1. **Immediate feedback**: User sees tiebreak created immediately after scoring
+2. **No race conditions**: Tiebreak detected before any phase advance attempt
+3. **Atomic operation**: Tiebreak creation is part of encoding transaction
+4. **Clear UX**: Flash message informs user of tiebreak creation
+
+### Transaction Safety
+
+Tiebreak detection and creation happens within the encoding transaction:
+
+```python
+async with self.session.begin():
+    # 1. Update battle outcome
+    # 2. Update performer stats
+    # 3. Count remaining battles
+    # 4. If last battle: detect and create tiebreak
+
+    # All committed together or rolled back on error
+```
+
+This prevents orphaned tiebreak battles if encoding fails.
+
 ### Dependency Injection
+
+
 
 **File**: `app/dependencies.py:295-327`
 

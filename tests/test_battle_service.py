@@ -6,21 +6,25 @@ See: ROADMAP.md §2.1 Battle Generation Services
 import pytest
 import uuid
 from typing import List
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.exceptions import ValidationError
 from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeType
+from app.models.category import Category
 from app.models.performer import Performer
 from app.models.pool import Pool
 from app.repositories.battle import BattleRepository
 from app.repositories.performer import PerformerRepository
+from app.repositories.category import CategoryRepository
 from app.services.battle_service import BattleService
 
 
 @pytest.fixture
 def battle_repo():
     """Mock battle repository."""
-    return AsyncMock(spec=BattleRepository)
+    repo = AsyncMock(spec=BattleRepository)
+    repo.session = MagicMock()
+    return repo
 
 
 @pytest.fixture
@@ -625,3 +629,419 @@ class TestGetBattleQueue:
         assert queue[BattleStatus.PENDING] == []
         assert queue[BattleStatus.ACTIVE] == []
         assert queue[BattleStatus.COMPLETED] == []
+
+
+def create_category(
+    tournament_id: uuid.UUID,
+    name: str = "Test Category",
+) -> Category:
+    """Helper to create a category."""
+    category = Category(
+        tournament_id=tournament_id,
+        name=name,
+        groups_ideal=2,
+        performers_ideal=4,
+    )
+    category.id = uuid.uuid4()
+    return category
+
+
+class TestGenerateInterleavedPreselectionBattles:
+    """Tests for BR-SCHED-001: Battle queue interleaving."""
+
+    async def test_interleaves_across_categories(
+        self, battle_service, battle_repo, performer_repo, tournament_id
+    ):
+        """Test battles interleaved round-robin across categories.
+
+        Category H: 4 performers → 2 battles
+        Category K: 6 performers → 3 battles
+        Expected order: H1, K1, H2, K2, K3
+        Expected sequence_order: 1, 2, 3, 4, 5
+        """
+        # Setup categories
+        cat_h = create_category(tournament_id, "Hip-hop")
+        cat_k = create_category(tournament_id, "K-pop")
+
+        # Setup performers
+        h_performers = [create_performer(tournament_id, cat_h.id) for _ in range(4)]
+        k_performers = [create_performer(tournament_id, cat_k.id) for _ in range(6)]
+
+        def get_performers_by_cat(cat_id):
+            if cat_id == cat_h.id:
+                return h_performers
+            return k_performers
+
+        performer_repo.get_by_category.side_effect = get_performers_by_cat
+
+        # Mock category repo
+        mock_category_repo = AsyncMock(spec=CategoryRepository)
+        mock_category_repo.get_by_tournament.return_value = [cat_h, cat_k]
+
+        created_battles = []
+
+        def create_battle_mock(battle):
+            battle.id = uuid.uuid4()
+            created_battles.append(battle)
+            return battle
+
+        battle_repo.create.side_effect = create_battle_mock
+        battle_repo.update = AsyncMock()
+
+        with patch(
+            "app.repositories.category.CategoryRepository",
+            return_value=mock_category_repo,
+        ):
+            result = await battle_service.generate_interleaved_preselection_battles(
+                tournament_id
+            )
+
+        # Verify: 5 battles total (2 from H + 3 from K)
+        assert len(result) == 5
+
+        # Verify interleaving order: H, K, H, K, K
+        category_order = [b.category_id for b in result]
+        assert category_order[0] == cat_h.id
+        assert category_order[1] == cat_k.id
+        assert category_order[2] == cat_h.id
+        assert category_order[3] == cat_k.id
+        assert category_order[4] == cat_k.id
+
+        # Verify sequence_order assigned
+        for i, battle in enumerate(result, start=1):
+            assert battle.sequence_order == i
+
+    async def test_assigns_sequence_order(
+        self, battle_service, battle_repo, performer_repo, tournament_id
+    ):
+        """Test sequence_order field assigned correctly."""
+        category = create_category(tournament_id, "Test")
+        performers = [create_performer(tournament_id, category.id) for _ in range(6)]
+
+        performer_repo.get_by_category.return_value = performers
+
+        mock_category_repo = AsyncMock(spec=CategoryRepository)
+        mock_category_repo.get_by_tournament.return_value = [category]
+
+        battle_ids = []
+
+        def create_battle_mock(battle):
+            battle.id = uuid.uuid4()
+            battle_ids.append(battle.id)
+            return battle
+
+        battle_repo.create.side_effect = create_battle_mock
+        battle_repo.update = AsyncMock()
+
+        with patch(
+            "app.repositories.category.CategoryRepository",
+            return_value=mock_category_repo,
+        ):
+            result = await battle_service.generate_interleaved_preselection_battles(
+                tournament_id
+            )
+
+        # Verify sequential sequence_order
+        sequence_orders = [b.sequence_order for b in result]
+        assert sequence_orders == list(range(1, len(result) + 1))
+
+    async def test_single_category(
+        self, battle_service, battle_repo, performer_repo, tournament_id
+    ):
+        """Test works with single category."""
+        category = create_category(tournament_id, "Solo")
+        performers = [create_performer(tournament_id, category.id) for _ in range(6)]
+
+        performer_repo.get_by_category.return_value = performers
+
+        mock_category_repo = AsyncMock(spec=CategoryRepository)
+        mock_category_repo.get_by_tournament.return_value = [category]
+
+        def create_battle_mock(battle):
+            battle.id = uuid.uuid4()
+            return battle
+
+        battle_repo.create.side_effect = create_battle_mock
+        battle_repo.update = AsyncMock()
+
+        with patch(
+            "app.repositories.category.CategoryRepository",
+            return_value=mock_category_repo,
+        ):
+            result = await battle_service.generate_interleaved_preselection_battles(
+                tournament_id
+            )
+
+        # 6 performers → 3 battles
+        assert len(result) == 3
+        assert all(b.category_id == category.id for b in result)
+
+    async def test_no_categories_raises_error(
+        self, battle_service, battle_repo, tournament_id
+    ):
+        """Test raises error when no categories found."""
+        mock_category_repo = AsyncMock(spec=CategoryRepository)
+        mock_category_repo.get_by_tournament.return_value = []
+
+        with patch(
+            "app.repositories.category.CategoryRepository",
+            return_value=mock_category_repo,
+        ):
+            with pytest.raises(ValidationError, match="No categories found"):
+                await battle_service.generate_interleaved_preselection_battles(
+                    tournament_id
+                )
+
+    async def test_no_performers_raises_error(
+        self, battle_service, battle_repo, performer_repo, tournament_id
+    ):
+        """Test raises error when no performers in any category."""
+        category = create_category(tournament_id, "Empty")
+        performer_repo.get_by_category.return_value = []
+
+        mock_category_repo = AsyncMock(spec=CategoryRepository)
+        mock_category_repo.get_by_tournament.return_value = [category]
+
+        with patch(
+            "app.repositories.category.CategoryRepository",
+            return_value=mock_category_repo,
+        ):
+            with pytest.raises(ValidationError, match="No performers found"):
+                await battle_service.generate_interleaved_preselection_battles(
+                    tournament_id
+                )
+
+    async def test_unequal_category_sizes(
+        self, battle_service, battle_repo, performer_repo, tournament_id
+    ):
+        """Test handles categories with different battle counts.
+
+        Category A: 2 performers → 1 battle
+        Category B: 10 performers → 5 battles
+        Expected: A1, B1, B2, B3, B4, B5
+        """
+        cat_a = create_category(tournament_id, "Small")
+        cat_b = create_category(tournament_id, "Large")
+
+        a_performers = [create_performer(tournament_id, cat_a.id) for _ in range(2)]
+        b_performers = [create_performer(tournament_id, cat_b.id) for _ in range(10)]
+
+        def get_performers_by_cat(cat_id):
+            if cat_id == cat_a.id:
+                return a_performers
+            return b_performers
+
+        performer_repo.get_by_category.side_effect = get_performers_by_cat
+
+        mock_category_repo = AsyncMock(spec=CategoryRepository)
+        mock_category_repo.get_by_tournament.return_value = [cat_a, cat_b]
+
+        def create_battle_mock(battle):
+            battle.id = uuid.uuid4()
+            return battle
+
+        battle_repo.create.side_effect = create_battle_mock
+        battle_repo.update = AsyncMock()
+
+        with patch(
+            "app.repositories.category.CategoryRepository",
+            return_value=mock_category_repo,
+        ):
+            result = await battle_service.generate_interleaved_preselection_battles(
+                tournament_id
+            )
+
+        # 1 from A + 5 from B = 6 battles
+        assert len(result) == 6
+
+        # First should be from A, then B
+        assert result[0].category_id == cat_a.id
+        assert result[1].category_id == cat_b.id
+
+
+class TestReorderBattle:
+    """Tests for BR-SCHED-002: Battle queue reordering constraints."""
+
+    async def test_reorder_battle_success(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test successfully reordering a battle."""
+        # Setup: 5 pending battles
+        battles = [
+            create_battle(
+                category_id,
+                BattlePhase.PRESELECTION,
+                BattleStatus.PENDING,
+                BattleOutcomeType.SCORED,
+            )
+            for _ in range(5)
+        ]
+        for i, b in enumerate(battles, start=1):
+            b.sequence_order = i
+
+        target_battle = battles[2]  # Battle #3
+
+        battle_repo.get_by_id.return_value = target_battle
+        battle_repo.get_pending_battles_ordered.return_value = battles
+        battle_repo.update_sequence_order = AsyncMock()
+
+        # Move battle #3 to position #5
+        result = await battle_service.reorder_battle(target_battle.id, 5)
+
+        assert result is not None
+        battle_repo.update_sequence_order.assert_called()
+
+    async def test_first_pending_battle_locked(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test cannot move the 'on deck' (first pending) battle."""
+        # First pending battle
+        first_battle = create_battle(
+            category_id,
+            BattlePhase.PRESELECTION,
+            BattleStatus.PENDING,
+            BattleOutcomeType.SCORED,
+        )
+        first_battle.sequence_order = 1
+
+        battles = [first_battle]
+        for i in range(4):
+            b = create_battle(
+                category_id,
+                BattlePhase.PRESELECTION,
+                BattleStatus.PENDING,
+                BattleOutcomeType.SCORED,
+            )
+            b.sequence_order = i + 2
+            battles.append(b)
+
+        battle_repo.get_by_id.return_value = first_battle
+        battle_repo.get_pending_battles_ordered.return_value = battles
+
+        with pytest.raises(ValidationError, match="locked"):
+            await battle_service.reorder_battle(first_battle.id, 3)
+
+    async def test_cannot_move_active_battle(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test cannot move ACTIVE battle."""
+        active_battle = create_battle(
+            category_id,
+            BattlePhase.PRESELECTION,
+            BattleStatus.ACTIVE,
+            BattleOutcomeType.SCORED,
+        )
+
+        battle_repo.get_by_id.return_value = active_battle
+
+        with pytest.raises(ValidationError, match="Active battle cannot be moved"):
+            await battle_service.reorder_battle(active_battle.id, 2)
+
+    async def test_cannot_move_completed_battle(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test cannot move COMPLETED battle."""
+        completed_battle = create_battle(
+            category_id,
+            BattlePhase.PRESELECTION,
+            BattleStatus.COMPLETED,
+            BattleOutcomeType.SCORED,
+        )
+
+        battle_repo.get_by_id.return_value = completed_battle
+
+        with pytest.raises(ValidationError, match="Completed battles cannot be moved"):
+            await battle_service.reorder_battle(completed_battle.id, 2)
+
+    async def test_cannot_move_to_locked_position(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test cannot move battle to position 1 (locked)."""
+        battle = create_battle(
+            category_id,
+            BattlePhase.PRESELECTION,
+            BattleStatus.PENDING,
+            BattleOutcomeType.SCORED,
+        )
+        battle.sequence_order = 3
+
+        other_battle = create_battle(
+            category_id,
+            BattlePhase.PRESELECTION,
+            BattleStatus.PENDING,
+            BattleOutcomeType.SCORED,
+        )
+        other_battle.sequence_order = 1
+
+        battle_repo.get_by_id.return_value = battle
+        battle_repo.get_pending_battles_ordered.return_value = [other_battle, battle]
+
+        with pytest.raises(ValidationError, match="locked position"):
+            await battle_service.reorder_battle(battle.id, 1)
+
+    async def test_battle_not_found(
+        self, battle_service, battle_repo
+    ):
+        """Test raises error for non-existent battle."""
+        battle_repo.get_by_id.return_value = None
+
+        with pytest.raises(ValidationError, match="not found"):
+            await battle_service.reorder_battle(uuid.uuid4(), 2)
+
+    async def test_position_clamped_to_max(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test position clamped to max available."""
+        # Setup: 5 battles
+        battles = [
+            create_battle(
+                category_id,
+                BattlePhase.PRESELECTION,
+                BattleStatus.PENDING,
+                BattleOutcomeType.SCORED,
+            )
+            for _ in range(5)
+        ]
+        for i, b in enumerate(battles, start=1):
+            b.sequence_order = i
+
+        target_battle = battles[2]  # Battle #3
+
+        battle_repo.get_by_id.return_value = target_battle
+        battle_repo.get_pending_battles_ordered.return_value = battles
+        battle_repo.update_sequence_order = AsyncMock()
+
+        # Try to move to position 10 (only 5 exist)
+        result = await battle_service.reorder_battle(target_battle.id, 10)
+
+        # Should succeed (position clamped to 5)
+        assert result is not None
+
+    async def test_reindex_after_move(
+        self, battle_service, battle_repo, category_id
+    ):
+        """Test sequence_order reindexed after move."""
+        # Setup: 3 battles
+        battles = [
+            create_battle(
+                category_id,
+                BattlePhase.PRESELECTION,
+                BattleStatus.PENDING,
+                BattleOutcomeType.SCORED,
+            )
+            for _ in range(3)
+        ]
+        for i, b in enumerate(battles, start=1):
+            b.sequence_order = i
+
+        target_battle = battles[1]  # Battle #2
+
+        battle_repo.get_by_id.return_value = target_battle
+        battle_repo.get_pending_battles_ordered.return_value = battles
+        battle_repo.update_sequence_order = AsyncMock()
+
+        await battle_service.reorder_battle(target_battle.id, 3)
+
+        # Verify _reindex_battle_order was called (via update_sequence_order calls)
+        # At minimum, the target battle and reindex should have been called
+        assert battle_repo.update_sequence_order.call_count >= 1

@@ -1,5 +1,5 @@
 # Battle-D Validation Rules
-**Level 1: Source of Truth** | Last Updated: 2025-12-04
+**Level 1: Source of Truth** | Last Updated: 2025-12-06
 
 This document specifies all validation rules for the Battle-D tournament management system, particularly focusing on phase transitions and tournament constraints.
 
@@ -247,50 +247,176 @@ Cannot advance to PRESELECTION phase:
 
 ## Tournament Calculations
 
-### Pool Size Distribution
+### Pool Capacity Calculation (BR-POOL-001)
 
-**Algorithm:** `distribute_performers_to_pools(num_performers, groups_ideal)`
+**Business Rule:** All pools within a category MUST have EQUAL sizes. Pool sizes never differ.
 
-**Rules:**
-1. Minimum 2 performers per pool
-2. Pool sizes must differ by at most 1
-3. Total performers must equal input
+**Algorithm:** `calculate_pool_capacity(registered_performers, groups_ideal, performers_ideal)`
 
-**Examples:**
-
-| Performers | Pools | Distribution | Algorithm |
-|------------|-------|--------------|-----------|
-| 8          | 2     | [4, 4]       | Even      |
-| 9          | 2     | [5, 4]       | +1 to first |
-| 10         | 3     | [4, 3, 3]    | +1 to first |
-| 11         | 3     | [4, 4, 3]    | +1 to first two |
+**Logic:**
+1. Calculate `ideal_capacity = groups_ideal × performers_ideal`
+2. If `registered_performers >= ideal_capacity + 1`: use ideal capacity
+3. Otherwise: reduce `performers_per_pool` until `capacity < registered_performers`
+4. This ensures at least 1 performer is eliminated (preselection is mandatory)
 
 **Implementation:**
 ```python
-from app.utils.tournament_calculations import distribute_performers_to_pools
+def calculate_pool_capacity(
+    registered_performers: int,
+    groups_ideal: int,
+    performers_ideal: int,
+) -> tuple[int, int, int]:
+    """Calculate pool structure ensuring EQUAL pool sizes.
 
-distribution = distribute_performers_to_pools(num_performers=9, groups_ideal=2)
-# Returns: [5, 4]
+    Returns:
+        Tuple of (pool_capacity, performers_per_pool, eliminated_count)
+    """
+    ideal_capacity = groups_ideal * performers_ideal
+
+    # Case 1: More performers than ideal + 1 → use ideal capacity
+    if registered_performers >= ideal_capacity + 1:
+        eliminated = registered_performers - ideal_capacity
+        return ideal_capacity, performers_ideal, eliminated
+
+    # Case 2: Need to reduce pool size to ensure elimination
+    for pool_size in range(performers_ideal, 1, -1):
+        capacity = groups_ideal * pool_size
+        if capacity < registered_performers:
+            eliminated = registered_performers - capacity
+            return capacity, pool_size, eliminated
+
+    # Fallback: minimum 2 per pool
+    capacity = groups_ideal * 2
+    eliminated = registered_performers - capacity
+    return capacity, 2, eliminated
 ```
+
+**Examples (groups_ideal=2, performers_ideal=4):**
+
+| Registered | Ideal (2×4) | Pool Capacity | Eliminated | Pool Sizes |
+|------------|-------------|---------------|------------|------------|
+| 12         | 8           | 8             | 4          | [4, 4]     |
+| 10         | 8           | 8             | 2          | [4, 4]     |
+| 9          | 8           | 8             | 1          | [4, 4]     |
+| 8          | 8           | 6             | 2          | [3, 3]     |
+| 7          | 8           | 6             | 1          | [3, 3]     |
+| 6          | 8           | 4             | 2          | [2, 2]     |
+| 5          | 8           | 4             | 1          | [2, 2]     |
+
+**Key Change from Previous Version:**
+- OLD (INCORRECT): 25% elimination rule that allowed unequal pool sizes like [5, 4]
+- NEW (CORRECT): Equal pool sizes always, pool size reduces to ensure elimination
+
+### Pool Size Distribution
+
+**Algorithm:** `distribute_performers_to_pools(pool_capacity, groups_ideal)`
+
+**Rules:**
+1. Pool capacity MUST be evenly divisible by groups_ideal
+2. All pools have exactly the same size
+3. Minimum 2 performers per pool
+
+**Implementation:**
+```python
+def distribute_performers_to_pools(pool_capacity: int, groups_ideal: int) -> list[int]:
+    """Distribute performers EQUALLY across pools.
+
+    Raises ValueError if not evenly divisible.
+    """
+    if pool_capacity % groups_ideal != 0:
+        raise ValueError(
+            f"Cannot evenly distribute {pool_capacity} performers into {groups_ideal} pools"
+        )
+
+    pool_size = pool_capacity // groups_ideal
+    return [pool_size] * groups_ideal
+```
+
+**Examples:**
+
+| Pool Capacity | Pools | Distribution | Notes |
+|---------------|-------|--------------|-------|
+| 8             | 2     | [4, 4]       | Equal |
+| 6             | 2     | [3, 3]       | Equal |
+| 4             | 2     | [2, 2]       | Equal |
+| 9             | 2     | ERROR        | Not evenly divisible |
+
+**Note:** The `calculate_pool_capacity()` function ensures pool capacity is always evenly divisible by groups_ideal.
 
 ### Preselection Elimination Count
 
 **Formula:**
 ```python
-elimination_count = registered_performers - ideal_pool_capacity
+pool_capacity, _, eliminated_count = calculate_pool_capacity(
+    registered_performers, groups_ideal, performers_ideal
+)
 ```
 
-**Constraint:** Must eliminate at least 2 performers
+**Constraint:** Must eliminate at least 1 performer (preselection is mandatory)
 
 **Validation:**
 ```python
-if registered_performers <= ideal_pool_capacity:
-    raise ValueError("Need more performers than pool capacity for elimination")
-
-elimination_count = registered_performers - ideal_pool_capacity
-if elimination_count < 2:
-    raise ValueError("Must eliminate at least 2 performers in preselection")
+if eliminated_count < 1:
+    raise ValueError("Preselection must eliminate at least 1 performer")
 ```
+
+---
+
+## Battle Queue Ordering
+
+### Battle Interleaving (BR-SCHED-001)
+
+**Rule:** When generating preselection battles for a tournament with multiple categories, battles are interleaved across categories in round-robin fashion.
+
+**Example with 2 categories (Hip Hop with 4 battles, Krump with 3 battles):**
+| Sequence | Category | Battle |
+|----------|----------|--------|
+| 1        | Hip Hop  | #1     |
+| 2        | Krump    | #1     |
+| 3        | Hip Hop  | #2     |
+| 4        | Krump    | #2     |
+| 5        | Hip Hop  | #3     |
+| 6        | Krump    | #3     |
+| 7        | Hip Hop  | #4     |
+
+**Rationale:** Keeps audience engaged with variety; gives performers rest between battles.
+
+### Battle Reordering Constraints (BR-SCHED-002)
+
+**Rule:** Staff can reorder pending battles with the following restrictions:
+
+| Battle Status | Can Move? | Reason |
+|---------------|-----------|--------|
+| COMPLETED     | No        | Already finished, historical record |
+| ACTIVE        | No        | Currently in progress |
+| First PENDING | No        | "On deck" - locked for preparation |
+| Other PENDING | Yes       | Can be reordered freely |
+
+**Validation:**
+```python
+async def reorder_battle(battle_id: UUID, new_position: int) -> ValidationResult:
+    battle = await battle_repo.get_by_id(battle_id)
+
+    if battle.status == BattleStatus.COMPLETED:
+        return ValidationResult.failure(["Completed battles cannot be moved"])
+
+    if battle.status == BattleStatus.ACTIVE:
+        return ValidationResult.failure(["Active battle cannot be moved"])
+
+    pending_battles = await battle_repo.get_pending_ordered(battle.category_id)
+    if pending_battles and pending_battles[0].id == battle_id:
+        return ValidationResult.failure(["Next battle is locked and cannot be moved"])
+
+    if new_position < 2:
+        return ValidationResult.failure(["Cannot move battle to a locked position"])
+
+    return ValidationResult.success(battle)
+```
+
+**UI Indicators:**
+- Locked battles show lock icon
+- Movable battles show drag handle
+- Completed battles greyed out
 
 ---
 
@@ -675,3 +801,5 @@ All validation rules are tested in:
 - **2025-12-04:** Added Battle Encoding Validation section (preselection, pool, tiebreak, finals)
 - **2025-12-04:** Added transaction requirements and error handling documentation
 - **2025-12-04:** Updated implementation reference with battle encoding files
+- **2025-12-06:** Replaced pool sizing algorithm (25% rule → equal pool sizes BR-POOL-001)
+- **2025-12-06:** Added battle queue ordering rules (BR-SCHED-001, BR-SCHED-002)

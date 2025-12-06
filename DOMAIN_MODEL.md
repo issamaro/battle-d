@@ -1,5 +1,5 @@
 # Battle-D Domain Model
-**Level 1: Source of Truth** | Last Updated: 2025-11-24
+**Level 1: Source of Truth** | Last Updated: 2025-12-06
 
 ## Overview
 
@@ -163,6 +163,7 @@ Represents a single competition bout between performers.
 - `outcome_type`: Enum (scored | win_draw_loss | tiebreak | win_loss)
 - `winner_id`: FK → Performer (nullable)
 - `outcome`: JSON (structure depends on outcome_type)
+- `sequence_order`: int (nullable) - Position in battle queue for ordering
 
 **Outcome Types:**
 
@@ -207,6 +208,25 @@ Represents a single competition bout between performers.
 **Constraints:**
 - Only one battle with `status='active'` globally at any time
 
+**Battle Queue Ordering:**
+
+**Business Rule BR-SCHED-001: Battle Queue Interleaving**
+
+When generating preselection battles for a tournament with multiple categories, battles are interleaved across categories in round-robin fashion. Example with 2 categories (Hip Hop, Krump):
+- Battle 1: Hip Hop #1
+- Battle 2: Krump #1
+- Battle 3: Hip Hop #2
+- Battle 4: Krump #2
+- (continues round-robin)
+
+**Business Rule BR-SCHED-002: Battle Reordering Constraints**
+
+Staff can reorder pending battles with the following restrictions:
+- **COMPLETED** battles cannot be moved
+- **ACTIVE** battle cannot be moved
+- **First PENDING** battle ("on deck") is locked and cannot be moved
+- Only battles 2+ positions after the first pending can be reordered
+
 ---
 
 ### **Pool**
@@ -225,6 +245,22 @@ Represents a group in the pool phase where performers compete round-robin.
 - All performers in pool compete against each other (round-robin)
 - Winner has highest `pool_points`
 - Ties resolved via tiebreak battles
+
+**Business Rule BR-POOL-001: Equal Pool Sizes**
+
+All pools within a category MUST have the same number of performers. Pool capacity is calculated as `groups_ideal × performers_per_pool` where `performers_per_pool` is adaptive but EQUAL across all pools.
+
+| Registered | Ideal (2×4) | Pool Capacity | Eliminated | Pool Sizes |
+|------------|-------------|---------------|------------|------------|
+| 12         | 8           | 8             | 4          | [4, 4]     |
+| 10         | 8           | 8             | 2          | [4, 4]     |
+| 9          | 8           | 8             | 1          | [4, 4]     |
+| 8          | 8           | 6             | 2          | [3, 3]     |
+| 7          | 8           | 6             | 1          | [3, 3]     |
+| 6          | 8           | 4             | 2          | [2, 2]     |
+| 5          | 8           | 4             | 1          | [2, 2]     |
+
+**Key Principle:** When registered equals ideal capacity (e.g., 8 registered with ideal 8), pool size MUST reduce to ensure at least 1 elimination (preselection is mandatory).
 
 ---
 
@@ -357,7 +393,19 @@ registered_performers (rp) > pool_performers (pp)
 
 ### **5. Tie-Breaking Logic** ⚠️ Critical
 
-Tie-breaking occurs in two scenarios:
+Tie-breaking occurs in two scenarios and is **automatically triggered** by the system:
+
+**Business Rule BR-TIE-001: Preselection Tiebreak Auto-Detection**
+
+When the last preselection battle is completed and scores are encoded, the system automatically checks for ties at the qualification boundary and creates a tiebreak battle if needed. ALL performers with the boundary score must compete in the tiebreak.
+
+**Business Rule BR-TIE-002: Pool Winner Tiebreak Auto-Detection**
+
+When the last pool battle is completed, the system automatically checks for pool winner ties (multiple performers with the highest pool_points) and creates a tiebreak battle if needed.
+
+**Business Rule BR-TIE-003: All Tied Performers Compete**
+
+When a tie is detected, ALL performers with the tied score/points must compete in the tiebreak battle. The number of winners needed is calculated based on remaining spots.
 
 #### **Scenario A: Tie in Preselection Qualification**
 

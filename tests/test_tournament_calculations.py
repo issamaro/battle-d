@@ -44,43 +44,100 @@ class TestCalculateMinimumPerformers:
 
 
 class TestCalculatePoolCapacity:
-    """Tests for calculate_pool_capacity function."""
+    """Tests for calculate_pool_capacity function implementing BR-POOL-001."""
 
     def test_minimum_case(self):
-        """Test pool capacity with exactly minimum performers."""
-        # 5 performers, 2 pools → eliminate 1, keep 4 (2 per pool)
-        pool_performers, eliminated = calculate_pool_capacity(5, 2)
-        assert pool_performers == 4
+        """Test pool capacity with exactly minimum performers.
+
+        5 performers, 2 pools, ideal 4 per pool:
+        - ideal_capacity = 8, registered (5) < ideal + 1 (9)
+        - Reduce: 2×3=6 > 5, 2×2=4 < 5 ✓
+        - Result: (4, 2, 1) - 4 capacity, 2 per pool, 1 eliminated
+        """
+        capacity, per_pool, eliminated = calculate_pool_capacity(5, 2)
+        assert capacity == 4
+        assert per_pool == 2
         assert eliminated == 1
 
-    def test_standard_case(self):
-        """Test pool capacity with 8 performers."""
-        # 8 performers → eliminate 2 → keep 6
-        pool_performers, eliminated = calculate_pool_capacity(8, 2)
-        assert pool_performers == 6
+    def test_ideal_capacity_case(self):
+        """Test pool capacity when registered >= ideal + 1.
+
+        9 performers, 2 pools, ideal 4 per pool:
+        - ideal_capacity = 8, registered (9) >= ideal + 1 (9) ✓
+        - Result: (8, 4, 1) - use ideal capacity
+        """
+        capacity, per_pool, eliminated = calculate_pool_capacity(9, 2, 4)
+        assert capacity == 8
+        assert per_pool == 4
+        assert eliminated == 1
+
+    def test_reduce_pool_size_case(self):
+        """Test pool capacity when registered = ideal (must reduce).
+
+        8 performers, 2 pools, ideal 4 per pool:
+        - ideal_capacity = 8, registered (8) < ideal + 1 (9)
+        - Reduce: 2×4=8 NOT < 8, 2×3=6 < 8 ✓
+        - Result: (6, 3, 2) - 6 capacity, 3 per pool, 2 eliminated
+        """
+        capacity, per_pool, eliminated = calculate_pool_capacity(8, 2, 4)
+        assert capacity == 6
+        assert per_pool == 3
         assert eliminated == 2
 
     def test_larger_tournament(self):
-        """Test pool capacity with 20 performers."""
-        # 20 performers → eliminate 5 → keep 15
-        # Ensure at least 2 per pool minimum
-        pool_performers, eliminated = calculate_pool_capacity(20, 2)
-        assert pool_performers == 15  # Eliminate 5
-        assert eliminated == 5
+        """Test pool capacity with many more performers than ideal.
+
+        12 performers, 2 pools, ideal 4 per pool:
+        - ideal_capacity = 8, registered (12) >= ideal + 1 (9) ✓
+        - Result: (8, 4, 4) - use ideal capacity
+        """
+        capacity, per_pool, eliminated = calculate_pool_capacity(12, 2, 4)
+        assert capacity == 8
+        assert per_pool == 4
+        assert eliminated == 4
 
     def test_three_pools(self):
-        """Test pool capacity with 3 pools."""
-        # 10 performers, 3 pools → minimum is 7
-        # Eliminate 2 → keep 8
-        pool_performers, eliminated = calculate_pool_capacity(10, 3)
-        assert pool_performers == 8
-        assert eliminated == 2
+        """Test pool capacity with 3 pools.
+
+        10 performers, 3 pools, ideal 4 per pool:
+        - ideal_capacity = 12, registered (10) < ideal + 1 (13)
+        - Reduce: 3×4=12 NOT < 10, 3×3=9 < 10 ✓
+        - Result: (9, 3, 1)
+        """
+        capacity, per_pool, eliminated = calculate_pool_capacity(10, 3, 4)
+        assert capacity == 9
+        assert per_pool == 3
+        assert eliminated == 1
+
+    def test_always_equal_pool_sizes(self):
+        """Test BR-POOL-001: All pools have EQUAL sizes."""
+        test_cases = [
+            (5, 2, 4),   # Minimum case
+            (8, 2, 4),   # Reduce needed
+            (9, 2, 4),   # Ideal capacity
+            (12, 2, 4),  # Large tournament
+            (10, 3, 4),  # Three pools
+            (7, 2, 4),   # 7 performers
+        ]
+
+        for registered, groups, ideal in test_cases:
+            capacity, per_pool, eliminated = calculate_pool_capacity(registered, groups, ideal)
+            # Capacity must be evenly divisible
+            assert capacity % groups == 0, (
+                f"Capacity {capacity} must be divisible by {groups} pools"
+            )
+            # Per pool calculation must match
+            assert capacity // groups == per_pool
 
     def test_always_eliminates_at_least_one(self):
         """Test that at least 1 performer is always eliminated."""
-        # Edge case: exactly minimum (5 performers, 2 pools)
-        pool_performers, eliminated = calculate_pool_capacity(5, 2)
-        assert eliminated >= 1
+        test_cases = [(5, 2), (8, 2), (9, 2), (10, 3), (20, 4)]
+
+        for registered, groups in test_cases:
+            _, _, eliminated = calculate_pool_capacity(registered, groups)
+            assert eliminated >= 1, (
+                f"Must eliminate at least 1 with {registered} registered and {groups} groups"
+            )
 
     def test_insufficient_performers_raises_error(self):
         """Test that insufficient performers raises ValueError."""
@@ -94,56 +151,85 @@ class TestCalculatePoolCapacity:
 
 
 class TestDistributePerformersToPoolsS:
-    """Tests for distribute_performers_to_pools function."""
+    """Tests for distribute_performers_to_pools function implementing BR-POOL-001."""
 
-    def test_even_distribution(self):
-        """Test even distribution of performers."""
+    def test_equal_distribution_two_pools(self):
+        """Test equal distribution with 2 pools (BR-POOL-001)."""
         # 8 performers, 2 pools → [4, 4]
         assert distribute_performers_to_pools(8, 2) == [4, 4]
 
+        # 6 performers, 2 pools → [3, 3]
+        assert distribute_performers_to_pools(6, 2) == [3, 3]
+
+        # 4 performers, 2 pools → [2, 2]
+        assert distribute_performers_to_pools(4, 2) == [2, 2]
+
+    def test_equal_distribution_three_pools(self):
+        """Test equal distribution with 3 pools (BR-POOL-001)."""
         # 12 performers, 3 pools → [4, 4, 4]
         assert distribute_performers_to_pools(12, 3) == [4, 4, 4]
 
-    def test_uneven_distribution_two_pools(self):
-        """Test uneven distribution with 2 pools."""
-        # 9 performers, 2 pools → [5, 4]
-        assert distribute_performers_to_pools(9, 2) == [5, 4]
-
-        # 7 performers, 2 pools → [4, 3]
-        assert distribute_performers_to_pools(7, 2) == [4, 3]
-
-    def test_uneven_distribution_three_pools(self):
-        """Test uneven distribution with 3 pools."""
-        # 10 performers, 3 pools → [4, 3, 3]
-        assert distribute_performers_to_pools(10, 3) == [4, 3, 3]
-
-        # 11 performers, 3 pools → [4, 4, 3]
-        assert distribute_performers_to_pools(11, 3) == [4, 4, 3]
-
-    def test_minimum_two_per_pool(self):
-        """Test that each pool has at least 2 performers."""
-        # 6 performers, 2 pools → [3, 3]
-        result = distribute_performers_to_pools(6, 2)
-        assert all(size >= 2 for size in result)
+        # 9 performers, 3 pools → [3, 3, 3]
+        assert distribute_performers_to_pools(9, 3) == [3, 3, 3]
 
         # 6 performers, 3 pools → [2, 2, 2]
-        result = distribute_performers_to_pools(6, 3)
-        assert all(size >= 2 for size in result)
+        assert distribute_performers_to_pools(6, 3) == [2, 2, 2]
 
-    def test_pool_sizes_differ_by_max_one(self):
-        """Test that pool sizes differ by at most 1."""
-        # Various cases
-        for performers in range(6, 20):
-            for pools in range(1, 5):
-                if performers >= pools * 2:  # Valid configuration
-                    result = distribute_performers_to_pools(performers, pools)
-                    assert max(result) - min(result) <= 1
+    def test_uneven_distribution_raises_error(self):
+        """Test BR-POOL-001: Uneven distributions raise ValueError."""
+        # 9 performers cannot be evenly split into 2 pools
+        with pytest.raises(ValueError, match="BR-POOL-001.*Equal Pool Sizes"):
+            distribute_performers_to_pools(9, 2)
+
+        # 7 performers cannot be evenly split into 2 pools
+        with pytest.raises(ValueError, match="BR-POOL-001.*Equal Pool Sizes"):
+            distribute_performers_to_pools(7, 2)
+
+        # 10 performers cannot be evenly split into 3 pools
+        with pytest.raises(ValueError, match="BR-POOL-001.*Equal Pool Sizes"):
+            distribute_performers_to_pools(10, 3)
+
+        # 11 performers cannot be evenly split into 3 pools
+        with pytest.raises(ValueError, match="BR-POOL-001.*Equal Pool Sizes"):
+            distribute_performers_to_pools(11, 3)
+
+    def test_all_pools_have_equal_size(self):
+        """Test that all pools have exactly the same size (BR-POOL-001)."""
+        test_cases = [
+            (4, 2),   # 2 pools of 2
+            (6, 2),   # 2 pools of 3
+            (8, 2),   # 2 pools of 4
+            (6, 3),   # 3 pools of 2
+            (9, 3),   # 3 pools of 3
+            (12, 3),  # 3 pools of 4
+            (8, 4),   # 4 pools of 2
+            (12, 4),  # 4 pools of 3
+        ]
+
+        for capacity, groups in test_cases:
+            result = distribute_performers_to_pools(capacity, groups)
+            # All sizes must be identical
+            assert len(set(result)) == 1, (
+                f"All pools must have equal size, got {result}"
+            )
+            # Size must equal capacity / groups
+            assert result[0] == capacity // groups
 
     def test_total_performers_matches(self):
         """Test that sum of pool sizes equals total performers."""
         assert sum(distribute_performers_to_pools(8, 2)) == 8
-        assert sum(distribute_performers_to_pools(10, 3)) == 10
-        assert sum(distribute_performers_to_pools(15, 4)) == 15
+        assert sum(distribute_performers_to_pools(12, 3)) == 12
+        assert sum(distribute_performers_to_pools(16, 4)) == 16
+
+    def test_minimum_two_per_pool(self):
+        """Test that each pool has at least 2 performers."""
+        # Minimum valid: 4 performers, 2 pools → [2, 2]
+        result = distribute_performers_to_pools(4, 2)
+        assert all(size >= 2 for size in result)
+
+        # Minimum valid: 6 performers, 3 pools → [2, 2, 2]
+        result = distribute_performers_to_pools(6, 3)
+        assert all(size >= 2 for size in result)
 
     def test_insufficient_performers_raises_error(self):
         """Test that too few performers raises ValueError."""
@@ -213,7 +299,7 @@ class TestBusinessRulesIntegration:
         ]
 
         for registered, groups in test_cases:
-            _, eliminated = calculate_pool_capacity(registered, groups)
+            _, _, eliminated = calculate_pool_capacity(registered, groups)
             assert eliminated >= 1, (
                 f"Must eliminate at least 1 performer "
                 f"({registered} performers, {groups} pools)"
@@ -230,8 +316,36 @@ class TestBusinessRulesIntegration:
         ]
 
         for registered, groups in test_cases:
-            pool_performers, _ = calculate_pool_capacity(registered, groups)
-            assert registered > pool_performers, (
-                f"Registered ({registered}) must be > pool_performers ({pool_performers}) "
+            pool_capacity, _, _ = calculate_pool_capacity(registered, groups)
+            assert registered > pool_capacity, (
+                f"Registered ({registered}) must be > pool_capacity ({pool_capacity}) "
                 "to ensure preselection is mandatory"
             )
+
+    def test_pool_capacity_workflow(self):
+        """Test complete workflow: calculate capacity then distribute.
+
+        BR-POOL-001: Pool capacity from calculate_pool_capacity should
+        be directly usable with distribute_performers_to_pools.
+        """
+        test_cases = [
+            (5, 2, 4),   # Minimum case
+            (8, 2, 4),   # Reduce needed
+            (9, 2, 4),   # Ideal capacity
+            (12, 2, 4),  # Large tournament
+            (10, 3, 4),  # Three pools
+            (7, 3, 4),   # Minimum for 3 pools
+        ]
+
+        for registered, groups, ideal in test_cases:
+            # Step 1: Calculate pool capacity
+            capacity, per_pool, eliminated = calculate_pool_capacity(registered, groups, ideal)
+
+            # Step 2: Distribute to pools - should NOT raise
+            pool_sizes = distribute_performers_to_pools(capacity, groups)
+
+            # Verify results
+            assert len(pool_sizes) == groups
+            assert sum(pool_sizes) == capacity
+            assert all(size == per_pool for size in pool_sizes)
+            assert registered == capacity + eliminated

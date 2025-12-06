@@ -1,7 +1,95 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-04
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-06
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-06] - Phase 3.2: Tournament Organization Validation
+
+### Added
+
+**Pool Sizing Fix (BR-POOL-001):**
+- Fixed pool sizing algorithm to enforce EQUAL pool sizes
+- Updated `calculate_pool_capacity()` to return 3-tuple: (capacity, per_pool, eliminated)
+- Updated `distribute_performers_to_pools()` to raise ValueError for uneven distributions
+- No more [5,4] pool distributions - all pools are now equal size
+
+**Tiebreak Auto-Detection:**
+- Added `detect_and_create_preselection_tiebreak()` to TiebreakService (BR-TIE-001)
+- Added `detect_and_create_pool_winner_tiebreaks()` to TiebreakService (BR-TIE-002)
+- Integrated into BattleResultsEncodingService for automatic triggering
+- Preselection tiebreaks: created when last preselection battle completes
+- Pool winner tiebreaks: created when all pool battles complete (adds audience tension)
+
+**Battle Queue Interleaving (BR-SCHED-001):**
+- Added `generate_interleaved_preselection_battles()` to BattleService
+- Round-robin interleaving across categories (H1, K1, H2, K2, etc.)
+- Assigned `sequence_order` field for proper queue ordering
+
+**Battle Queue Reordering (BR-SCHED-002):**
+- Added `sequence_order` column to Battle model
+- Created Alembic migration `20251206_add_sequence_order_to_battles.py`
+- Added `reorder_battle()` to BattleService with locked position constraints
+- First pending battle ("on deck") is locked and cannot be moved
+- Added `/battles/{id}/reorder` and `/battles/queue/{category_id}` endpoints
+
+**Frontend: Battle Queue UI:**
+- Created `app/templates/battles/_battle_queue.html` - SortableJS drag-and-drop partial
+- WCAG 2.1 AA compliant with ARIA labels and keyboard navigation
+- Lock indicator on first pending battle
+
+**Tests (28 new tests):**
+- TestDetectAndCreatePreselectionTiebreak (6 tests)
+- TestDetectAndCreatePoolWinnerTiebreaks (8 tests)
+- TestGenerateInterleavedPreselectionBattles (6 tests)
+- TestReorderBattle (8 tests)
+
+### Changed
+
+**Updated Documentation (5 files):**
+- `DOMAIN_MODEL.md`: Added BR-POOL-001, BR-TIE-001/002/003, BR-SCHED-001/002, sequence_order field
+- `VALIDATION_RULES.md`: Replaced pool sizing algorithm, added battle queue ordering rules
+- `ROADMAP.md`: Added Phase 3.2 entry with full details
+- `ARCHITECTURE.md`: Added Tiebreak Auto-Detection Pattern section
+- `FRONTEND.md`: Added Pattern 6: Drag-and-Drop List Reordering
+
+**Backend Code:**
+- Updated `app/utils/tournament_calculations.py` - Pool sizing algorithm (BR-POOL-001)
+- Updated `app/services/tiebreak_service.py` - Auto-detection methods
+- Updated `app/services/battle_service.py` - Interleaving and reordering methods
+- Updated `app/services/battle_results_encoding_service.py` - Tiebreak integration
+- Updated `app/repositories/battle.py` - Ordering and counting methods
+- Updated `app/routers/battles.py` - Queue and reorder endpoints
+- Updated `app/models/battle.py` - Added sequence_order field
+- Updated `app/services/pool_service.py` - 3-tuple return handling
+
+### Fixed
+
+**BUG #1: Pool sizing 25% elimination rule**
+- Previously used incorrect 25% elimination rule
+- Now enforces equal pool sizes per BR-POOL-001
+
+**BUG #2: Unequal pool sizes**
+- Previously allowed [5,4] distributions violating business rules
+- Now raises ValueError for uneven distributions
+
+### Breaking Changes
+
+**None** - All changes are additive
+
+### Migration Required
+
+**Database migration:** `20251206_add_sequence_order_to_battles.py`
+- Adds `sequence_order` column to battles table
+- Creates composite index on (category_id, sequence_order)
+- Includes data migration for existing battles
+
+### Statistics
+
+- **Total Tests**: 209 (182 existing + 27 new)
+- **All Tests Passing**: ✅
+- **Coverage**: ~85% for tiebreak_service.py and battle_service.py
 
 ---
 

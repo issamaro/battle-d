@@ -4,11 +4,12 @@ Handles recording battle results with atomic multi-model updates.
 All encoding operations use transactions to ensure data consistency.
 
 See: ARCHITECTURE.md for service layer patterns
+See: ARCHITECTURE.md §Tiebreak Auto-Detection Pattern
 See: VALIDATION_RULES.md for battle results encoding validation rules
 """
 
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,9 @@ from app.validators.battle_validators import (
     validate_finals_outcome,
 )
 from app.validators.result import ValidationResult
+
+if TYPE_CHECKING:
+    from app.services.tiebreak_service import TiebreakService
 
 
 class BattleResultsEncodingService:
@@ -47,6 +51,7 @@ class BattleResultsEncodingService:
         session: AsyncSession,
         battle_repo: BattleRepository,
         performer_repo: PerformerRepository,
+        tiebreak_service: Optional["TiebreakService"] = None,
     ):
         """Initialize battle encoding service.
 
@@ -54,10 +59,12 @@ class BattleResultsEncodingService:
             session: Database session for transactions
             battle_repo: Battle repository
             performer_repo: Performer repository
+            tiebreak_service: Optional tiebreak service for auto-detection
         """
         self.session = session
         self.battle_repo = battle_repo
         self.performer_repo = performer_repo
+        self.tiebreak_service = tiebreak_service
 
     async def encode_preselection_results(
         self, battle_id: UUID, scores: dict[UUID, Decimal]
@@ -117,7 +124,23 @@ class BattleResultsEncodingService:
         # Refresh battle to get updated state
         await self.session.refresh(battle)
 
-        return ValidationResult.success(validation.warnings)
+        # BR-TIE-001: Check for tiebreak after last preselection battle
+        warnings = list(validation.warnings) if validation.warnings else []
+        if self.tiebreak_service:
+            remaining = await self.battle_repo.count_pending_by_category_and_phase(
+                battle.category_id, BattlePhase.PRESELECTION
+            )
+            if remaining == 0:
+                # Last preselection battle completed - check for ties
+                tiebreak = await self.tiebreak_service.detect_and_create_preselection_tiebreak(
+                    battle.category_id
+                )
+                if tiebreak:
+                    warnings.append(
+                        f"Tiebreak battle created for {len(tiebreak.performers)} tied performers"
+                    )
+
+        return ValidationResult.success(warnings if warnings else None)
 
     async def encode_pool_results(
         self,
@@ -211,7 +234,23 @@ class BattleResultsEncodingService:
         # Refresh battle to get updated state
         await self.session.refresh(battle)
 
-        return ValidationResult.success(validation.warnings)
+        # BR-TIE-002: Check for pool winner tiebreaks when pool phase complete
+        warnings = list(validation.warnings) if validation.warnings else []
+        if self.tiebreak_service:
+            remaining = await self.battle_repo.count_pending_by_category_and_phase(
+                battle.category_id, BattlePhase.POOLS
+            )
+            if remaining == 0:
+                # All pool battles done - check all pools for ties
+                tiebreaks = await self.tiebreak_service.detect_and_create_pool_winner_tiebreaks(
+                    battle.category_id
+                )
+                if tiebreaks:
+                    warnings.append(
+                        f"{len(tiebreaks)} pool winner tiebreak battle(s) created"
+                    )
+
+        return ValidationResult.success(warnings if warnings else None)
 
     async def encode_tiebreak_results(
         self,

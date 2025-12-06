@@ -44,38 +44,48 @@ def calculate_minimum_performers(groups_ideal: int) -> int:
 def calculate_pool_capacity(
     registered_performers: int,
     groups_ideal: int,
-) -> tuple[int, int]:
-    """Calculate pool structure ensuring preselection eliminates performers.
+    performers_ideal: int = 4,
+) -> tuple[int, int, int]:
+    """Calculate pool structure ensuring EQUAL pool sizes (BR-POOL-001).
+
+    Business Rule BR-POOL-001: All pools must have EQUAL sizes.
+    Pool capacity is calculated as groups_ideal × performers_per_pool
+    where performers_per_pool is adaptive but EQUAL across all pools.
 
     Strategy:
-    - Eliminate performers to reach pool capacity
-    - Ensure at least 1 eliminated (preselection mandatory)
-    - Ensure at least 2 per pool after elimination
+    1. If registered >= ideal_capacity + 1: use ideal capacity
+    2. Otherwise: reduce pool size until capacity < registered
+    3. This ensures at least 1 performer is eliminated (preselection mandatory)
 
     Args:
         registered_performers: Number of registered performers
-        groups_ideal: Target number of pools
+        groups_ideal: Target number of pools (FIXED)
+        performers_ideal: Target performers per pool (ADAPTIVE DOWN)
 
     Returns:
-        Tuple of (pool_performers, eliminated_count)
-        - pool_performers: Total performers qualifying for pools
+        Tuple of (pool_capacity, performers_per_pool, eliminated_count)
+        - pool_capacity: Total performers qualifying for pools
+        - performers_per_pool: Size of each pool (EQUAL)
         - eliminated_count: Performers eliminated in preselection
 
     Raises:
         ValueError: If registered_performers < minimum required
 
     Examples:
-        >>> calculate_pool_capacity(7, 2)
-        (6, 1)  # Eliminate 1, create 2 pools of 3 each
+        >>> calculate_pool_capacity(9, 2, 4)
+        (8, 4, 1)  # 9 registered, 8 capacity (2×4), 1 eliminated
 
-        >>> calculate_pool_capacity(9, 2)
-        (8, 1)  # Eliminate 1, create 2 pools of 4 each
+        >>> calculate_pool_capacity(8, 2, 4)
+        (6, 3, 2)  # 8 registered = ideal, must reduce to 2×3=6 to ensure elimination
 
-        >>> calculate_pool_capacity(20, 2)
-        (16, 4)  # Eliminate 4, create 2 pools of 8 each
+        >>> calculate_pool_capacity(7, 2, 4)
+        (6, 3, 1)  # 7 registered, 6 capacity (2×3), 1 eliminated
 
-        >>> calculate_pool_capacity(5, 2)
-        (4, 1)  # Minimum case: eliminate 1, create 2 pools of 2 each
+        >>> calculate_pool_capacity(12, 2, 4)
+        (8, 4, 4)  # 12 registered, 8 capacity (2×4), 4 eliminated
+
+        >>> calculate_pool_capacity(5, 2, 4)
+        (4, 2, 1)  # Minimum case: 5 registered, 4 capacity (2×2), 1 eliminated
     """
     min_required = calculate_minimum_performers(groups_ideal)
     if registered_performers < min_required:
@@ -84,69 +94,77 @@ def calculate_pool_capacity(
             f"got {registered_performers}"
         )
 
-    # Calculate elimination target (dynamic based on registrations, minimum 1)
-    elimination_target = max(1, int(registered_performers * 0.25))
-    pool_performers = registered_performers - elimination_target
+    ideal_capacity = groups_ideal * performers_ideal
 
-    # Ensure minimum 2 per pool
-    min_pool_performers = groups_ideal * 2
-    if pool_performers < min_pool_performers:
-        pool_performers = min_pool_performers
+    # Case 1: More performers than ideal + 1 → use ideal capacity
+    if registered_performers >= ideal_capacity + 1:
+        eliminated = registered_performers - ideal_capacity
+        return ideal_capacity, performers_ideal, eliminated
 
-    eliminated = registered_performers - pool_performers
-    return pool_performers, eliminated
+    # Case 2: Need to reduce pool size to ensure elimination
+    # Find largest performers_per_pool where (groups × pool_size) < registered
+    for pool_size in range(performers_ideal, 1, -1):  # Start from ideal, go down to 2
+        capacity = groups_ideal * pool_size
+        if capacity < registered_performers:
+            eliminated = registered_performers - capacity
+            return capacity, pool_size, eliminated
+
+    # Fallback: minimum 2 per pool
+    capacity = groups_ideal * 2
+    eliminated = registered_performers - capacity
+    return capacity, 2, eliminated
 
 
 def distribute_performers_to_pools(
-    performer_count: int,
+    pool_capacity: int,
     groups_ideal: int,
 ) -> list[int]:
-    """Calculate even distribution of performers across pools.
+    """Distribute performers EQUALLY across pools (BR-POOL-001).
 
-    Strategy:
-    - Distribute as evenly as possible
-    - Pool sizes differ by at most 1
-    - Larger pools come first
+    Business Rule BR-POOL-001: All pools must have EQUAL sizes.
+    This function enforces that pool_capacity is evenly divisible by groups_ideal.
 
     Args:
-        performer_count: Number of performers to distribute
+        pool_capacity: Total performers to distribute (must be divisible by groups_ideal)
         groups_ideal: Number of pools
 
     Returns:
-        List of pool sizes (length = groups_ideal)
+        List of equal pool sizes (length = groups_ideal)
 
     Raises:
-        ValueError: If performer_count < groups_ideal * 2 (minimum 2 per pool)
+        ValueError: If pool_capacity is not evenly divisible by groups_ideal
+        ValueError: If pool_capacity < groups_ideal * 2 (minimum 2 per pool)
 
     Examples:
         >>> distribute_performers_to_pools(8, 2)
-        [4, 4]  # Even distribution
+        [4, 4]  # 8 / 2 = 4 per pool
+
+        >>> distribute_performers_to_pools(6, 2)
+        [3, 3]  # 6 / 2 = 3 per pool
+
+        >>> distribute_performers_to_pools(12, 3)
+        [4, 4, 4]  # 12 / 3 = 4 per pool
+
+        >>> distribute_performers_to_pools(9, 3)
+        [3, 3, 3]  # 9 / 3 = 3 per pool
 
         >>> distribute_performers_to_pools(9, 2)
-        [5, 4]  # 5 in first pool, 4 in second
-
-        >>> distribute_performers_to_pools(10, 3)
-        [4, 3, 3]  # 4 in first, 3 in others
-
-        >>> distribute_performers_to_pools(11, 3)
-        [4, 4, 3]  # Two pools get 4, one gets 3
+        ValueError  # 9 not divisible by 2 - violates BR-POOL-001
     """
-    if performer_count < groups_ideal * 2:
+    if pool_capacity < groups_ideal * 2:
         raise ValueError(
             f"Need at least {groups_ideal * 2} performers for {groups_ideal} pools "
-            f"(minimum 2 per pool), got {performer_count}"
+            f"(minimum 2 per pool), got {pool_capacity}"
         )
 
-    base_size = performer_count // groups_ideal
-    remainder = performer_count % groups_ideal
+    if pool_capacity % groups_ideal != 0:
+        raise ValueError(
+            f"Pool capacity {pool_capacity} must be evenly divisible by {groups_ideal} pools "
+            f"(BR-POOL-001: Equal Pool Sizes). Use calculate_pool_capacity() to get valid capacity."
+        )
 
-    # First 'remainder' pools get one extra performer
-    pool_sizes = []
-    for i in range(groups_ideal):
-        size = base_size + (1 if i < remainder else 0)
-        pool_sizes.append(size)
-
-    return pool_sizes
+    pool_size = pool_capacity // groups_ideal
+    return [pool_size] * groups_ideal
 
 
 def calculate_minimum_for_category(

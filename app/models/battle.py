@@ -9,6 +9,8 @@ from sqlalchemy import (
     JSON,
     Table,
     Column,
+    Integer,
+    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
@@ -114,6 +116,17 @@ class Battle(BaseModel):
     outcome: Mapped[Optional[Dict[str, Any]]] = mapped_column(
         JSON,
         nullable=True,
+    )
+
+    sequence_order: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+        doc="Position in battle queue for ordering (BR-SCHED-001, BR-SCHED-002)",
+    )
+
+    # Table-level index for efficient ordering queries
+    __table_args__ = (
+        Index("idx_battles_category_sequence", "category_id", "sequence_order"),
     )
 
     # Relationships

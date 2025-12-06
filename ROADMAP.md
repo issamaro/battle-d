@@ -1,5 +1,5 @@
 # Battle-D Project Roadmap
-**Level 2: Derived** | Last Updated: 2025-12-04
+**Level 2: Derived** | Last Updated: 2025-12-06
 
 Phased development roadmap from POC to V2.
 
@@ -814,6 +814,118 @@ The battle queue system has critical bugs and architectural violations:
 - Zero test failures
 
 **Release:** Phase 3.1 COMPLETE ✅ (target: 2025-12-27)
+
+---
+
+## Phase 3.2: Tournament Organization Validation (COMPLETE ✅)
+
+**Duration:** 1 week (2025-12-06)
+
+**Status:** ✅ COMPLETE
+
+**Objective:** Fix critical bugs in tournament organization (pool sizing, tiebreak auto-creation) and add battle queue management features (interleaving, reordering).
+
+### Problem Statement
+
+The tournament organization system has critical bugs preventing production use:
+
+1. **BUG #1 (Pool Sizing):** Pool capacity uses incorrect 25% elimination rule instead of equal pool sizes
+2. **BUG #2 (Unequal Pools):** Current algorithm allows [5, 4] distributions violating BR-POOL-001
+3. **GAP #1 (Tiebreak Auto-Creation):** Preselection tiebreaks not auto-created after last battle completion
+4. **GAP #2 (Pool Winner Tiebreaks):** Pool winner tiebreaks not auto-created
+5. **GAP #3 (Battle Interleaving):** Battle queue not interleaved across categories
+
+### Key Deliverables
+
+**Backend Fixes:**
+- **Fix** `calculate_pool_capacity()` - Replace 25% rule with equal pool sizing (BR-POOL-001)
+- **Fix** `distribute_performers_to_pools()` - Enforce equal pool sizes only
+- **New** `TiebreakService.detect_and_create_preselection_tiebreak()` - Auto-detect ties at boundary
+- **New** `TiebreakService.detect_and_create_pool_winner_tiebreak()` - Auto-detect pool winner ties
+- **New** `BattleService.generate_interleaved_preselection_battles()` - Round-robin category interleaving
+- **New** `BattleService.reorder_battle()` - Battle queue reordering with constraints
+
+**Database Changes:**
+- Add `sequence_order` column to Battle model for queue ordering
+- Add index on `(category_id, sequence_order)` for efficient ordering queries
+
+**Frontend Features:**
+- Drag-and-drop battle reordering UI (Sortable.js + HTMX)
+- Visual indicators for locked vs movable battles
+- Category filter chips for interleaved queue view
+
+**Tests:**
+- Pool sizing tests for equal distribution
+- Tiebreak auto-detection integration tests
+- Battle reordering constraint tests
+
+### Business Rules Implemented
+
+| Rule ID | Rule Name | Description |
+|---------|-----------|-------------|
+| BR-POOL-001 | Equal Pool Sizes | All pools must have identical sizes; pool capacity adapts to ensure equality |
+| BR-TIE-001 | Preselection Tiebreak Auto-Detection | System auto-creates tiebreak when last preselection battle completed with ties at boundary |
+| BR-TIE-002 | Pool Winner Tiebreak Auto-Detection | System auto-creates tiebreak when last pool battle completed with tied pool winner |
+| BR-TIE-003 | All Tied Performers Compete | All performers with boundary score must compete in tiebreak battle |
+| BR-SCHED-001 | Battle Interleaving | Preselection battles interleaved across categories in round-robin fashion |
+| BR-SCHED-002 | Battle Reordering Constraints | Only pending battles (not first pending) can be reordered |
+
+### Pool Sizing Examples (BR-POOL-001)
+
+| Registered | Ideal (2×4) | Pool Capacity | Eliminated | Pool Sizes |
+|------------|-------------|---------------|------------|------------|
+| 12         | 8           | 8             | 4          | [4, 4]     |
+| 10         | 8           | 8             | 2          | [4, 4]     |
+| 9          | 8           | 8             | 1          | [4, 4]     |
+| 8          | 8           | 6             | 2          | [3, 3]     |
+| 7          | 8           | 6             | 1          | [3, 3]     |
+| 6          | 8           | 4             | 2          | [2, 2]     |
+| 5          | 8           | 4             | 1          | [2, 2]     |
+
+### Files Modified
+
+**Documentation (BEFORE Code):**
+- ✅ `DOMAIN_MODEL.md` - Added BR-POOL-001, BR-TIE-001/002/003, BR-SCHED-001/002, `sequence_order` field
+- ✅ `VALIDATION_RULES.md` - Replaced pool sizing algorithm, added battle queue ordering rules
+- ✅ `ROADMAP.md` - Added Phase 3.2 entry (this section)
+- ✅ `ARCHITECTURE.md` - Tiebreak integration pattern
+- ✅ `FRONTEND.md` - Drag-and-drop reordering pattern
+
+**Backend Code:**
+- ✅ `app/utils/tournament_calculations.py` - Fixed pool sizing
+- ✅ `app/services/tiebreak_service.py` - Auto-detection methods
+- ✅ `app/services/battle_service.py` - Interleaving and reordering methods
+- ✅ `app/services/battle_results_encoding_service.py` - Tiebreak detection integration
+- ✅ `app/repositories/battle.py` - Ordering and counting methods
+- ✅ `app/routers/battles.py` - Reorder endpoint
+- ✅ `app/models/battle.py` - `sequence_order` field
+- ✅ `alembic/versions/20251206_seq_order.py` - Database migration
+
+**Frontend Code:**
+- ✅ `app/templates/battles/_battle_queue.html` - Sortable list partial with SortableJS
+
+**Tests:**
+- ✅ `tests/test_tournament_calculations.py` - Updated pool sizing tests (27 tests)
+- ✅ `tests/test_tiebreak_service.py` - Auto-detection tests (36 tests, +14 new)
+- ✅ `tests/test_battle_service.py` - Interleaving and reordering tests (33 tests, +14 new)
+
+### Risk Analysis
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Pool sizing change breaks existing data | Low | High | No production data yet; add validation |
+| Tiebreak race conditions | Medium | Medium | Database transactions with row locking |
+| Drag-and-drop accessibility | High | Medium | Add keyboard shortcuts, move buttons |
+| HTMX polling performance | Low | Low | Conditional polling, ETag headers |
+
+### Test Results
+
+- ✅ All 209 tests passing
+- ✅ New pool sizing tests added (27 tests)
+- ✅ New tiebreak auto-detection tests added (+14 tests)
+- ✅ New battle interleaving/reordering tests added (+14 tests)
+
+**Release:** Phase 3.2 COMPLETE ✅ (2025-12-06)
 
 ---
 

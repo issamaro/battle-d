@@ -103,7 +103,14 @@ class TestCreatePoolsFromPreselection:
         tournament_id,
         category_id,
     ):
-        """Test successful pool creation with 8 performers, groups_ideal=2."""
+        """Test successful pool creation with 8 performers, groups_ideal=2.
+
+        BR-POOL-001: Equal pool sizes required.
+        8 performers, 2 pools:
+        - Ideal capacity = 2×4 = 8, but registered (8) < ideal + 1 (9)
+        - Reduce: 2×4=8 NOT < 8, 2×3=6 < 8 ✓
+        - Result: 6 qualify (2 pools × 3 each), 2 eliminated
+        """
         # Setup: 8 performers with scores
         performers = [
             create_performer_with_score(
@@ -128,6 +135,10 @@ class TestCreatePoolsFromPreselection:
         assert pools[0].name == "Pool A"
         assert pools[1].name == "Pool B"
 
+        # BR-POOL-001: Equal pool sizes
+        assert len(pools[0].performers) == 3
+        assert len(pools[1].performers) == 3
+
         # Verify qualified performers (top 6 by score)
         all_pool_performers = []
         for pool in pools:
@@ -146,7 +157,14 @@ class TestCreatePoolsFromPreselection:
         tournament_id,
         category_id,
     ):
-        """Test even distribution: 10 performers → 8 qualify → 2 pools of 4 each."""
+        """Test even distribution: 10 performers → 8 qualify → 2 pools of 4 each.
+
+        BR-POOL-001: Equal pool sizes.
+        10 performers, 2 pools:
+        - Ideal capacity = 2×4 = 8, registered (10) >= ideal + 1 (9) ✓
+        - Use ideal capacity: 8 qualify, 2 eliminated
+        - Result: 2 pools × 4 each
+        """
         performers = [
             create_performer_with_score(
                 tournament_id, category_id, Decimal(f"{10 - i}.0")
@@ -163,12 +181,12 @@ class TestCreatePoolsFromPreselection:
 
         pools = await pool_service.create_pools_from_preselection(category_id, 2)
 
-        # Verify distribution
+        # Verify BR-POOL-001: equal distribution
         assert len(pools) == 2
         assert len(pools[0].performers) == 4
         assert len(pools[1].performers) == 4
 
-    async def test_create_pools_uneven_distribution(
+    async def test_create_pools_equal_distribution_11_performers(
         self,
         pool_service,
         performer_repo,
@@ -176,8 +194,13 @@ class TestCreatePoolsFromPreselection:
         tournament_id,
         category_id,
     ):
-        """Test uneven distribution: 9 qualified → 2 pools of 5 and 4."""
-        # 11 registered → 9 qualified (eliminate 2)
+        """Test BR-POOL-001: 11 performers → equal pools.
+
+        11 performers, 2 pools:
+        - Ideal capacity = 2×4 = 8, registered (11) >= ideal + 1 (9) ✓
+        - Use ideal capacity: 8 qualify, 3 eliminated
+        - Result: 2 pools × 4 each (equal sizes, not 5+4)
+        """
         performers = [
             create_performer_with_score(
                 tournament_id, category_id, Decimal(f"{10 - i}.0")
@@ -194,10 +217,10 @@ class TestCreatePoolsFromPreselection:
 
         pools = await pool_service.create_pools_from_preselection(category_id, 2)
 
-        # Verify uneven distribution (5 + 4 = 9)
+        # BR-POOL-001: Equal distribution (4 + 4 = 8, not 5 + 4)
         assert len(pools) == 2
-        pool_sizes = sorted([len(p.performers) for p in pools], reverse=True)
-        assert pool_sizes == [5, 4]
+        assert len(pools[0].performers) == 4
+        assert len(pools[1].performers) == 4
 
     async def test_create_pools_no_performers(
         self, pool_service, performer_repo, category_id

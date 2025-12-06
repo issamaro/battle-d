@@ -323,3 +323,133 @@ async def encode_battle(
         url=f"/battles/{battle_id}",
         status_code=status.HTTP_303_SEE_OTHER
     )
+
+
+@router.get("/queue/{category_id}", response_class=HTMLResponse)
+async def get_battle_queue(
+    request: Request,
+    category_id: uuid.UUID,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    battle_repo: BattleRepository = Depends(get_battle_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    flash_messages: list = Depends(get_flash_messages_dependency),
+):
+    """Get battle queue for a category (partial for HTMX).
+
+    Business Rule BR-SCHED-001: Returns battles ordered by sequence_order.
+
+    Args:
+        request: FastAPI request
+        category_id: Category UUID
+        current_user: Current authenticated user
+        battle_repo: Battle repository
+        category_repo: Category repository
+
+    Returns:
+        HTML partial with battle queue
+    """
+    user = require_staff(current_user)
+
+    category = await category_repo.get_by_id(category_id)
+    if not category:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
+
+    # Get pending battles ordered
+    pending_battles = await battle_repo.get_pending_battles_ordered(category_id)
+
+    # Get active battle if any
+    active_battles = await battle_repo.get_by_category_and_status(
+        category_id, BattleStatus.ACTIVE
+    )
+    active_battle = active_battles[0] if active_battles else None
+
+    return templates.TemplateResponse(
+        request=request,
+        name="battles/_battle_queue.html",
+        context={
+            "current_user": user,
+            "category": category,
+            "pending_battles": pending_battles,
+            "active_battle": active_battle,
+            "flash_messages": flash_messages,
+        },
+    )
+
+
+@router.post("/{battle_id}/reorder")
+async def reorder_battle(
+    request: Request,
+    battle_id: uuid.UUID,
+    new_position: int = Form(...),
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    battle_repo: BattleRepository = Depends(get_battle_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+):
+    """Reorder a battle in the queue.
+
+    Business Rule BR-SCHED-002: Only battles 2+ positions after ACTIVE can be moved.
+
+    Args:
+        request: FastAPI request
+        battle_id: Battle UUID to move
+        new_position: Target position (1-indexed)
+        current_user: Current authenticated user
+        battle_repo: Battle repository
+        performer_repo: Performer repository
+        category_repo: Category repository
+
+    Returns:
+        Redirect to battle queue or HTML partial for HTMX
+    """
+    user = require_staff(current_user)
+
+    # Import battle service here to avoid circular imports
+    from app.services.battle_service import BattleService
+
+    battle = await battle_repo.get_by_id(battle_id)
+    if not battle:
+        add_flash_message(request, "Battle not found", "error")
+        return RedirectResponse(
+            url="/battles",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    battle_service = BattleService(battle_repo, performer_repo)
+
+    try:
+        await battle_service.reorder_battle(battle_id, new_position)
+        add_flash_message(request, "Battle reordered successfully", "success")
+    except ValidationError as e:
+        for error in e.errors:
+            add_flash_message(request, error, "error")
+
+    # Check if HTMX request
+    if request.headers.get("HX-Request"):
+        # Return partial HTML for HTMX
+        category = await category_repo.get_by_id(battle.category_id)
+        pending_battles = await battle_repo.get_pending_battles_ordered(battle.category_id)
+        active_battles = await battle_repo.get_by_category_and_status(
+            battle.category_id, BattleStatus.ACTIVE
+        )
+        active_battle = active_battles[0] if active_battles else None
+
+        return templates.TemplateResponse(
+            request=request,
+            name="battles/_battle_queue.html",
+            context={
+                "current_user": user,
+                "category": category,
+                "pending_battles": pending_battles,
+                "active_battle": active_battle,
+                "flash_messages": [],
+            },
+        )
+
+    return RedirectResponse(
+        url=f"/battles?category_id={battle.category_id}",
+        status_code=status.HTTP_303_SEE_OTHER
+    )

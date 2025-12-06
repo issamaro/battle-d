@@ -75,10 +75,10 @@ class PoolService:
                 [f"Cannot create pools: {len(performers_without_scores)} performers missing preselection scores"]
             )
 
-        # Calculate pool capacity
+        # Calculate pool capacity using BR-POOL-001 rules
         registered_count = len(performers)
         try:
-            pool_performers_count, eliminated_count = calculate_pool_capacity(
+            pool_performers_count, _, eliminated_count = calculate_pool_capacity(
                 registered_count, groups_ideal
             )
         except ValueError as e:

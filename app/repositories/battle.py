@@ -1,7 +1,7 @@
 """Battle repository."""
 import uuid
 from typing import Optional, List
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeType
@@ -211,3 +211,86 @@ class BattleRepository(BaseRepository[Battle]):
             )
         )
         return list(result.scalars().all())
+
+    async def count_pending_by_category_and_phase(
+        self, category_id: uuid.UUID, phase: BattlePhase
+    ) -> int:
+        """Count pending battles for a category and phase.
+
+        Used for tiebreak auto-detection: when count reaches 0,
+        trigger tie detection.
+
+        Args:
+            category_id: Category UUID
+            phase: Battle phase
+
+        Returns:
+            Number of pending battles
+        """
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Battle)
+            .where(
+                Battle.category_id == category_id,
+                Battle.phase == phase,
+                Battle.status == BattleStatus.PENDING,
+            )
+        )
+        return result.scalar_one()
+
+    async def get_pending_battles_ordered(
+        self, category_id: uuid.UUID
+    ) -> List[Battle]:
+        """Get pending battles ordered by sequence_order.
+
+        Used for battle queue display and reordering.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of pending battles in order
+        """
+        result = await self.session.execute(
+            select(Battle)
+            .options(selectinload(Battle.performers))
+            .where(
+                Battle.category_id == category_id,
+                Battle.status == BattleStatus.PENDING,
+            )
+            .order_by(Battle.sequence_order.asc().nullslast(), Battle.created_at.asc())
+        )
+        return list(result.scalars().all())
+
+    async def update_sequence_order(
+        self, battle_id: uuid.UUID, new_order: int
+    ) -> None:
+        """Update a battle's sequence order.
+
+        Args:
+            battle_id: Battle UUID
+            new_order: New sequence order value
+        """
+        await self.update(battle_id, sequence_order=new_order)
+
+    async def has_pending_tiebreak(self, category_id: uuid.UUID) -> bool:
+        """Check if category has a pending tiebreak battle.
+
+        Used to prevent duplicate tiebreak creation.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            True if pending tiebreak exists
+        """
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(Battle)
+            .where(
+                Battle.category_id == category_id,
+                Battle.phase == BattlePhase.TIEBREAK,
+                Battle.status == BattleStatus.PENDING,
+            )
+        )
+        return result.scalar_one() > 0
