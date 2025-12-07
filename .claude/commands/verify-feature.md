@@ -537,6 +537,13 @@ Fix the 2 important issues, then ready for deployment.
 - [ ] All new tests pass
 - [ ] Coverage meets targets (≥90% overall, ≥95% new code)
 
+**Service Integration Testing (CRITICAL):**
+- [ ] Service integration tests exist for new service methods
+- [ ] Integration tests use REAL repositories (NOT mocks)
+- [ ] Integration tests use REAL enum values (catches invalid references)
+- [ ] Integration tests verify actual database state after operations
+- [ ] No over-mocking that hides bugs (see TESTING.md for patterns)
+
 **Manual Testing:**
 - [ ] Happy path tested and works
 - [ ] Error paths tested and work

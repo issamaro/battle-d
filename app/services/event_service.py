@@ -125,12 +125,12 @@ class EventService:
             for c in categories
         ]
 
-        # Get current battle (IN_PROGRESS)
+        # Get current battle (ACTIVE)
         current_battle = None
         current_performer1 = ""
         current_performer2 = ""
         all_battles = await self._get_all_tournament_battles(tournament_id)
-        in_progress = [b for b in all_battles if b.status == BattleStatus.IN_PROGRESS]
+        in_progress = [b for b in all_battles if b.status == BattleStatus.ACTIVE]
         if in_progress:
             current_battle = in_progress[0]
             # Get performer names

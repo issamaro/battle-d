@@ -676,29 +676,69 @@ flash(request, "error", "Failed to encode battle")
 
 **Write tests AS YOU IMPLEMENT, not after.**
 
-**13.1 Unit Tests (Service Layer)**
+**CRITICAL: Service tests should be INTEGRATION tests (real DB), not mocked unit tests.**
 
-In `tests/test_*_service.py`:
+Mocked unit tests hide bugs like:
+- Invalid enum values (`BattleStatus.IN_PROGRESS` doesn't exist)
+- Repository signature mismatches
+- Relationship/lazy loading issues
+
+**13.1 Service Integration Tests (PRIMARY - Required)**
+
+In `tests/test_*_service.py` or `tests/test_*_integration.py`:
 
 ```python
 @pytest.mark.asyncio
-async def test_filter_battles_by_encoding_status_pending(battle_service, battle_repo):
-    """Test filtering battles by pending encoding status."""
-    # Setup
-    battle_repo.get_by_filters.return_value = [mock_battle_1, mock_battle_2]
+async def test_filter_battles_integration(async_session_maker):
+    """Integration test: filter battles with real DB."""
+    async with async_session_maker() as session:
+        # Setup - USE REAL REPOS (not mocks!)
+        battle_repo = BattleRepository(session)
+        category_repo = CategoryRepository(session)
+        service = BattleService(battle_repo, category_repo)
 
-    # Execute
-    result = await battle_service.filter_battles(encoding_status='pending')
+        # Create REAL test data with REAL enum values
+        # If BattleStatus.INVALID exists here, test fails immediately!
+        battle = Battle(
+            status=BattleStatus.PENDING,  # Real enum - validates at runtime
+            phase=BattlePhase.PRESELECTION,
+            ...
+        )
+        await battle_repo.create(battle)
 
-    # Verify
-    assert len(result) == 2
-    battle_repo.get_by_filters.assert_called_once_with(
-        status=None,
-        encoding_status='pending'
-    )
+        # Execute against REAL database
+        result = await service.filter_battles(encoding_status='pending')
+
+        # Verify ACTUAL behavior
+        assert len(result) == 1
+        assert result[0].status == BattleStatus.PENDING
 ```
 
-**13.2 Integration Tests (Routes)**
+**Why Integration Tests First:**
+- Validates real enum values exist
+- Validates repository method signatures
+- Catches lazy loading issues
+- Tests actual transaction behavior
+
+**13.2 Unit Tests (OPTIONAL - Isolated Logic Only)**
+
+Use mocked unit tests ONLY for:
+- Pure calculation functions (no DB)
+- Complex branching logic worth isolating
+- External API mocking (not repository mocking)
+
+```python
+# GOOD: Unit test for pure calculation (no DB)
+def test_calculate_minimum_performers():
+    """Unit test for pure calculation."""
+    result = calculate_minimum_performers(groups_ideal=3)
+    assert result == 7  # (3 * 2) + 1
+
+# BAD: Don't mock repositories for service tests
+# This hides bugs like invalid enums and signature mismatches
+```
+
+**13.3 Route Integration Tests (HTTP Layer)**
 
 In `tests/test_*_routes.py`:
 
@@ -806,10 +846,15 @@ In `workbench/CHANGE_*.md`, add:
 - [ ] PicoCSS used (minimal custom CSS)
 - [ ] Flash messages implemented
 - [ ] Empty states implemented
-- [ ] Unit tests written and passing
-- [ ] Integration tests written and passing
 - [ ] Code follows architectural patterns
 - [ ] All TodoWrite tasks marked completed
+
+**Testing Phase Complete (CRITICAL):**
+- [ ] Service INTEGRATION tests written (real repos, real DB - NOT mocked)
+- [ ] Integration tests use real enum values (catches invalid references)
+- [ ] Integration tests verify actual database state after operations
+- [ ] Route integration tests written and passing
+- [ ] All tests passing (no regressions)
 
 **Quality Checks:**
 - [ ] No business logic in routers

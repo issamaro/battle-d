@@ -5,6 +5,55 @@
 
 ---
 
+## [2025-12-07] - Methodology Update: Integration Testing Improvement
+
+### Changed
+
+**Development Methodology Updated to Prescribe Service Integration Tests**
+
+The development methodology was actively encouraging testing patterns that hid production bugs. Tests with mocked repositories passed even when code referenced invalid enum values or used incorrect method signatures.
+
+**Root Cause:** Service tests used mocked repositories which validated "Did the code call the mock?" instead of "Does the code work with real components?"
+
+**Solution:** Updated methodology to prescribe Service Integration Tests (real DB) as PRIMARY test type for services.
+
+### Files Modified
+
+**Slash Commands:**
+- `.claude/commands/implement-feature.md`
+  - Step 13.1 now shows Service Integration Test pattern (real repos)
+  - Added Step 13.2 for optional unit tests (isolated logic only)
+  - Quality Gate now requires service integration tests
+- `.claude/commands/verify-feature.md`
+  - Added "Service Integration Testing (CRITICAL)" quality gate section
+
+**Documentation:**
+- `TESTING.md`
+  - Added "Service Integration Tests (PRIMARY for Services)" section
+  - Updated "Unit Tests" section to clarify when mocks are appropriate
+- `.claude/README.md`
+  - Replaced "Unit Test Template (Service Layer)" with "Service Integration Test Template (PRIMARY)"
+  - Added warning against mocking repositories for service tests
+
+### Impact
+
+This methodology change ensures:
+- Invalid enum references caught at test time (e.g., `BattleStatus.IN_PROGRESS`)
+- Repository signature mismatches caught at test time
+- Lazy loading issues caught at test time
+- Future features will have integration tests that validate real behavior
+
+### Bugs This Would Have Caught
+
+| Bug | How Integration Tests Would Catch |
+|-----|-----------------------------------|
+| `BattleStatus.IN_PROGRESS` (doesn't exist) | Real Battle creation fails immediately |
+| `BaseRepository.create()` signature mismatch | Real repo call fails with TypeError |
+| `performer1_id` / `performer2_id` (don't exist) | Real Battle creation fails |
+| `battle_order` (should be `sequence_order`) | Real Battle creation fails |
+
+---
+
 ## [2025-12-07] - Bug Fix: Repository create() Method Signature
 
 ### Fixed

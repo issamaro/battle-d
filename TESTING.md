@@ -118,21 +118,92 @@ open htmlcov/index.html  # macOS
 
 ## Test Categories
 
-### Unit Tests (Current - Phase 0)
+### Unit Tests (For Isolated Logic Only)
 
 Unit tests focus on individual components and functions in isolation.
+
+**Use unit tests for:**
+- Pure calculation functions (no DB)
+- Complex branching logic worth isolating
+- External API mocking
 
 **Current test files:**
 - `test_auth.py` - Authentication flows and token management
 - `test_permissions.py` - Decorator-based access control
 - `test_tournament_calculations.py` - Tournament capacity and pool calculations
 
-### Integration Tests (Planned - Phase 1+)
+**IMPORTANT:** Do NOT use mocked unit tests for service methods that interact with repositories. Use Service Integration Tests instead.
 
-Integration tests will verify interactions between components:
-- Database operations
-- Email service integration
-- External API calls (Stripe, etc.)
+### Service Integration Tests (PRIMARY for Services)
+
+**This is the PRIMARY test type for service methods.**
+
+Service integration tests verify that services work correctly with REAL repositories and the actual database. Unlike mocked unit tests, integration tests catch bugs like:
+
+- **Invalid enum references** (e.g., `BattleStatus.IN_PROGRESS` doesn't exist)
+- **Repository method signature mismatches** (e.g., `create()` accepts `**kwargs` vs model instance)
+- **Lazy loading and relationship issues**
+- **Transaction/session management bugs**
+
+**Why Integration Tests First (Not Mocked Unit Tests):**
+
+Mocked unit tests only verify that code *calls* dependencies correctly:
+```python
+# BAD: This test passes even if BattleStatus.IN_PROGRESS doesn't exist!
+battle_repo.get_by_category.return_value = []  # Mock returns empty list
+# The filtering code never validates the enum value
+```
+
+Integration tests verify that code *works* with real components:
+```python
+# GOOD: This test FAILS if BattleStatus.IN_PROGRESS doesn't exist!
+battle = Battle(status=BattleStatus.IN_PROGRESS, ...)  # Runtime error!
+```
+
+**Pattern:**
+```python
+@pytest.mark.asyncio
+async def test_service_method_integration(async_session_maker):
+    """Integration test for service method."""
+    async with async_session_maker() as session:
+        # 1. Create REAL repositories (not mocks)
+        battle_repo = BattleRepository(session)
+        category_repo = CategoryRepository(session)
+        service = BattleService(battle_repo, category_repo)
+
+        # 2. Create REAL test data with REAL enum values
+        battle = Battle(
+            status=BattleStatus.PENDING,  # Real enum - validates at runtime!
+            phase=BattlePhase.PRESELECTION,
+            battle_type=BattleType.PRESELECTION,
+            category_id=category.id,
+        )
+        await battle_repo.create(battle)
+
+        # 3. Execute service method against REAL database
+        result = await service.some_method(battle.id)
+
+        # 4. Verify ACTUAL behavior and DB state
+        assert result.success
+        updated = await battle_repo.get_by_id(battle.id)
+        assert updated.status == BattleStatus.COMPLETED
+```
+
+**When to Use Mocked Unit Tests Instead:**
+- Pure calculation functions that don't touch the database
+- Complex branching logic worth isolating
+- External API calls (mock the external API, not the repository)
+
+**Current Service Integration Test Files:**
+- `test_repositories.py` - Repository integration tests (good pattern to follow)
+- `tests/test_*_integration.py` - Service integration tests
+
+### Route Integration Tests
+
+Route integration tests verify HTTP endpoints work correctly:
+- Request/response handling
+- Authentication/authorization
+- HTMX partial responses
 
 ### HTMX Interaction Tests
 

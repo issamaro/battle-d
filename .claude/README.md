@@ -2490,76 +2490,97 @@ Any additional notes, caveats, or follow-up items.
 
 ## Test Structure Templates
 
-### Unit Test Template (Service Layer)
+### Service Integration Test Template (PRIMARY - Required)
+
+**IMPORTANT:** Service tests should use REAL repositories and database, NOT mocks.
+
+Mocked tests hide bugs like:
+- Invalid enum values (`BattleStatus.IN_PROGRESS` doesn't exist)
+- Repository signature mismatches
+- Lazy loading issues
 
 ```python
 import pytest
 from app.services.example_service import ExampleService
-from app.schemas.example import ExampleCreate, ExampleUpdate
-from app.utils.validation import ValidationResult
+from app.repositories.example import ExampleRepository
+from app.models.example import Example
 
 @pytest.mark.asyncio
-async def test_create_example_success(example_repository):
-    """Test successful example creation."""
-    service = ExampleService(example_repository)
-    data = ExampleCreate(name="Test Example", value=10)
+async def test_create_example_integration(async_session_maker):
+    """Integration test: create example with real DB."""
+    async with async_session_maker() as session:
+        # 1. Create REAL repository (not mock)
+        repo = ExampleRepository(session)
+        service = ExampleService(repo)
 
-    result = await service.create_example(data)
+        # 2. Execute against REAL database
+        result = await service.create_example(name="Test", value=10)
 
-    assert result.success
-    assert result.data is not None
-    assert result.data.name == "Test Example"
-    assert result.data.value == 10
+        # 3. Verify actual behavior
+        assert result.success
+        assert result.data.id is not None
+        assert result.data.name == "Test"
 
-
-@pytest.mark.asyncio
-async def test_create_example_validation_error(example_repository):
-    """Test example creation with validation errors."""
-    service = ExampleService(example_repository)
-    data = ExampleCreate(name="", value=10)  # Empty name
-
-    result = await service.create_example(data)
-
-    assert not result.success
-    assert "Name is required" in result.errors
-    assert result.data is None
+        # 4. Verify database state
+        saved = await repo.get_by_id(result.data.id)
+        assert saved is not None
+        assert saved.name == "Test"
 
 
 @pytest.mark.asyncio
-async def test_create_example_duplicate_error(example_repository):
-    """Test example creation with duplicate name."""
-    service = ExampleService(example_repository)
+async def test_create_example_validation_integration(async_session_maker):
+    """Integration test: validation errors with real DB."""
+    async with async_session_maker() as session:
+        repo = ExampleRepository(session)
+        service = ExampleService(repo)
 
-    # Create first example
-    data1 = ExampleCreate(name="Unique", value=10)
-    await service.create_example(data1)
+        # Empty name should fail validation
+        result = await service.create_example(name="", value=10)
 
-    # Try to create duplicate
-    data2 = ExampleCreate(name="Unique", value=20)
-    result = await service.create_example(data2)
-
-    assert not result.success
-    assert "already exists" in result.errors[0].lower()
+        assert not result.success
+        assert "Name is required" in result.errors
 
 
-@pytest.mark.parametrize("name,value,expected_errors", [
-    ("", 10, ["Name is required"]),
-    ("Test", -1, ["Value must be positive"]),
-    ("", -1, ["Name is required", "Value must be positive"]),
-])
 @pytest.mark.asyncio
-async def test_create_example_various_validations(
-    example_repository, name, value, expected_errors
-):
-    """Test various validation scenarios."""
-    service = ExampleService(example_repository)
-    data = ExampleCreate(name=name, value=value)
+async def test_create_example_duplicate_integration(async_session_maker):
+    """Integration test: duplicate detection with real DB."""
+    async with async_session_maker() as session:
+        repo = ExampleRepository(session)
+        service = ExampleService(repo)
 
-    result = await service.create_example(data)
+        # Create first example
+        await service.create_example(name="Unique", value=10)
 
-    assert not result.success
-    for error in expected_errors:
-        assert error in result.errors
+        # Try duplicate - should fail
+        result = await service.create_example(name="Unique", value=20)
+
+        assert not result.success
+        assert "already exists" in result.errors[0].lower()
+```
+
+### Unit Test Template (OPTIONAL - Isolated Logic Only)
+
+**Use mocked unit tests ONLY for:**
+- Pure calculation functions (no DB)
+- Complex branching logic worth isolating
+- External API mocking (not repository mocking)
+
+```python
+# GOOD: Unit test for pure calculation (no database interaction)
+def test_calculate_minimum_performers():
+    """Unit test for pure calculation function."""
+    from app.utils.tournament_calculations import calculate_minimum_performers
+
+    result = calculate_minimum_performers(groups_ideal=3)
+    assert result == 7  # (3 * 2) + 1
+
+
+# BAD: Don't mock repositories for service tests!
+# This pattern hides bugs like invalid enum values.
+# @pytest.mark.asyncio
+# async def test_service_with_mocked_repo(mock_repo):  # DON'T DO THIS
+#     mock_repo.get_by_id.return_value = mock_entity
+#     ...
 ```
 
 ### Integration Test Template (Routes)
