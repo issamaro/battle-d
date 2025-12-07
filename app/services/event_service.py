@@ -133,13 +133,12 @@ class EventService:
         in_progress = [b for b in all_battles if b.status == BattleStatus.ACTIVE]
         if in_progress:
             current_battle = in_progress[0]
-            # Get performer names
-            if current_battle.performer1_id:
-                p1 = await self.performer_repo.get_by_id(current_battle.performer1_id)
-                current_performer1 = self._get_performer_display_name(p1)
-            if current_battle.performer2_id:
-                p2 = await self.performer_repo.get_by_id(current_battle.performer2_id)
-                current_performer2 = self._get_performer_display_name(p2)
+            # Get performer names from performers list relationship
+            performers = current_battle.performers
+            if len(performers) > 0:
+                current_performer1 = self._get_performer_display_name(performers[0])
+            if len(performers) > 1:
+                current_performer2 = self._get_performer_display_name(performers[1])
 
         # Get battle queue (PENDING battles)
         queue = await self._get_battle_queue(tournament_id, category_id, limit=10)
@@ -226,8 +225,8 @@ class EventService:
         # Get PENDING battles only
         pending = [b for b in all_battles if b.status == BattleStatus.PENDING]
 
-        # Sort by battle_order
-        pending.sort(key=lambda b: b.battle_order or 999)
+        # Sort by sequence_order
+        pending.sort(key=lambda b: b.sequence_order or 999)
 
         # Limit results
         pending = pending[:limit]
@@ -235,15 +234,14 @@ class EventService:
         # Build queue items
         queue = []
         for i, battle in enumerate(pending):
-            # Get performer names
+            # Get performer names from performers list relationship
+            performers = battle.performers
             p1_name = ""
             p2_name = ""
-            if battle.performer1_id:
-                p1 = await self.performer_repo.get_by_id(battle.performer1_id)
-                p1_name = self._get_performer_display_name(p1)
-            if battle.performer2_id:
-                p2 = await self.performer_repo.get_by_id(battle.performer2_id)
-                p2_name = self._get_performer_display_name(p2)
+            if len(performers) > 0:
+                p1_name = self._get_performer_display_name(performers[0])
+            if len(performers) > 1:
+                p2_name = self._get_performer_display_name(performers[1])
 
             # Get category name
             cat_name = ""

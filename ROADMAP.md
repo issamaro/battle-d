@@ -1036,6 +1036,56 @@ The Battle-D application lacks a coherent user experience:
 
 ---
 
+## Phase 3.5: Service Integration Tests (IN PROGRESS 🔄)
+
+**Duration:** 1 day (2025-12-07)
+
+**Status:** 🔄 IN PROGRESS
+
+**Objective:** Add comprehensive service integration tests following the updated methodology. Tests use real repositories and database to catch bugs like invalid enum references, signature mismatches, and relationship issues.
+
+### Problem Statement
+
+Production bugs like `BattleStatus.IN_PROGRESS` (doesn't exist) and `BaseRepository.create()` signature mismatches passed all unit tests because the methodology prescribed mocked unit tests that validated "Did the code call the mock?" instead of "Does the code work with real components?"
+
+### Coverage Analysis
+
+| Service | Before | After | Target |
+|---------|--------|-------|--------|
+| `dancer_service.py` | 0% | **78%** | 90%+ |
+| `performer_service.py` | 0% | **89%** | 90%+ |
+| `tournament_service.py` | 32% | **73%** | 90%+ |
+| `event_service.py` | 78% | **93%** ✅ | 90%+ |
+| `battle_results_encoding_service.py` | 72% | 72% | 90%+ |
+
+### Bug Fixes
+
+**event_service.py bugs fixed:**
+- ✅ Lines 137-142, 241-246: `performer1_id`/`performer2_id` → use `performers` list relationship
+- ✅ Line 230: `battle_order` → `sequence_order`
+
+### Deliverables
+
+**Test Files Created:**
+- ✅ `tests/test_dancer_service_integration.py` (17 tests)
+- ✅ `tests/test_performer_service_integration.py` (17 tests)
+- ✅ `tests/test_tournament_service_integration.py` (10 tests)
+- ✅ `tests/test_event_service_integration.py` (12 tests)
+
+**Test Fixtures:**
+- ✅ Factory fixtures in `conftest.py` for tournaments, categories, dancers, performers
+
+### Quality Gate
+
+- [x] All new tests use real repositories (NOT mocks)
+- [x] All tests create real data with real enum values
+- [x] No regressions in existing tests (297 tests pass)
+- [ ] All services at 90%+ coverage (partial - event_service hit target)
+
+**Release:** Phase 3.5 PARTIAL ⚠️
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days
