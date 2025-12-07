@@ -1,0 +1,37 @@
+<!-- Registered Dancers List (HTMX Partial) -->
+<div class="registered-header">
+    <strong>{{ registered_count }}</strong> / {{ ideal_count }} registered
+    {% if registered_count >= minimum_required %}
+    <mark class="status-ready">Ready</mark>
+    {% else %}
+    <small class="status-need-more">(Need {{ minimum_required - registered_count }} more)</small>
+    {% endif %}
+</div>
+
+{% if performers %}
+<div class="performer-list">
+    {% for performer in performers %}
+    <article class="performer-card">
+        <div class="performer-info">
+            <strong class="performer-blaze">{{ performer.dancer.blaze }}</strong>
+            <span class="performer-name">{{ performer.dancer.full_name }}</span>
+            {% if is_duo and performer.duo_partner %}
+            <small class="duo-partner">Partner: {{ performer.duo_partner.dancer.blaze }}</small>
+            {% endif %}
+        </div>
+        <button class="btn-remove"
+                hx-post="/registration/{{ tournament_id }}/{{ category_id }}/unregister-htmx/{{ performer.id }}"
+                hx-target="#available-list"
+                hx-swap="innerHTML"
+                hx-confirm="Unregister {{ performer.dancer.blaze }}?"
+                hx-indicator="#reg-loading">
+            Remove
+        </button>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-message">
+    <p>No dancers registered yet.</p>
+</div>
+{% endif %}

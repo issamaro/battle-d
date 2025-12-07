@@ -1,0 +1,36 @@
+<!-- Current Battle Card -->
+{% if context.current_battle %}
+<article class="battle-card battle-active">
+    <header>
+        <h2>Current Battle</h2>
+        <span class="battle-status in-progress">In Progress</span>
+    </header>
+    <div class="battle-matchup">
+        <div class="performer performer-1">
+            <span class="performer-name">{{ context.current_battle_performer1 or "TBD" }}</span>
+        </div>
+        <span class="vs">VS</span>
+        <div class="performer performer-2">
+            <span class="performer-name">{{ context.current_battle_performer2 or "TBD" }}</span>
+        </div>
+    </div>
+    <footer>
+        <a href="/battles/{{ context.current_battle.id }}/encode" role="button">Encode Results</a>
+        <a href="/battles/{{ context.current_battle.id }}" role="button" class="secondary">View Details</a>
+    </footer>
+</article>
+{% else %}
+<article class="battle-card battle-empty">
+    <header>
+        <h2>Current Battle</h2>
+    </header>
+    <div class="battle-empty-state">
+        <p>No battle in progress</p>
+        {% if context.queue %}
+        <p><small>Start the next battle from the queue</small></p>
+        {% else %}
+        <p><small>All battles completed for this phase</small></p>
+        {% endif %}
+    </div>
+</article>
+{% endif %}

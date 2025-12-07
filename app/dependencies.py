@@ -388,3 +388,59 @@ def get_battle_results_encoding_service(session: AsyncSession = Depends(get_db))
         battle_repo=BattleRepository(session),
         performer_repo=PerformerRepository(session),
     )
+
+
+def get_dashboard_service(session: AsyncSession = Depends(get_db)):
+    """Get DashboardService instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        DashboardService instance with all required repositories
+    """
+    from app.services.dashboard_service import DashboardService
+
+    return DashboardService(
+        tournament_repo=TournamentRepository(session),
+        category_repo=CategoryRepository(session),
+        performer_repo=PerformerRepository(session),
+    )
+
+
+async def get_active_tournament(
+    session: AsyncSession = Depends(get_db),
+):
+    """Get active tournament for template context injection.
+
+    This dependency provides the active tournament for sidebar navigation.
+    Returns None if no active tournament exists.
+
+    Args:
+        session: Database session
+
+    Returns:
+        Tournament or None
+    """
+    tournament_repo = TournamentRepository(session)
+    active_tournaments = await tournament_repo.get_active_tournaments()
+    return active_tournaments[0] if active_tournaments else None
+
+
+def get_event_service(session: AsyncSession = Depends(get_db)):
+    """Get EventService instance for dependency injection.
+
+    Args:
+        session: Database session
+
+    Returns:
+        EventService instance with all required repositories
+    """
+    from app.services.event_service import EventService
+
+    return EventService(
+        tournament_repo=TournamentRepository(session),
+        category_repo=CategoryRepository(session),
+        battle_repo=BattleRepository(session),
+        performer_repo=PerformerRepository(session),
+    )

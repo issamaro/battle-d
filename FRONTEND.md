@@ -1458,6 +1458,357 @@ async def reorder_battle(
 
 ---
 
+### Pattern 7: Event Mode Layout (No Sidebar)
+
+**Use Case:** Full-screen command center for event day operations
+
+**Business Rule (BR-NAV-003):** During event phases (PRESELECTION, POOLS, FINALS), staff should have a focused interface optimized for the battle loop.
+
+**Base Template:**
+```html
+<!-- app/templates/event_base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Event Mode - Battle-D{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/static/css/event.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body class="event-mode">
+    <!-- Compact Header (no sidebar) -->
+    <header class="event-header">
+        <div class="event-header-left">
+            <span class="event-live-indicator" aria-label="Live event">🔴 LIVE</span>
+            <h1>{{ tournament.name }}</h1>
+            <span class="event-phase-badge">{{ tournament.phase.value|upper }}</span>
+        </div>
+        <div class="event-header-right">
+            <span class="event-progress">{{ progress.completed }}/{{ progress.total }}</span>
+            <a href="/overview" class="event-exit-btn">Exit to Prep</a>
+        </div>
+    </header>
+
+    {% include "components/flash_messages.html" %}
+
+    <main class="event-main">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
+```
+
+**CSS Structure:**
+```css
+/* app/static/css/event.css */
+body.event-mode {
+    margin: 0;
+    padding: 0;
+    background: var(--pico-background-color);
+}
+
+.event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: var(--pico-primary-background);
+    color: white;
+}
+
+.event-live-indicator {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.event-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 1rem;
+    padding: 1rem;
+    height: calc(100vh - 60px);
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 1024px) {
+    .event-main {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        height: auto;
+    }
+}
+```
+
+**Key Points:**
+- No sidebar navigation (full-screen focus)
+- Compact header with essential info only
+- Grid layout for command center panels
+- "Exit to Prep" button for emergencies
+- LIVE indicator for visual context
+
+---
+
+### Pattern 8: Two-Panel Transfer List
+
+**Use Case:** Registration page with available/registered dancers
+
+**Business Rule (BR-NAV-004):** Staff should be able to register dancers without page refreshes.
+
+**HTML Structure:**
+```html
+<div class="transfer-list">
+    <!-- Left Panel: Available -->
+    <section class="panel panel-available">
+        <div class="panel-header">
+            <h3>Available Dancers</h3>
+            <input type="search"
+                   name="q"
+                   placeholder="Search..."
+                   hx-get="/registration/{{ t_id }}/{{ c_id }}/available"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#available-list"
+                   hx-indicator="#search-loading">
+        </div>
+        <div id="available-list" class="panel-list" role="list" aria-label="Available dancers">
+            {% for dancer in available %}
+            <article class="item-card" role="listitem">
+                <div class="item-info">
+                    <strong>{{ dancer.blaze }}</strong>
+                    <span>{{ dancer.full_name }}</span>
+                </div>
+                <button class="btn-transfer"
+                        hx-post="/registration/{{ t_id }}/{{ c_id }}/register/{{ dancer.id }}"
+                        hx-target="#available-list"
+                        hx-swap="innerHTML"
+                        hx-swap-oob="innerHTML:#registered-list"
+                        aria-label="Add {{ dancer.blaze }}">
+                    + Add
+                </button>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Right Panel: Registered -->
+    <section class="panel panel-registered">
+        <div class="panel-header">
+            <h3>Registered (<span id="count">{{ registered|length }}</span>)</h3>
+        </div>
+        <div id="registered-list" class="panel-list" role="list" aria-label="Registered dancers">
+            {% for performer in registered %}
+            <article class="item-card" role="listitem">
+                <div class="item-info">
+                    <strong>{{ performer.dancer.blaze }}</strong>
+                    <span>{{ performer.dancer.full_name }}</span>
+                </div>
+                <button class="btn-remove"
+                        hx-delete="/registration/{{ t_id }}/{{ c_id }}/unregister/{{ performer.id }}"
+                        hx-target="#registered-list"
+                        hx-swap="innerHTML"
+                        hx-swap-oob="innerHTML:#available-list"
+                        aria-label="Remove {{ performer.dancer.blaze }}">
+                    ✕ Remove
+                </button>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+```
+
+**CSS Structure:**
+```css
+.transfer-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    height: 100%;
+}
+
+.panel {
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.25rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    background: var(--pico-card-background-color);
+}
+
+.panel-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: 0.25rem;
+}
+
+.btn-transfer, .btn-remove {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.btn-transfer {
+    background: var(--pico-primary-background);
+    color: white;
+}
+
+.btn-remove {
+    background: var(--pico-secondary-background);
+    color: white;
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 768px) {
+    .transfer-list {
+        grid-template-columns: 1fr;
+    }
+}
+```
+
+**Backend Pattern (hx-swap-oob):**
+```python
+@router.post("/{t_id}/{c_id}/register/{dancer_id}")
+async def register_dancer_htmx(t_id: UUID, c_id: UUID, dancer_id: UUID, ...):
+    """Register dancer and return BOTH panels via hx-swap-oob."""
+    result = await registration_service.register_dancer(...)
+
+    # Get updated lists
+    available = await dancer_service.get_available_for_category(...)
+    registered = await performer_repo.get_by_category(c_id)
+
+    # Return main target + out-of-band update
+    response = templates.TemplateResponse(
+        "registration/_available_list.html",
+        {"request": request, "available": available, "t_id": t_id, "c_id": c_id}
+    )
+
+    # Add OOB update for registered list
+    registered_html = templates.TemplateResponse(
+        "registration/_registered_list.html",
+        {"request": request, "registered": registered, "t_id": t_id, "c_id": c_id}
+    )
+
+    return HTMLResponse(
+        content=response.body.decode() +
+        f'<div id="registered-list" hx-swap-oob="innerHTML">{registered_html.body.decode()}</div>'
+    )
+```
+
+**Key Points:**
+- `hx-swap-oob` updates BOTH panels with single request
+- Search filters available list in real-time
+- No page refresh on register/unregister
+- Count updates automatically
+- Accessible with ARIA labels
+
+---
+
+### Pattern 9: Context-Aware Smart Dashboard
+
+**Use Case:** Dashboard that shows different content based on tournament state
+
+**Business Rule (BR-NAV-002):** Dashboard displays different content based on tournament state.
+
+**HTML Structure:**
+```html
+<!-- app/templates/dashboard/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+{% if state == 'no_tournament' %}
+    <!-- State 1: No active tournament -->
+    <section class="dashboard-cta">
+        <h2>No Active Tournament</h2>
+        <p>Create a tournament to get started.</p>
+        <a href="/tournaments/create" role="button">+ Create Tournament</a>
+    </section>
+
+    {% if past_tournaments %}
+    <section>
+        <h3>Past Tournaments</h3>
+        <!-- List of completed tournaments -->
+    </section>
+    {% endif %}
+
+{% elif state == 'registration' %}
+    <!-- State 2: Tournament in REGISTRATION phase -->
+    <section class="dashboard-header">
+        <h2>{{ tournament.name }}</h2>
+        <span class="badge badge-registration">REGISTRATION</span>
+    </section>
+
+    <section class="category-grid">
+        {% for cat in categories %}
+        <article class="category-card {% if cat.is_ready %}ready{% else %}needs-more{% endif %}">
+            <h3>{{ cat.name }}</h3>
+            <p class="registration-count">
+                {{ cat.registered }}/{{ cat.ideal }} registered
+            </p>
+            <p class="status">
+                {% if cat.is_ready %}✓ Ready{% else %}Need {{ cat.minimum - cat.registered }} more{% endif %}
+            </p>
+            <a href="/registration/{{ tournament.id }}/{{ cat.id }}" role="button" class="secondary">
+                Register Dancers
+            </a>
+        </article>
+        {% endfor %}
+    </section>
+
+    {% if all_categories_ready %}
+    <section class="dashboard-action">
+        <form action="/tournaments/{{ tournament.id }}/advance" method="post">
+            <input type="hidden" name="confirmed" value="false">
+            <button type="submit" class="start-event-btn">▶ Start Event</button>
+        </form>
+    </section>
+    {% endif %}
+
+{% elif state == 'event_active' %}
+    <!-- State 3: Tournament in event phases -->
+    <section class="dashboard-header">
+        <h2>{{ tournament.name }}</h2>
+        <span class="badge badge-live">🔴 LIVE - {{ tournament.phase.value|upper }}</span>
+    </section>
+
+    <section class="event-summary">
+        <p>Battle Progress: {{ progress.completed }}/{{ progress.total }} ({{ progress.percentage }}%)</p>
+        <a href="/event/{{ tournament.id }}" role="button" class="go-to-event-btn">
+            Go to Event Mode →
+        </a>
+    </section>
+{% endif %}
+{% endblock %}
+```
+
+**Key Points:**
+- Single template with conditional blocks
+- State determined by service layer
+- Clear CTAs for each state
+- Visual distinction between states
+
+---
+
 ## Integration with Backend
 
 ### Template Organization

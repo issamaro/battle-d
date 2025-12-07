@@ -206,7 +206,7 @@ class TestAuthRoutes:
         assert response.status_code == 401
 
     def test_dashboard_with_auth(self, client):
-        """Test overview page is accessible when authenticated."""
+        """Test dashboard page is accessible when authenticated."""
         # Login first
         token = magic_link_auth.generate_token("admin@battle-d.com", "admin")
         login_response = client.get(f"/auth/verify?token={token}", follow_redirects=False)
@@ -222,12 +222,12 @@ class TestAuthRoutes:
         cookie_end = set_cookie_header.find(";", cookie_start)
         session_cookie = set_cookie_header[cookie_start:cookie_end]
 
-        # Access overview page with session
+        # Access dashboard page with session
         response = client.get(
             "/overview", cookies={settings.SESSION_COOKIE_NAME: session_cookie}
         )
         assert response.status_code == 200
-        assert b"Overview" in response.content
+        assert b"Dashboard" in response.content
         assert b"admin@battle-d.com" in response.content
 
 

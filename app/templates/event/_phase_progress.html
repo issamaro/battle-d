@@ -1,0 +1,9 @@
+<!-- Phase Progress -->
+<div class="progress-container">
+    <div class="progress-header">
+        <h3>Phase Progress</h3>
+        <span class="progress-text">{{ progress.completed }}/{{ progress.total }} battles completed</span>
+    </div>
+    <progress value="{{ progress.completed }}" max="{{ progress.total }}"></progress>
+    <div class="progress-percentage">{{ progress.percentage }}%</div>
+</div>

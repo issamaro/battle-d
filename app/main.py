@@ -2,23 +2,15 @@
 import logging
 import uuid
 from contextlib import asynccontextmanager
-from typing import Optional
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.exceptions import ValidationError
-from app.routers import auth, phases, admin, dancers, tournaments, registration, battles
-from app.dependencies import (
-    get_current_user,
-    require_auth,
-    CurrentUser,
-    set_email_service,
-    get_tournament_repo,
-)
-from app.repositories.tournament import TournamentRepository
+from app.routers import auth, phases, admin, dancers, tournaments, registration, battles, dashboard, event
+from app.dependencies import set_email_service
 from app.services.email.factory import create_email_provider
 from app.services.email.service import EmailService
 from app.logging_config import setup_logging
@@ -147,6 +139,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 
 # Include routers
+# Dashboard router handles / and /overview
+app.include_router(dashboard.router)
 app.include_router(auth.router)
 app.include_router(phases.router)
 app.include_router(admin.router)
@@ -154,57 +148,7 @@ app.include_router(dancers.router)
 app.include_router(tournaments.router)
 app.include_router(registration.router)
 app.include_router(battles.router)
-
-
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    """Redirect to login page."""
-    return RedirectResponse(url="/auth/login")
-
-
-@app.get("/overview", response_class=HTMLResponse)
-async def overview(
-    request: Request,
-    current_user: Optional[CurrentUser] = Depends(get_current_user),
-    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
-):
-    """Overview page - role-specific view with active tournament context."""
-    user = require_auth(current_user)
-
-    # Get all active tournaments to detect data integrity violations
-    active_tournaments = await tournament_repo.get_active_tournaments()
-
-    # Data integrity check: Multiple ACTIVE tournaments violates business rule
-    if len(active_tournaments) > 1:
-        # Multiple ACTIVE tournaments - show fix UI for admins, error for others
-        if user.is_admin:
-            return templates.TemplateResponse(
-                request=request,
-                name="admin/fix_active_tournaments.html",
-                context={
-                    "current_user": user,
-                    "active_tournaments": active_tournaments,
-                },
-            )
-        else:
-            return templates.TemplateResponse(
-                request=request,
-                name="errors/tournament_config_error.html",
-                context={"current_user": user},
-                status_code=500,
-            )
-
-    # Normal case: 0 or 1 active tournament
-    active_tournament = active_tournaments[0] if active_tournaments else None
-
-    return templates.TemplateResponse(
-        request=request,
-        name="overview.html",
-        context={
-            "current_user": user,
-            "active_tournament": active_tournament,
-        },
-    )
+app.include_router(event.router)
 
 
 # Legacy redirect: /dashboard -> /overview

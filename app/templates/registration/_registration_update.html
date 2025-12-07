@@ -1,0 +1,12 @@
+<!-- Registration Update (OOB swap for both panels) -->
+
+<!-- This updates the available list (primary target) -->
+{% include "registration/_available_list.html" %}
+
+<!-- This updates the registered list via OOB swap -->
+<div id="registered-list" hx-swap-oob="innerHTML">
+    {% include "registration/_registered_list.html" %}
+</div>
+
+<!-- Update the count in header via OOB -->
+<span id="reg-count" hx-swap-oob="innerHTML">{{ registered_count }}/{{ ideal_count }}</span>

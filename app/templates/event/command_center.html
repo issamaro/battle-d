@@ -1,0 +1,53 @@
+{% extends "event_base.html" %}
+
+{% block title %}Command Center - {{ tournament.name }} - Battle-D{% endblock %}
+
+{% block content %}
+<div class="command-center-grid">
+    <!-- Left Column: Current Battle -->
+    <section class="cc-current-battle"
+             hx-get="/event/{{ tournament.id }}/current-battle"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML">
+        {% include "event/_current_battle.html" %}
+    </section>
+
+    <!-- Right Column: Queue -->
+    <section class="cc-queue">
+        <div class="cc-queue-header">
+            <h2>Battle Queue</h2>
+            <!-- Category filter tabs -->
+            <div class="category-tabs" role="tablist">
+                <button class="tab-btn {% if not category_filter %}active{% endif %}"
+                        hx-get="/event/{{ tournament.id }}/queue"
+                        hx-target=".cc-queue-list"
+                        hx-swap="innerHTML">
+                    All
+                </button>
+                {% for cat in context.categories %}
+                <button class="tab-btn {% if category_filter and category_filter|string == cat.id|string %}active{% endif %}"
+                        hx-get="/event/{{ tournament.id }}/queue?category_id={{ cat.id }}"
+                        hx-target=".cc-queue-list"
+                        hx-swap="innerHTML">
+                    {{ cat.name }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="cc-queue-list"
+             hx-get="/event/{{ tournament.id }}/queue"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML">
+            {% include "event/_battle_queue.html" %}
+        </div>
+    </section>
+
+    <!-- Bottom: Progress -->
+    <section class="cc-progress"
+             hx-get="/event/{{ tournament.id }}/progress"
+             hx-trigger="every 5s"
+             hx-swap="innerHTML">
+        {% include "event/_phase_progress.html" %}
+    </section>
+</div>
+{% endblock %}

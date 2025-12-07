@@ -929,6 +929,113 @@ The tournament organization system has critical bugs preventing production use:
 
 ---
 
+## Phase 3.3: UX Navigation Redesign ✅ COMPLETE
+
+**Duration:** 1 day (2025-12-07)
+
+**Status:** ✅ COMPLETE
+
+**Completed:** 2025-12-07
+
+**Objective:** Complete UX redesign with context-aware navigation, smart dashboard, event mode command center, and improved registration.
+
+### Problem Statement
+
+The Battle-D application lacks a coherent user experience:
+
+1. **Broken Navigation:** Links like `/phases` and `/registration` return 404 (missing tournament context)
+2. **No Workflow Guidance:** Pages don't connect into a meaningful journey
+3. **Wrong Interface for Context:** Same sidebar shown for preparation (days before) and event day (needs focused interface)
+
+### Key Deliverables
+
+**Smart Dashboard (3 states):**
+- State 1: No active tournament → "Create Tournament" CTA
+- State 2: Registration phase → Category registration status cards
+- State 3: Event phases → "Go to Event Mode" prominent CTA
+
+**Event Mode Command Center:**
+- Full-screen interface without sidebar navigation
+- Current battle card with START/ENCODE buttons
+- Battle queue with category filter tabs
+- Phase progress indicator (X/Y battles, percentage)
+- Live standings by category
+- "Exit to Prep" button for emergencies
+
+**Two-Panel Registration:**
+- Available dancers panel (left) with search
+- Registered dancers panel (right)
+- Single-click register/unregister with HTMX (no page refresh)
+- Real-time count updates
+
+**Navigation Fixes:**
+- Remove broken `/phases` link from sidebar
+- Remove broken `/registration` link from overview
+- Remove `/battles/current` (V2 feature)
+- Auto-detect event mode based on tournament phase
+
+### Business Rules
+
+| Rule ID | Rule Name | Description |
+|---------|-----------|-------------|
+| BR-NAV-001 | Context-Aware Navigation | Navigation auto-uses active tournament ID for tournament-scoped routes |
+| BR-NAV-002 | Smart Dashboard | Dashboard displays different content based on tournament state |
+| BR-NAV-003 | Event Mode Interface | Event phases show focused command center, not standard website |
+| BR-NAV-004 | Batch Registration | Staff can register dancers without page refreshes |
+
+### Files to Create
+
+**Services:**
+- `app/services/dashboard_service.py` - Dashboard data aggregation
+- `app/services/event_service.py` - Event mode data aggregation
+
+**Routes:**
+- `app/routers/dashboard.py` - Smart dashboard route
+- `app/routers/event.py` - Event mode command center routes
+
+**Templates:**
+- `app/templates/event_base.html` - Event mode layout (no sidebar)
+- `app/templates/dashboard/index.html` - Smart dashboard
+- `app/templates/event/command_center.html` - Command center
+- `app/templates/registration/register_v2.html` - Two-panel registration
+
+**CSS:**
+- `app/static/css/dashboard.css` - Dashboard styles
+- `app/static/css/event.css` - Event mode styles
+
+### Files to Modify
+
+- `app/templates/base.html` - Context-aware sidebar links
+- `app/routers/registration.py` - HTMX partial endpoints
+- `app/templates/overview.html` - Deprecate (redirect to dashboard)
+
+### Implementation Order
+
+1. **Batch 1:** Fix broken navigation links
+2. **Batch 2:** Smart Dashboard service and templates
+3. **Batch 3:** Event Mode command center
+4. **Batch 4:** Two-panel registration with HTMX
+5. **Batch 5:** Documentation and polish
+
+### Risk Analysis
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Breaking existing pages | Medium | High | Backward compatible changes |
+| HTMX partial complexity | Medium | Medium | Use hx-swap-oob pattern |
+| Mobile responsiveness | Medium | Medium | Mobile-first CSS |
+
+### Results
+
+- All tests passing: 209 passed, 8 skipped
+- No regressions detected
+- 18 new files created
+- 7 files modified
+
+**Release:** Phase 3.3 COMPLETE ✅ (2025-12-07)
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days

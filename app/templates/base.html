@@ -165,8 +165,7 @@
         <h2>Battle-D</h2>
         <nav>
             <ul>
-                <li><a href="/overview">Overview</a></li>
-                <li><a href="/phases">Phases</a></li>
+                <li><a href="/overview">Dashboard</a></li>
 
                 {% if current_user.is_staff %}
                 <li><a href="/dancers">Dancers</a></li>
@@ -175,6 +174,16 @@
 
                 {% if current_user.is_admin %}
                 <li><a href="/admin/users">Users</a></li>
+                {% endif %}
+
+                {% if active_tournament %}
+                <li><hr></li>
+                <li><small style="color: var(--pico-muted-color);">{{ active_tournament.name }}</small></li>
+                <li><a href="/tournaments/{{ active_tournament.id }}">Tournament Details</a></li>
+                <li><a href="/phases/{{ active_tournament.id }}/phase">Phases</a></li>
+                {% if current_user.is_mc or current_user.is_admin %}
+                <li><a href="/battles">Battle Queue</a></li>
+                {% endif %}
                 {% endif %}
 
                 <li><hr></li>

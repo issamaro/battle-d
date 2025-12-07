@@ -1,7 +1,135 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-06
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-07
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-07] - Phase 3.3: UX Navigation Redesign
+
+### Added
+
+**Smart Dashboard (3-State Context):**
+- Created `app/services/dashboard_service.py` - Dashboard context aggregation
+  - DashboardContext dataclass with states: no_tournament, registration, event_active
+  - CategoryStats dataclass for registration progress tracking
+  - get_dashboard_context() method with tournament state detection
+- Created `app/routers/dashboard.py` - Handles `/` and `/overview` routes
+- Created `app/templates/dashboard/index.html` - Smart dashboard with state-based content
+- Created `app/templates/dashboard/_no_tournament.html` - Create tournament CTA
+- Created `app/templates/dashboard/_registration_mode.html` - Category progress cards
+- Created `app/templates/dashboard/_event_active.html` - Event mode CTA
+
+**Event Mode Command Center:**
+- Created `app/services/event_service.py` - Event command center data aggregation
+  - CommandCenterContext, BattleQueueItem, PhaseProgress dataclasses
+  - get_command_center_context() with battle queue and progress
+  - get_phase_progress() for battle completion tracking
+- Created `app/routers/event.py` - Event mode routes
+  - `/event/{tournament_id}` - Command center
+  - `/event/{tournament_id}/current-battle` - HTMX partial
+  - `/event/{tournament_id}/queue` - HTMX partial with category filter
+  - `/event/{tournament_id}/progress` - HTMX partial
+- Created `app/templates/event_base.html` - Full-screen layout without sidebar
+- Created `app/templates/event/command_center.html` - Grid layout with auto-refresh
+- Created `app/templates/event/_current_battle.html` - Current battle card
+- Created `app/templates/event/_battle_queue.html` - Battle queue list
+- Created `app/templates/event/_phase_progress.html` - Progress bar
+- Created `app/static/css/event.css` - Event mode styling (6.4KB)
+
+**Two-Panel Registration UX:**
+- Created `app/templates/registration/_available_list.html` - Available dancers panel
+- Created `app/templates/registration/_registered_list.html` - Registered performers panel
+- Created `app/templates/registration/_registration_update.html` - OOB swap template
+- Created `app/static/css/registration.css` - Two-panel layout styling (3.9KB)
+- Added HTMX endpoints to `app/routers/registration.py`:
+  - `/available` - Search and list available dancers
+  - `/registered` - List registered performers
+  - `/register/{dancer_id}` - HTMX registration with OOB swap
+  - `/unregister-htmx/{performer_id}` - HTMX unregistration with OOB swap
+
+**Dependencies:**
+- Added `get_dashboard_service()` to `app/dependencies.py`
+- Added `get_event_service()` to `app/dependencies.py`
+- Added `get_active_tournament()` dependency
+
+### Changed
+
+**Navigation Fix (Broken Links):**
+- Updated `app/templates/base.html` - Context-aware sidebar navigation
+  - Removed broken `/phases` and `/registration` links
+  - Added active tournament section with proper contextual links
+  - Links now use `active_tournament.id` for routing
+- Updated `app/templates/overview.html` - Fixed phase management links
+  - Fixed `/phases` → `/phases/{{ active_tournament.id }}/phase`
+  - Removed broken `/registration` and `/battles/current` links
+  - All links conditional on active_tournament existence
+
+**Application Structure:**
+- Updated `app/main.py`:
+  - Added dashboard router (handles `/` and `/overview`)
+  - Added event router (handles `/event/*`)
+  - Cleaned up unused imports
+- Updated `app/templates/registration/register.html`:
+  - Rewritten with two-panel layout for solo registration
+  - HTMX-powered instant add/remove without page refresh
+  - Kept duo registration with existing search UI
+
+**Documentation:**
+- Updated `ROADMAP.md` - Added Phase 3.3 entry
+- Updated `FRONTEND.md` - Added Pattern 7 (Event Mode), Pattern 8 (Two-Panel), Pattern 9 (Dashboard)
+- Updated `ARCHITECTURE.md` - Added Dashboard/Event service patterns
+
+**Tests:**
+- Updated `tests/test_auth.py` - Changed assertion from "Overview" to "Dashboard"
+
+### Fixed
+
+**Broken Navigation Links:**
+- `/phases` → `/phases/{tournament_id}/phase` (context-aware)
+- `/registration` → Removed (accessed via dashboard category cards)
+- `/battles/current` → Removed (non-existent route)
+
+### Breaking Changes
+
+**None** - All changes are additive. Existing routes still work.
+
+### Files Modified/Created
+
+**New Files (18):**
+- `app/services/dashboard_service.py`
+- `app/services/event_service.py`
+- `app/routers/dashboard.py`
+- `app/routers/event.py`
+- `app/templates/dashboard/index.html`
+- `app/templates/dashboard/_no_tournament.html`
+- `app/templates/dashboard/_registration_mode.html`
+- `app/templates/dashboard/_event_active.html`
+- `app/templates/event_base.html`
+- `app/templates/event/command_center.html`
+- `app/templates/event/_current_battle.html`
+- `app/templates/event/_battle_queue.html`
+- `app/templates/event/_phase_progress.html`
+- `app/templates/registration/_available_list.html`
+- `app/templates/registration/_registered_list.html`
+- `app/templates/registration/_registration_update.html`
+- `app/static/css/event.css`
+- `app/static/css/registration.css`
+
+**Modified Files (7):**
+- `app/main.py`
+- `app/dependencies.py`
+- `app/templates/base.html`
+- `app/templates/overview.html`
+- `app/routers/registration.py`
+- `app/templates/registration/register.html`
+- `tests/test_auth.py`
+
+### Test Results
+
+- **Total Tests**: 209 passed, 8 skipped
+- **Regressions**: None
+- **Coverage**: Baseline maintained
 
 ---
 

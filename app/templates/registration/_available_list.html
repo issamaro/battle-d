@@ -1,0 +1,26 @@
+<!-- Available Dancers List (HTMX Partial) -->
+{% if available_dancers %}
+<div class="dancer-list">
+    {% for dancer in available_dancers %}
+    <article class="dancer-card">
+        <div class="dancer-info">
+            <strong class="dancer-blaze">{{ dancer.blaze }}</strong>
+            <span class="dancer-name">{{ dancer.full_name }}</span>
+            <small class="dancer-meta">{{ dancer.country or "-" }} | Age {{ dancer.age }}</small>
+        </div>
+        <button class="btn-add"
+                hx-post="/registration/{{ tournament_id }}/{{ category_id }}/register/{{ dancer.id }}"
+                hx-target="#available-list"
+                hx-swap="innerHTML"
+                hx-indicator="#reg-loading">
+            + Add
+        </button>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-message">
+    <p>No available dancers found.</p>
+    <p><small>Try a different search or <a href="/dancers/create">create a new dancer</a>.</small></p>
+</div>
+{% endif %}

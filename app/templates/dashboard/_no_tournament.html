@@ -1,0 +1,28 @@
+<!-- Dashboard State: No Tournament -->
+<section>
+    <h3>No Active Tournament</h3>
+    <article>
+        <p>There is no tournament currently in progress or being prepared.</p>
+        {% if current_user.is_staff %}
+        <footer>
+            <a href="/tournaments/create" role="button">Create Tournament</a>
+            <a href="/tournaments" role="button" class="secondary">View All Tournaments</a>
+        </footer>
+        {% else %}
+        <p><small>Contact staff to set up a tournament.</small></p>
+        {% endif %}
+    </article>
+</section>
+
+<!-- Quick Links -->
+{% if current_user.is_staff %}
+<section>
+    <h3>Quick Links</h3>
+    <div role="group">
+        <a href="/dancers" role="button" class="secondary">Manage Dancers</a>
+        {% if current_user.is_admin %}
+        <a href="/admin/users" role="button" class="secondary">Manage Users</a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}

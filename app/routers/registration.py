@@ -422,3 +422,287 @@ async def unregister_dancer(
         url=f"/registration/{tournament_id}/{category_id}",
         status_code=303,
     )
+
+
+# =============================================================================
+# HTMX Two-Panel Registration Endpoints
+# =============================================================================
+
+
+@router.get("/{tournament_id}/{category_id}/available", response_class=HTMLResponse)
+async def available_dancers_partial(
+    tournament_id: str,
+    category_id: str,
+    request: Request,
+    q: str = "",
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """HTMX partial: Available dancers list.
+
+    Returns dancers that can be registered (not already in tournament).
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        request: FastAPI request
+        q: Search query
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+        performer_repo: Performer repository
+
+    Returns:
+        HTML partial with available dancers
+    """
+    user = require_staff(current_user)
+
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+        category_uuid = uuid.UUID(category_id)
+    except ValueError:
+        return HTMLResponse("<p>Invalid ID</p>")
+
+    # Get category
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        return HTMLResponse("<p>Category not found</p>")
+
+    # Search dancers
+    if q:
+        all_dancers = await dancer_repo.search(q, limit=50)
+    else:
+        all_dancers = await dancer_repo.get_all()
+
+    # Filter out dancers already registered in this tournament
+    available = []
+    for dancer in all_dancers:
+        if not await performer_repo.dancer_registered_in_tournament(
+            dancer.id, tournament_uuid
+        ):
+            available.append(dancer)
+
+    # Limit to 20 for performance
+    available = available[:20]
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_available_list.html",
+        context={
+            "available_dancers": available,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "is_duo": category.is_duo,
+        },
+    )
+
+
+@router.get("/{tournament_id}/{category_id}/registered", response_class=HTMLResponse)
+async def registered_dancers_partial(
+    tournament_id: str,
+    category_id: str,
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """HTMX partial: Registered dancers list.
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        request: FastAPI request
+        current_user: Current authenticated user
+        category_repo: Category repository
+        performer_repo: Performer repository
+
+    Returns:
+        HTML partial with registered performers
+    """
+    user = require_staff(current_user)
+
+    try:
+        category_uuid = uuid.UUID(category_id)
+    except ValueError:
+        return HTMLResponse("<p>Invalid ID</p>")
+
+    # Get category for ideal count
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        return HTMLResponse("<p>Category not found</p>")
+
+    # Get registered performers
+    performers = await performer_repo.get_by_category_with_partners(category_uuid)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_registered_list.html",
+        context={
+            "performers": performers,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "is_duo": category.is_duo,
+            "registered_count": len(performers),
+            "ideal_count": category.performers_ideal * category.groups_ideal,
+            "minimum_required": category.performers_ideal,
+        },
+    )
+
+
+@router.post("/{tournament_id}/{category_id}/register/{dancer_id}", response_class=HTMLResponse)
+async def register_dancer_htmx(
+    tournament_id: str,
+    category_id: str,
+    dancer_id: str,
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """HTMX: Register single dancer and return both panels.
+
+    Uses hx-swap-oob to update both available and registered lists.
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        dancer_id: Dancer UUID to register
+        request: FastAPI request
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+        performer_repo: Performer repository
+
+    Returns:
+        HTML with both panels updated via OOB swap
+    """
+    user = require_staff(current_user)
+
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+        category_uuid = uuid.UUID(category_id)
+        dancer_uuid = uuid.UUID(dancer_id)
+    except ValueError:
+        return HTMLResponse("<p>Invalid ID</p>")
+
+    # Verify tournament and category exist
+    tournament = await tournament_repo.get_by_id(tournament_uuid)
+    category = await category_repo.get_by_id(category_uuid)
+    dancer = await dancer_repo.get_by_id(dancer_uuid)
+
+    if not tournament or not category or not dancer:
+        return HTMLResponse("<p>Not found</p>")
+
+    # Check if already registered
+    if await performer_repo.dancer_registered_in_tournament(dancer_uuid, tournament_uuid):
+        return HTMLResponse(f"<p class='error'>Already registered</p>")
+
+    # Register dancer
+    await performer_repo.create_performer(
+        tournament_id=tournament_uuid,
+        category_id=category_uuid,
+        dancer_id=dancer_uuid,
+    )
+
+    # Return both updated lists using OOB swap
+    # Get updated available dancers (current search)
+    all_dancers = await dancer_repo.get_all()
+    available = []
+    for d in all_dancers[:20]:
+        if not await performer_repo.dancer_registered_in_tournament(d.id, tournament_uuid):
+            available.append(d)
+
+    # Get updated registered performers
+    performers = await performer_repo.get_by_category_with_partners(category_uuid)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_registration_update.html",
+        context={
+            "available_dancers": available,
+            "performers": performers,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "is_duo": category.is_duo,
+            "registered_count": len(performers),
+            "ideal_count": category.performers_ideal * category.groups_ideal,
+            "minimum_required": category.performers_ideal,
+        },
+    )
+
+
+@router.post("/{tournament_id}/{category_id}/unregister-htmx/{performer_id}", response_class=HTMLResponse)
+async def unregister_dancer_htmx(
+    tournament_id: str,
+    category_id: str,
+    performer_id: str,
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """HTMX: Unregister dancer and return both panels.
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        performer_id: Performer UUID
+        request: FastAPI request
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+        performer_repo: Performer repository
+
+    Returns:
+        HTML with both panels updated via OOB swap
+    """
+    user = require_staff(current_user)
+
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+        category_uuid = uuid.UUID(category_id)
+        performer_uuid = uuid.UUID(performer_id)
+    except ValueError:
+        return HTMLResponse("<p>Invalid ID</p>")
+
+    # Get category
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        return HTMLResponse("<p>Category not found</p>")
+
+    # Delete performer
+    await performer_repo.delete(performer_uuid)
+
+    # Return both updated lists
+    all_dancers = await dancer_repo.get_all()
+    available = []
+    for d in all_dancers[:20]:
+        if not await performer_repo.dancer_registered_in_tournament(d.id, tournament_uuid):
+            available.append(d)
+
+    performers = await performer_repo.get_by_category_with_partners(category_uuid)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_registration_update.html",
+        context={
+            "available_dancers": available,
+            "performers": performers,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "is_duo": category.is_duo,
+            "registered_count": len(performers),
+            "ideal_count": category.performers_ideal * category.groups_ideal,
+            "minimum_required": category.performers_ideal,
+        },
+    )

@@ -1,0 +1,26 @@
+<!-- Battle Queue List -->
+{% if queue %}
+<div class="queue-list">
+    {% for battle in queue %}
+    <article class="queue-item">
+        <div class="queue-position">#{{ battle.position }}</div>
+        <div class="queue-matchup">
+            <span class="queue-performer">{{ battle.performer1_name or "TBD" }}</span>
+            <span class="queue-vs">vs</span>
+            <span class="queue-performer">{{ battle.performer2_name or "TBD" }}</span>
+        </div>
+        <div class="queue-meta">
+            <span class="queue-category">{{ battle.category_name }}</span>
+            <span class="queue-phase">{{ battle.phase }}</span>
+        </div>
+        <div class="queue-actions">
+            <a href="/battles/{{ battle.id }}" role="button" class="outline small">View</a>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% else %}
+<div class="queue-empty">
+    <p>No pending battles in queue</p>
+</div>
+{% endif %}

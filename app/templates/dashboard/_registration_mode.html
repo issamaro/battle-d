@@ -1,0 +1,59 @@
+<!-- Dashboard State: Registration Mode -->
+<section>
+    <h3>Tournament: {{ dashboard.tournament.name }}</h3>
+    <article>
+        <header>
+            <span>Phase: <strong>Registration</strong></span>
+            <span>Status: {{ dashboard.tournament.status.value }}</span>
+        </header>
+        <footer>
+            <a href="/tournaments/{{ dashboard.tournament.id }}" role="button" class="secondary">Tournament Details</a>
+            <a href="/phases/{{ dashboard.tournament.id }}/phase" role="button" class="secondary">Manage Phases</a>
+        </footer>
+    </article>
+</section>
+
+<!-- Category Registration Status -->
+<section>
+    <h3>Registration Progress</h3>
+    {% if dashboard.categories %}
+    <div class="grid">
+        {% for cat in dashboard.categories %}
+        <article>
+            <header>
+                <strong>{{ cat.name }}</strong>
+                {% if cat.is_duo %}<small>(Duo)</small>{% endif %}
+            </header>
+            <p>
+                <strong>{{ cat.registered_count }}</strong> / {{ cat.ideal_count }} registered
+                {% if cat.is_ready %}
+                <mark>Ready</mark>
+                {% else %}
+                <small>(Need {{ cat.minimum_required - cat.registered_count }} more)</small>
+                {% endif %}
+            </p>
+            <progress value="{{ cat.registered_count }}" max="{{ cat.ideal_count }}"></progress>
+            <footer>
+                <a href="/registration/{{ dashboard.tournament.id }}/{{ cat.id }}" role="button" class="outline">Register Dancers</a>
+            </footer>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>No categories defined yet. <a href="/tournaments/{{ dashboard.tournament.id }}/add-category">Add a category</a>.</p>
+    {% endif %}
+</section>
+
+<!-- Quick Links -->
+{% if current_user.is_staff %}
+<section>
+    <h3>Quick Links</h3>
+    <div role="group">
+        <a href="/dancers" role="button" class="secondary">Manage Dancers</a>
+        <a href="/tournaments/{{ dashboard.tournament.id }}/add-category" role="button" class="secondary">Add Category</a>
+        {% if current_user.is_admin %}
+        <a href="/admin/users" role="button" class="secondary">Manage Users</a>
+        {% endif %}
+    </div>
+</section>
+{% endif %}

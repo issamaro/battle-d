@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Battle-D{% endblock %}
+
+{% block header_title %}Dashboard{% endblock %}
+
+{% block content %}
+<article>
+    <header>
+        <h2>Welcome, {{ current_user.email }}!</h2>
+        <p>Role: <strong>{{ current_user.role }}</strong></p>
+    </header>
+
+    <!-- State-based content -->
+    {% if dashboard.state == 'no_tournament' %}
+        {% include "dashboard/_no_tournament.html" %}
+    {% elif dashboard.state == 'registration' %}
+        {% include "dashboard/_registration_mode.html" %}
+    {% elif dashboard.state == 'event_active' %}
+        {% include "dashboard/_event_active.html" %}
+    {% endif %}
+
+    <!-- Your Permissions -->
+    <section>
+        <h3>Your Permissions</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Admin</td>
+                    <td>{{ "Yes" if current_user.is_admin else "No" }}</td>
+                </tr>
+                <tr>
+                    <td>Staff</td>
+                    <td>{{ "Yes" if current_user.is_staff else "No" }}</td>
+                </tr>
+                <tr>
+                    <td>MC</td>
+                    <td>{{ "Yes" if current_user.is_mc else "No" }}</td>
+                </tr>
+                <tr>
+                    <td>Judge</td>
+                    <td>{{ "Yes" if current_user.is_judge else "No" }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</article>
+{% endblock %}
