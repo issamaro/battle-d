@@ -5,6 +5,39 @@
 
 ---
 
+## [2025-12-07] - Bug Fix: Phase Navigation Links (Post Phase 3.3)
+
+### Fixed
+
+**Critical: All phase navigation links returning 404 errors**
+
+The Phase 3.3 UX Navigation Redesign introduced incorrect URL prefixes in templates. The phases router uses `/tournaments/{id}/phase` but all templates incorrectly used `/phases/{id}/phase`.
+
+**Root Cause:** Templates created without verifying actual router configuration. Browser testing would have caught this immediately.
+
+**Links Fixed (7 total):**
+- `app/templates/base.html:183` - Sidebar "Phases" link
+- `app/templates/dashboard/_registration_mode.html:11` - "Manage Phases" button
+- `app/templates/dashboard/_event_active.html:13` - "Phase Management" button
+- `app/templates/overview.html:26,43,65` - 3 "Manage Phases" links
+- `app/templates/phases/overview.html:33` - "Advance" form action
+
+**Removed:**
+- `app/templates/phases/overview.html:27-31` - "Go Back" form (phases are forward-only by design)
+
+### Added
+
+**Test Coverage for New Services (previously 0%):**
+- `tests/test_dashboard_service.py` - Unit tests for DashboardService
+- `tests/test_event_service.py` - Unit tests for EventService
+- `tests/test_phases_routes.py` - Integration tests for phase navigation
+
+### Lesson Learned
+
+Always test navigation links in browser before marking features complete. The closure document claimed "Fix broken navigation links" but testing was insufficient.
+
+---
+
 ## [2025-12-07] - Phase 3.3: UX Navigation Redesign
 
 ### Added

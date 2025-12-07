@@ -24,17 +24,14 @@
 {% if current_user.is_admin %}
 <section>
     <h3>Phase Controls (Admin Only)</h3>
-    <form action="/phases/go-back" method="post">
-        <button type="submit" {% if not can_go_back %}disabled{% endif %}>
-            ← Go Back to {{ prev_phase.value if prev_phase else "N/A" }}
-        </button>
-    </form>
-
-    <form action="/phases/advance" method="post">
+    <form action="/tournaments/{{ tournament.id }}/advance" method="post">
         <button type="submit" {% if not can_advance %}disabled{% endif %}>
             Advance to {{ next_phase.value if next_phase else "N/A" }} →
         </button>
     </form>
+    {% if not can_advance %}
+    <p><small>Tournament has reached the final phase.</small></p>
+    {% endif %}
 </section>
 {% else %}
 <section>

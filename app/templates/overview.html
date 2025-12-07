@@ -23,7 +23,7 @@
             <footer>
                 <a href="/tournaments/{{ active_tournament.id }}">View Details</a>
                 {% if current_user.is_admin %}
-                <a href="/phases/{{ active_tournament.id }}/phase" role="button">Manage Phases</a>
+                <a href="/tournaments/{{ active_tournament.id }}/phase" role="button">Manage Phases</a>
                 {% endif %}
             </footer>
         </article>
@@ -40,7 +40,7 @@
             <a href="/admin/users" role="button">Manage Users</a>
             <a href="/tournaments" role="button" class="secondary">View Tournaments</a>
             {% if active_tournament %}
-            <a href="/phases/{{ active_tournament.id }}/phase" role="button" class="secondary">Manage Phases</a>
+            <a href="/tournaments/{{ active_tournament.id }}/phase" role="button" class="secondary">Manage Phases</a>
             {% endif %}
         </div>
     </section>
@@ -62,7 +62,7 @@
         <div role="group">
             <a href="/battles" role="button">Battle Queue</a>
             {% if active_tournament %}
-            <a href="/phases/{{ active_tournament.id }}/phase" role="button" class="secondary">View Schedule</a>
+            <a href="/tournaments/{{ active_tournament.id }}/phase" role="button" class="secondary">View Schedule</a>
             {% endif %}
         </div>
     </section>
