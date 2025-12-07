@@ -19,6 +19,23 @@ class PoolRepository(BaseRepository[Pool]):
         """
         super().__init__(Pool, session)
 
+    async def create(self, instance: Pool) -> Pool:
+        """Create a pool from an existing Pool instance.
+
+        Overrides BaseRepository.create() to accept a Pool object
+        with pre-assigned performers relationship.
+
+        Args:
+            instance: Pool instance to persist
+
+        Returns:
+            Created pool with ID and timestamps populated
+        """
+        self.session.add(instance)
+        await self.session.flush()
+        await self.session.refresh(instance)
+        return instance
+
     async def get_by_category(self, category_id: uuid.UUID) -> List[Pool]:
         """Get all pools in a category.
 

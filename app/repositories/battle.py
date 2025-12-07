@@ -19,6 +19,23 @@ class BattleRepository(BaseRepository[Battle]):
         """
         super().__init__(Battle, session)
 
+    async def create(self, instance: Battle) -> Battle:
+        """Create a battle from an existing Battle instance.
+
+        Overrides BaseRepository.create() to accept a Battle object
+        with pre-assigned performers relationship.
+
+        Args:
+            instance: Battle instance to persist
+
+        Returns:
+            Created battle with ID and timestamps populated
+        """
+        self.session.add(instance)
+        await self.session.flush()
+        await self.session.refresh(instance)
+        return instance
+
     async def get_by_category(self, category_id: uuid.UUID) -> List[Battle]:
         """Get all battles in a category.
 

@@ -8,7 +8,11 @@ from app.repositories import (
     CategoryRepository,
     PerformerRepository,
 )
+from app.repositories.battle import BattleRepository
+from app.repositories.pool import PoolRepository
 from app.models import UserRole, TournamentPhase, TournamentStatus
+from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeType
+from app.models.pool import Pool
 from app.db.database import async_session_maker
 
 
@@ -252,3 +256,145 @@ async def test_performer_repository_unique_constraint():
                 dancer_id=dancer.id,
             )
             await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_battle_repository_create_with_instance():
+    """Test BattleRepository.create() accepts a Battle instance with performers."""
+    async with async_session_maker() as session:
+        tournament_repo = TournamentRepository(session)
+        category_repo = CategoryRepository(session)
+        dancer_repo = DancerRepository(session)
+        performer_repo = PerformerRepository(session)
+        battle_repo = BattleRepository(session)
+
+        # Create tournament and category
+        tournament = await tournament_repo.create_tournament("Test Tournament")
+        category = await category_repo.create_category(
+            tournament_id=tournament.id,
+            name="Test Category",
+        )
+
+        # Create dancers and performers
+        dancer1 = await dancer_repo.create_dancer(
+            email="dancer1@test.com",
+            first_name="Dancer",
+            last_name="One",
+            date_of_birth=date(2000, 1, 1),
+            blaze="BBoy One",
+        )
+        dancer2 = await dancer_repo.create_dancer(
+            email="dancer2@test.com",
+            first_name="Dancer",
+            last_name="Two",
+            date_of_birth=date(2000, 2, 2),
+            blaze="BBoy Two",
+        )
+
+        performer1 = await performer_repo.create_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer1.id,
+        )
+        performer2 = await performer_repo.create_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer2.id,
+        )
+
+        # Create Battle instance with performers pre-assigned
+        battle = Battle(
+            category_id=category.id,
+            phase=BattlePhase.PRESELECTION,
+            status=BattleStatus.PENDING,
+            outcome_type=BattleOutcomeType.SCORED,
+        )
+        battle.performers = [performer1, performer2]
+
+        # Use create() with instance (the fix we're testing)
+        created_battle = await battle_repo.create(battle)
+
+        # Verify battle was created correctly
+        assert created_battle.id is not None
+        assert created_battle.category_id == category.id
+        assert created_battle.phase == BattlePhase.PRESELECTION
+        assert created_battle.status == BattleStatus.PENDING
+        assert created_battle.outcome_type == BattleOutcomeType.SCORED
+        assert created_battle.created_at is not None
+
+        # Reload with eager loading to verify performers
+        loaded_battle = await battle_repo.get_with_performers(created_battle.id)
+        assert loaded_battle is not None
+        assert len(loaded_battle.performers) == 2
+        performer_ids = {p.id for p in loaded_battle.performers}
+        assert performer1.id in performer_ids
+        assert performer2.id in performer_ids
+
+
+@pytest.mark.asyncio
+async def test_pool_repository_create_with_instance():
+    """Test PoolRepository.create() accepts a Pool instance with performers."""
+    async with async_session_maker() as session:
+        tournament_repo = TournamentRepository(session)
+        category_repo = CategoryRepository(session)
+        dancer_repo = DancerRepository(session)
+        performer_repo = PerformerRepository(session)
+        pool_repo = PoolRepository(session)
+
+        # Create tournament and category
+        tournament = await tournament_repo.create_tournament("Test Tournament")
+        category = await category_repo.create_category(
+            tournament_id=tournament.id,
+            name="Test Category",
+        )
+
+        # Create dancers and performers
+        dancer1 = await dancer_repo.create_dancer(
+            email="pool_dancer1@test.com",
+            first_name="Pool",
+            last_name="Dancer1",
+            date_of_birth=date(2000, 1, 1),
+            blaze="Pool One",
+        )
+        dancer2 = await dancer_repo.create_dancer(
+            email="pool_dancer2@test.com",
+            first_name="Pool",
+            last_name="Dancer2",
+            date_of_birth=date(2000, 2, 2),
+            blaze="Pool Two",
+        )
+
+        performer1 = await performer_repo.create_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer1.id,
+        )
+        performer2 = await performer_repo.create_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer2.id,
+        )
+
+        # Create Pool instance with performers pre-assigned
+        pool = Pool(
+            category_id=category.id,
+            name="Pool A",
+        )
+        pool.performers = [performer1, performer2]
+
+        # Use create() with instance (the fix we're testing)
+        created_pool = await pool_repo.create(pool)
+
+        # Verify pool was created correctly
+        assert created_pool.id is not None
+        assert created_pool.category_id == category.id
+        assert created_pool.name == "Pool A"
+        assert created_pool.created_at is not None
+
+        # Reload with eager loading to verify performers
+        loaded_pool = await pool_repo.get_with_performers(created_pool.id)
+        assert loaded_pool is not None
+        assert len(loaded_pool.performers) == 2
+        performer_ids = {p.id for p in loaded_pool.performers}
+        assert performer1.id in performer_ids
+        assert performer2.id in performer_ids

@@ -5,6 +5,48 @@
 
 ---
 
+## [2025-12-07] - Bug Fix: Repository create() Method Signature
+
+### Fixed
+
+**Critical: TypeError when advancing tournament from REGISTRATION to PRESELECTION**
+
+Error: `TypeError: BaseRepository.create() takes 1 positional argument but 2 were given`
+
+**Root Cause:** Services call `repo.create(model_instance)` to create entities with pre-assigned relationships (e.g., performers), but `BaseRepository.create()` expects `**kwargs` not a model instance.
+
+**Solution:** Override `create()` in `BattleRepository` and `PoolRepository` to accept model instances.
+
+**Files Modified:**
+- `app/repositories/battle.py` - Added `create(instance: Battle)` override (lines 22-37)
+- `app/repositories/pool.py` - Added `create(instance: Pool)` override (lines 22-37)
+
+### Added
+
+**Test Coverage:**
+- `test_battle_repository_create_with_instance` - Verifies Battle creation with performers
+- `test_pool_repository_create_with_instance` - Verifies Pool creation with performers
+
+### Technical Details
+
+**Pattern Used:** Override base repository method to handle model instances when relationships need to be set before persisting.
+
+```python
+async def create(self, instance: Battle) -> Battle:
+    self.session.add(instance)
+    await self.session.flush()
+    await self.session.refresh(instance)
+    return instance
+```
+
+**Latent Bug Fixed:** PoolRepository had the same issue that would have failed on PRESELECTION → POOLS transition.
+
+**Test Results:**
+- 241 tests passing (239 existing + 2 new)
+- No regressions detected
+
+---
+
 ## [2025-12-07] - Bug Fix: Phase Navigation Links (Post Phase 3.3)
 
 ### Fixed
