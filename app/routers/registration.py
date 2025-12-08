@@ -150,22 +150,25 @@ async def register_dancer(
     # Verify tournament exists
     tournament = await tournament_repo.get_by_id(tournament_uuid)
     if not tournament:
-        add_flash_message(request, "Tournament not found", "error")
-        return RedirectResponse(url="/tournaments", status_code=303)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tournament not found"
+        )
 
     # Verify category exists
     category = await category_repo.get_by_id(category_uuid)
     if not category:
-        add_flash_message(request, "Category not found", "error")
-        return RedirectResponse(url=f"/tournaments/{tournament_id}", status_code=303)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Category not found"
+        )
 
     # Verify dancer exists
     dancer = await dancer_repo.get_by_id(dancer_uuid)
     if not dancer:
-        add_flash_message(request, "Dancer not found", "error")
-        return RedirectResponse(
-            url=f"/registration/{tournament_id}/{category_id}",
-            status_code=303,
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dancer not found"
         )
 
     # Check if dancer is already registered in this tournament
@@ -414,10 +417,12 @@ async def unregister_dancer(
     # Delete performer
     deleted = await performer_repo.delete(performer_uuid)
     if not deleted:
-        add_flash_message(request, "Performer not found", "error")
-    else:
-        add_flash_message(request, "Dancer unregistered successfully", "success")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Performer not found"
+        )
 
+    add_flash_message(request, "Dancer unregistered successfully", "success")
     return RedirectResponse(
         url=f"/registration/{tournament_id}/{category_id}",
         status_code=303,

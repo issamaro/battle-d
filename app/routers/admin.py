@@ -184,10 +184,12 @@ async def delete_user(
     # Delete user
     deleted = await user_repo.delete(user_uuid)
     if not deleted:
-        add_flash_message(request, "User not found", "error")
-    else:
-        add_flash_message(request, "User deleted successfully", "success")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
+    add_flash_message(request, "User deleted successfully", "success")
     return RedirectResponse(url="/admin/users", status_code=303)
 
 
@@ -282,8 +284,10 @@ async def update_user(
     # Check if user exists
     existing_user = await user_repo.get_by_id(user_uuid)
     if not existing_user:
-        add_flash_message(request, "User not found", "error")
-        return RedirectResponse(url="/admin/users", status_code=303)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
     # Check if email is being changed and if new email already exists
     email_lower = email.lower()
@@ -336,8 +340,10 @@ async def resend_magic_link(
     # Get user
     user_to_send = await user_repo.get_by_id(user_uuid)
     if not user_to_send:
-        add_flash_message(request, "User not found", "error")
-        return RedirectResponse(url="/admin/users", status_code=303)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
 
     # Generate and send magic link
     magic_link = magic_link_auth.generate_magic_link(

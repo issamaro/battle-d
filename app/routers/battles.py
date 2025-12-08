@@ -147,10 +147,9 @@ async def start_battle(
 
     battle = await battle_repo.get_by_id(battle_id)
     if not battle:
-        add_flash_message(request, "Battle not found", "error")
-        return RedirectResponse(
-            url="/battles",
-            status_code=status.HTTP_303_SEE_OTHER
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Battle not found"
         )
 
     if battle.status != BattleStatus.PENDING:
@@ -249,10 +248,9 @@ async def encode_battle(
     # Get battle to determine phase
     battle = await battle_repo.get_with_performers(battle_id)
     if not battle:
-        add_flash_message(request, "Battle not found", "error")
-        return RedirectResponse(
-            url="/battles",
-            status_code=status.HTTP_303_SEE_OTHER
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Battle not found"
         )
 
     # Parse form data based on phase
@@ -412,10 +410,9 @@ async def reorder_battle(
 
     battle = await battle_repo.get_by_id(battle_id)
     if not battle:
-        add_flash_message(request, "Battle not found", "error")
-        return RedirectResponse(
-            url="/battles",
-            status_code=status.HTTP_303_SEE_OTHER
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Battle not found"
         )
 
     battle_service = BattleService(battle_repo, performer_repo)

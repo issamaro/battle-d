@@ -6,9 +6,13 @@
 <main class="container" style="max-width: 600px; text-align: center; padding: 3rem 1rem;">
   <div role="alert" aria-live="polite">
     <h1 style="font-size: 6rem; margin: 0; color: var(--pico-muted-color);">404</h1>
-    <h2>Page Not Found</h2>
+    <h2>Not Found</h2>
     <p style="margin-bottom: 2rem;">
-      The page you're looking for doesn't exist or has been moved.
+      {% if detail %}
+        {{ detail }}
+      {% else %}
+        The page you're looking for doesn't exist or has been moved.
+      {% endif %}
     </p>
 
     <nav aria-label="Error navigation">
