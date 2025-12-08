@@ -1,7 +1,88 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-07
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-08
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-08] - Bug Fix: POST Routes Return 404 Instead of 303
+
+### Fixed
+
+**POST routes now return proper 404 for non-existent resources**
+
+POST routes for battle operations, admin user management, and registration were returning HTTP 303 (See Other) redirect instead of HTTP 404 (Not Found) when the requested resource doesn't exist. This violated HTTP semantics and created inconsistency with GET routes.
+
+**Root Cause:** Routes used flash messages with redirects for error handling instead of HTTPException.
+
+**Solution:** Changed 10 routes to raise HTTPException(404) for non-existent resources.
+
+### Files Modified
+
+**Backend (10 fixes):**
+- `app/routers/battles.py` (3 locations): `start_battle`, `encode_battle`, `reorder_battle`
+- `app/routers/admin.py` (3 locations): `delete_user`, `update_user`, `resend_magic_link`
+- `app/routers/registration.py` (4 locations): tournament/category/dancer checks in `register_dancer`, `unregister_dancer`
+
+**Templates:**
+- `app/templates/errors/404.html` - Added conditional `detail` display for specific error messages
+
+**Tests (8 assertion updates):**
+- `tests/e2e/test_event_mode.py` - 3 tests
+- `tests/e2e/test_admin.py` - 3 tests
+- `tests/e2e/test_registration.py` - 2 tests
+
+### UX Note
+
+The fix preserves user experience by displaying specific error messages:
+- **Browser requests** (Accept: text/html): Render 404.html template with `detail` (e.g., "Battle not found")
+- **API/HTMX requests**: Return JSON `{"detail": "..."}`
+
+### Test Results
+- All 457 tests passing
+- No regressions detected
+
+---
+
+## [2025-12-08] - Phase 3.6: E2E Testing Framework
+
+### Added
+
+**E2E Testing Infrastructure:**
+- Created `tests/e2e/__init__.py` - E2E utilities (is_partial_html, htmx_headers, assert helpers)
+- Created `tests/e2e/conftest.py` - E2E fixtures (authenticated clients, test data factories)
+
+**E2E Test Files (141 tests):**
+- `tests/e2e/test_event_mode.py` - 34 tests for Event Mode workflow (command center, battles, encoding)
+- `tests/e2e/test_admin.py` - 44 tests for Admin user management
+- `tests/e2e/test_registration.py` - 32 tests for Registration workflow
+- `tests/e2e/test_tournament_management.py` - 31 tests for Tournament/Category management
+
+**Additional Integration Test:**
+- `tests/test_battle_results_encoding_integration.py` - 5 tests for encoding service
+
+### Changed
+
+**Documentation:**
+- `TESTING.md` - Added E2E Testing section with patterns and examples
+- `ROADMAP.md` - Updated Phase 3.6 status
+
+### Coverage
+
+- **E2E Coverage:** 69% (target was 85%, accepted due to session isolation constraints)
+- **Total Tests:** 457 (316 existing + 141 E2E)
+- **Session Isolation Note:** Some routes require real data that async fixtures create in separate transactions, limiting testable scenarios
+
+### Known Limitation
+
+E2E tests use sync TestClient while fixtures are async. This creates database session isolation where fixture-created data is not visible to TestClient requests. Routes requiring this data return 404/redirect instead of processing.
+
+**Mitigation:** Focus on routes that work with TestClient-created sessions (auth, forms, validation).
+
+### Test Results
+- All 457 tests passing
+- 8 skipped (expected)
+- No regressions
 
 ---
 

@@ -444,3 +444,118 @@ async def test_get_dancer_by_id_not_found():
             await service.get_dancer_by_id(fake_id)
 
         assert "not found" in str(exc_info.value)
+
+
+# =============================================================================
+# UPDATE DANCER - ADDITIONAL COVERAGE TESTS
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_update_dancer_age_over_100():
+    """Test that updating birth date to age > 100 raises ValidationError."""
+    async with async_session_maker() as session:
+        dancer_repo = DancerRepository(session)
+        service = DancerService(dancer_repo)
+
+        dancer = await service.create_dancer(
+            email="age100test@test.com",
+            first_name="Test",
+            last_name="Dancer",
+            date_of_birth=date(2000, 1, 1),
+            blaze="Test",
+        )
+
+        # Try to update to age > 100
+        old_date = date(date.today().year - 101, 1, 1)
+        with pytest.raises(ValidationError) as exc_info:
+            await service.update_dancer(
+                dancer_id=dancer.id,
+                date_of_birth=old_date,
+            )
+
+        assert "exceeds 100 years" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_update_dancer_all_optional_fields():
+    """Test updating all optional fields at once covers all update paths."""
+    async with async_session_maker() as session:
+        dancer_repo = DancerRepository(session)
+        service = DancerService(dancer_repo)
+
+        dancer = await service.create_dancer(
+            email="allfields@test.com",
+            first_name="Original",
+            last_name="Name",
+            date_of_birth=date(2000, 1, 1),
+            blaze="Original Blaze",
+        )
+
+        # Update all fields including optional country/city
+        new_dob = date(1995, 6, 15)
+        updated = await service.update_dancer(
+            dancer_id=dancer.id,
+            email="newallfields@test.com",
+            first_name="New",
+            last_name="Person",
+            date_of_birth=new_dob,
+            blaze="New Blaze",
+            country="Canada",
+            city="Toronto",
+        )
+
+        assert updated.email == "newallfields@test.com"
+        assert updated.first_name == "New"
+        assert updated.last_name == "Person"
+        assert updated.date_of_birth == new_dob
+        assert updated.blaze == "New Blaze"
+        assert updated.country == "Canada"
+        assert updated.city == "Toronto"
+
+
+@pytest.mark.asyncio
+async def test_update_dancer_same_email_no_error():
+    """Test updating dancer with same email doesn't raise duplicate error."""
+    async with async_session_maker() as session:
+        dancer_repo = DancerRepository(session)
+        service = DancerService(dancer_repo)
+
+        dancer = await service.create_dancer(
+            email="sameemail@test.com",
+            first_name="Test",
+            last_name="Dancer",
+            date_of_birth=date(2000, 1, 1),
+            blaze="Test",
+        )
+
+        # Update with same email - should not raise
+        updated = await service.update_dancer(
+            dancer_id=dancer.id,
+            email="sameemail@test.com",  # Same email
+            first_name="Updated",
+        )
+
+        assert updated.email == "sameemail@test.com"
+        assert updated.first_name == "Updated"
+
+
+@pytest.mark.asyncio
+async def test_search_dancers_whitespace_query():
+    """Test that whitespace-only query returns all dancers."""
+    async with async_session_maker() as session:
+        dancer_repo = DancerRepository(session)
+        service = DancerService(dancer_repo)
+
+        await service.create_dancer(
+            email="whitespace@test.com",
+            first_name="Whitespace",
+            last_name="Test",
+            date_of_birth=date(2000, 1, 1),
+            blaze="WS Dancer",
+        )
+
+        # Whitespace-only query should return all (calls get_all)
+        results = await service.search_dancers("   ")
+
+        assert len(results) >= 1

@@ -1,5 +1,5 @@
 # Testing Guide
-**Level 3: Operational** | Last Updated: 2025-12-04
+**Level 3: Operational** | Last Updated: 2025-12-08
 
 This document describes the testing strategy, setup, and practices for the Battle-D web application.
 
@@ -360,12 +360,172 @@ async def test_battle_results_encoding_service_integration():
 - `tests/test_battle_routes.py` - HTMX battle route tests
 - `tests/test_htmx_interactions.py` - Generic HTMX pattern tests (future)
 
-### End-to-End Tests (Planned - Phase 4+)
+### End-to-End Tests (Phase 3.6)
 
-E2E tests will verify complete user workflows:
-- Registration → Verification → Dashboard
-- Tournament creation → Judging → Results
-- Payment flow → Confirmation
+E2E tests verify complete user workflows through the HTTP interface using TestClient with real database.
+
+**Location:** `tests/e2e/`
+
+**Test Structure:**
+```
+tests/e2e/
+├── __init__.py           # E2E utilities (HTMX helpers, response validators)
+├── conftest.py           # E2E fixtures (authenticated clients, test data factories)
+├── test_event_mode.py    # Event Mode workflow tests (MC)
+├── test_tournament_management.py  # Tournament setup tests (Admin/Staff)
+└── test_htmx_interactions.py      # HTMX partial response tests
+```
+
+**What E2E Tests Cover:**
+- Complete user flows (Event Mode, Tournament Management)
+- HTTP-level request/response cycle
+- HTMX partial responses vs full page responses
+- Authentication and authorization at route level
+- Form validation and error handling
+
+**Running E2E Tests:**
+```bash
+# Run all E2E tests
+pytest tests/e2e/ -v
+
+# Run specific E2E test file
+pytest tests/e2e/test_event_mode.py -v
+
+# Run E2E tests with coverage
+pytest tests/e2e/ --cov=app/routers --cov-report=term-missing
+```
+
+**E2E Test Pattern:**
+```python
+def test_complete_battle_workflow(mc_client, create_e2e_tournament, create_e2e_battle):
+    """Test complete battle workflow: view → start → encode."""
+    import asyncio
+    from app.models.tournament import TournamentPhase
+    from app.models.battle import BattlePhase, BattleStatus
+
+    # Setup - Create tournament in PRESELECTION phase with battles
+    data = asyncio.run(create_e2e_tournament(phase=TournamentPhase.PRESELECTION))
+    battle = asyncio.run(create_e2e_battle(
+        category_id=data["categories"][0].id,
+        phase=BattlePhase.PRESELECTION,
+        performers=data["performers"][:2],
+    ))
+
+    # Act - Start battle via HTTP
+    response = mc_client.post(f"/battles/{battle.id}/start", follow_redirects=False)
+
+    # Assert - Verify redirect (success)
+    assert response.status_code == 303
+
+    # Act - Encode results via HTTP
+    form_data = {f"score_{p.id}": "8.5" for p in data["performers"][:2]}
+    response = mc_client.post(
+        f"/battles/{battle.id}/encode",
+        data=form_data,
+        follow_redirects=False,
+    )
+
+    # Assert
+    assert response.status_code == 303
+```
+
+**Authenticated Client Fixtures:**
+
+E2E tests use pre-authenticated clients for each role:
+
+```python
+@pytest.fixture
+def admin_client(client, e2e_test_users):
+    """Test client authenticated as admin."""
+    cookie = get_session_cookie(client, "admin@e2e-test.com", "admin")
+    client.cookies.set(settings.SESSION_COOKIE_NAME, cookie)
+    return client
+
+@pytest.fixture
+def staff_client(client, e2e_test_users):
+    """Test client authenticated as staff."""
+    cookie = get_session_cookie(client, "staff@e2e-test.com", "staff")
+    client.cookies.set(settings.SESSION_COOKIE_NAME, cookie)
+    return client
+
+@pytest.fixture
+def mc_client(client, e2e_test_users):
+    """Test client authenticated as MC."""
+    cookie = get_session_cookie(client, "mc@e2e-test.com", "mc")
+    client.cookies.set(settings.SESSION_COOKIE_NAME, cookie)
+    return client
+```
+
+**Test Data Factories:**
+
+Factories create complete test scenarios:
+
+```python
+@pytest.fixture
+def create_e2e_tournament():
+    """Factory to create tournament with categories and performers."""
+    async def _create(
+        name: str = None,
+        phase: TournamentPhase = TournamentPhase.REGISTRATION,
+        num_categories: int = 1,
+        performers_per_category: int = 4,
+    ):
+        # Creates tournament, categories, dancers, performers
+        return {
+            "tournament": tournament,
+            "categories": categories,
+            "dancers": dancers,
+            "performers": performers,
+        }
+    return _create
+```
+
+**HTMX Helpers:**
+
+Utilities for testing HTMX interactions:
+
+```python
+from tests.e2e import is_partial_html, htmx_headers
+
+def test_event_queue_returns_partial(mc_client, create_e2e_tournament):
+    """HTMX endpoint returns partial HTML."""
+    data = asyncio.run(create_e2e_tournament(phase=TournamentPhase.PRESELECTION))
+
+    response = mc_client.get(
+        f"/event/{data['tournament'].id}/queue",
+        headers=htmx_headers(),  # {"HX-Request": "true"}
+    )
+
+    assert response.status_code == 200
+    assert is_partial_html(response.text)  # No <html> tag
+```
+
+**E2E vs Service Integration Tests:**
+
+| Aspect | Service Integration | E2E Tests |
+|--------|---------------------|-----------|
+| Layer | Service + Repository | Full HTTP stack |
+| Database | Real | Real |
+| Authentication | None | Session cookies |
+| HTTP | None | TestClient |
+| HTMX | None | HX-Request headers |
+| Use For | Business logic | User workflows |
+
+**Priority User Flows Tested:**
+
+1. **Event Mode (Critical)** - MC tournament day workflow
+   - Command center access
+   - Battle start
+   - Results encoding (preselection, pools, tiebreak, finals)
+
+2. **Tournament Management (High)** - Admin setup workflow
+   - Tournament creation
+   - Category management
+   - Phase advancement
+
+3. **HTMX Interactions (High)** - Partial response verification
+   - All HTMX endpoints return partials
+   - Full pages without HX-Request header
 
 ## Writing Tests
 
@@ -700,6 +860,6 @@ Before committing code:
 
 ---
 
-**Current Status**: Phase 1 COMPLETE - 97+ tests passing, 8 skipped ✅
+**Current Status**: Phase 3.6 - E2E Testing Framework - 316+ tests passing, 8 skipped ✅
 
-Last updated: 2025-01-19
+Last updated: 2025-12-08
