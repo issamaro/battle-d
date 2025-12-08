@@ -1388,6 +1388,32 @@ source .venv/bin/activate
 pytest tests/
 ```
 
+### 6. ❌ Don't Forget Chained Eager Loading for Nested Relationships (Async SQLAlchemy)
+
+When using async SQLAlchemy, lazy loading is NOT supported. All relationships must be eagerly loaded. For nested relationships (A → B → C), you must chain the eager loading options.
+
+```python
+# ❌ BAD - Only loads Battle.performers, Performer.dancer will trigger MissingGreenlet
+result = await session.execute(
+    select(Battle)
+    .options(selectinload(Battle.performers))
+    .where(Battle.id == id)
+)
+# Later accessing performer.dancer.blaze causes MissingGreenlet error
+
+# ✅ GOOD - Chain eager loading for nested relationships
+result = await session.execute(
+    select(Battle)
+    .options(
+        selectinload(Battle.performers).selectinload(Performer.dancer)
+    )
+    .where(Battle.id == id)
+)
+# Now performer.dancer.blaze works without lazy loading
+```
+
+**Key Rule:** If a service method accesses `entity.relationship.nested_relationship`, the repository must chain `.selectinload()` for all levels.
+
 ---
 
 ## Service Layer Reference

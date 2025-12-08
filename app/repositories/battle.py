@@ -5,6 +5,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeType
+from app.models.performer import Performer
 from app.repositories.base import BaseRepository
 
 
@@ -47,7 +48,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(Battle.category_id == category_id)
         )
         return list(result.scalars().all())
@@ -68,7 +71,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(
                 Battle.category_id == category_id,
                 Battle.status == status,
@@ -90,7 +95,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(
                 Battle.category_id == category_id,
                 Battle.phase == phase,
@@ -109,7 +116,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(Battle.status == status)
         )
         return list(result.scalars().all())
@@ -122,7 +131,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(Battle.status == BattleStatus.ACTIVE)
         )
         return result.scalar_one_or_none()
@@ -138,7 +149,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(Battle.id == id)
         )
         return result.scalar_one_or_none()
@@ -199,7 +212,9 @@ class BattleRepository(BaseRepository[Battle]):
         result = await self.session.execute(
             select(Battle)
             .join(Category, Battle.category_id == Category.id)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(Category.tournament_id == tournament_id)
         )
         return list(result.scalars().all())
@@ -222,7 +237,9 @@ class BattleRepository(BaseRepository[Battle]):
         result = await self.session.execute(
             select(Battle)
             .join(Category, Battle.category_id == Category.id)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(
                 Category.tournament_id == tournament_id,
                 Battle.status == status,
@@ -271,7 +288,9 @@ class BattleRepository(BaseRepository[Battle]):
         """
         result = await self.session.execute(
             select(Battle)
-            .options(selectinload(Battle.performers))
+            .options(
+                selectinload(Battle.performers).selectinload(Performer.dancer)
+            )
             .where(
                 Battle.category_id == category_id,
                 Battle.status == BattleStatus.PENDING,

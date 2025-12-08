@@ -352,3 +352,127 @@ async def test_get_battle_queue_excludes_completed():
         # Only PENDING battles in queue
         assert len(queue) == 1
         assert queue[0].status == "pending"
+
+
+# =============================================================================
+# PERFORMER NAME LOADING TESTS (MissingGreenlet Fix Verification)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_command_center_context_with_performer_names():
+    """Test command center context loads performer names (blazes) correctly.
+
+    This test verifies the fix for MissingGreenlet error by ensuring
+    the Performer.dancer relationship is eagerly loaded when battles
+    are fetched.
+
+    Bug: https://sqlalche.me/e/20/xd2s (MissingGreenlet)
+    Fix: BattleRepository now uses chained selectinload for Performer.dancer
+    """
+    async with async_session_maker() as session:
+        service = create_event_service(session)
+
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id)
+
+        # Create dancers with unique blazes
+        dancer1 = await create_dancer(session, f"dancer1_{uuid4().hex[:8]}@test.com", "B-Boy Flash")
+        dancer2 = await create_dancer(session, f"dancer2_{uuid4().hex[:8]}@test.com", "PopMaster")
+
+        # Register performers
+        performer1 = await register_performer(session, tournament.id, category.id, dancer1.id)
+        performer2 = await register_performer(session, tournament.id, category.id, dancer2.id)
+
+        # Create battle manually to avoid lazy loading in BattleRepository.create_battle
+        battle_repo = BattleRepository(session)
+        battle = Battle(
+            category_id=category.id,
+            phase=BattlePhase.PRESELECTION,
+            status=BattleStatus.ACTIVE,
+            sequence_order=1,
+            outcome_type=BattleOutcomeType.SCORED,
+        )
+        battle = await battle_repo.create(battle)
+
+        # Link performers using direct SQL (avoids lazy loading on battle.performers)
+        # Use raw UUID bytes format for SQLite
+        from app.models.battle import battle_performers
+        await session.execute(
+            battle_performers.insert().values(battle_id=battle.id, performer_id=performer1.id)
+        )
+        await session.execute(
+            battle_performers.insert().values(battle_id=battle.id, performer_id=performer2.id)
+        )
+        await session.flush()
+
+        # Expire the battle object so SQLAlchemy refetches it with performers
+        session.expire(battle)
+
+        # Advance tournament phase
+        tournament_repo = TournamentRepository(session)
+        await tournament_repo.update(tournament.id, phase=TournamentPhase.PRESELECTION)
+
+        # This should NOT raise MissingGreenlet error
+        # Before the fix, accessing performer.dancer.blaze would fail
+        context = await service.get_command_center_context(tournament.id)
+
+        # Verify performer names are correctly loaded (not "Unknown" or empty)
+        assert context.current_battle is not None
+        assert context.current_battle_performer1 in ["B-Boy Flash", "PopMaster"]
+        assert context.current_battle_performer2 in ["B-Boy Flash", "PopMaster"]
+        assert context.current_battle_performer1 != context.current_battle_performer2
+
+
+@pytest.mark.asyncio
+async def test_get_battle_queue_with_performer_names():
+    """Test battle queue loads performer names correctly.
+
+    Verifies that queue items have performer names populated from
+    eagerly loaded Performer.dancer relationship.
+    """
+    async with async_session_maker() as session:
+        service = create_event_service(session)
+
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id)
+
+        # Create dancers
+        dancer1 = await create_dancer(session, f"dancer3_{uuid4().hex[:8]}@test.com", "Kid Storm")
+        dancer2 = await create_dancer(session, f"dancer4_{uuid4().hex[:8]}@test.com", "Flow Master")
+
+        # Register performers
+        performer1 = await register_performer(session, tournament.id, category.id, dancer1.id)
+        performer2 = await register_performer(session, tournament.id, category.id, dancer2.id)
+
+        # Create battle manually to avoid lazy loading in BattleRepository.create_battle
+        battle_repo = BattleRepository(session)
+        battle = Battle(
+            category_id=category.id,
+            phase=BattlePhase.PRESELECTION,
+            status=BattleStatus.PENDING,
+            sequence_order=1,
+            outcome_type=BattleOutcomeType.SCORED,
+        )
+        battle = await battle_repo.create(battle)
+
+        # Link performers using SQLAlchemy Core (avoids lazy loading on battle.performers)
+        from app.models.battle import battle_performers
+        await session.execute(
+            battle_performers.insert().values(battle_id=battle.id, performer_id=performer1.id)
+        )
+        await session.execute(
+            battle_performers.insert().values(battle_id=battle.id, performer_id=performer2.id)
+        )
+        await session.flush()
+
+        # Expire the battle object so SQLAlchemy refetches it with performers
+        session.expire(battle)
+
+        # Get battle queue - should NOT raise MissingGreenlet
+        queue = await service.get_battle_queue(tournament.id)
+
+        assert len(queue) == 1
+        assert queue[0].performer1_name in ["Kid Storm", "Flow Master"]
+        assert queue[0].performer2_name in ["Kid Storm", "Flow Master"]
+        assert queue[0].performer1_name != queue[0].performer2_name
