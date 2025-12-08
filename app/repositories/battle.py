@@ -161,13 +161,14 @@ class BattleRepository(BaseRepository[Battle]):
         Returns:
             Created battle instance
         """
-        # Create the battle
-        battle = await self.create(
+        # Create Battle instance and persist it
+        battle_instance = Battle(
             category_id=category_id,
             phase=phase,
             status=BattleStatus.PENDING,
             outcome_type=outcome_type,
         )
+        battle = await self.create(battle_instance)
 
         # Add performers (need to load them from DB)
         from app.models.performer import Performer
