@@ -92,6 +92,12 @@ async def command_center(
         tournament_uuid, category_uuid
     )
 
+    # Get phase progress for progress bar
+    progress = await event_service.get_phase_progress(tournament_uuid)
+
+    # Get battle queue
+    queue = await event_service.get_battle_queue(tournament_uuid, category_uuid)
+
     # Get active tournament for template (same as current)
     active_tournament = tournament
 
@@ -105,6 +111,8 @@ async def command_center(
             "active_tournament": active_tournament,
             "category_filter": category_uuid,
             "flash_messages": flash_messages,
+            "progress": progress,
+            "queue": queue,
         },
     )
 

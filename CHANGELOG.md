@@ -5,6 +5,34 @@
 
 ---
 
+## [2025-12-08] - Fix Command Center Missing Progress Variable
+
+### Fixed
+
+**Event Command Center page now loads without 500 error**
+
+The `/event/{tournament_id}` page was crashing with `UndefinedError: 'progress' is undefined` because the `command_center()` route didn't pass the required `progress` and `queue` variables to the template.
+
+**Root Cause:** Template includes `_phase_progress.html` which expects `progress`, and `_battle_queue.html` which expects `queue`. Both were missing from the route context.
+
+**Solution:** Added two service calls in `command_center()` route:
+- `event_service.get_phase_progress(tournament_uuid)` for progress bar
+- `event_service.get_battle_queue(tournament_uuid, category_uuid)` for battle queue
+
+### Files Modified
+
+**Backend (1 fix):**
+- `app/routers/event.py` - Added `progress` and `queue` to template context (lines 95-99, 114-115)
+
+### Test Results
+- All 460 tests passing
+- No regressions detected
+
+### Note
+HTMX partial routes (`/event/{id}/progress`, `/event/{id}/queue`) were already passing these variables correctly - only the main page load was affected.
+
+---
+
 ## [2025-12-08] - Fix BattleRepository.create_battle() Lazy Loading
 
 ### Fixed
