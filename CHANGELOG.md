@@ -5,6 +5,40 @@
 
 ---
 
+## [2025-12-08] - Fix BattleRepository.create_battle() Lazy Loading
+
+### Fixed
+
+**BattleRepository.create_battle() now works without MissingGreenlet errors**
+
+The `create_battle()` method was triggering lazy loading when appending performers to a battle that was already persisted, causing `MissingGreenlet` errors in async SQLAlchemy contexts.
+
+**Root Cause:** Method created and persisted the battle FIRST, then tried to append performers (triggering lazy loading).
+
+**Solution:** Refactored to follow the established pattern used throughout BattleService:
+1. Load all performers FIRST
+2. Create Battle instance (not yet persisted)
+3. Assign `battle.performers = performers` (avoids lazy loading)
+4. Call `self.create(battle)` with performers already assigned
+
+### Files Modified
+
+**Backend (1 fix):**
+- `app/repositories/battle.py` - Refactored `create_battle()` method (lines 159-202)
+
+**Tests (1 new):**
+- `tests/test_repositories.py` - Added `test_battle_repository_create_battle_with_performer_ids`
+
+### Test Results
+- All 460 tests passing (1 new)
+- No regressions detected
+- Related: 58 battle/event service tests all pass
+
+### Technical Note
+This fix follows BR-ASYNC-003: Performers must be assigned to Battle before persisting to avoid lazy loading in async context. The pattern is already proven in 10 locations in BattleService.
+
+---
+
 ## [2025-12-08] - Slash Command Methodology Improvement
 
 ### Changed

@@ -163,7 +163,7 @@ class BattleRepository(BaseRepository[Battle]):
         outcome_type: BattleOutcomeType,
         performer_ids: List[uuid.UUID],
     ) -> Battle:
-        """Create a new battle.
+        """Create a new battle with performers.
 
         Args:
             category_id: Category UUID
@@ -173,29 +173,33 @@ class BattleRepository(BaseRepository[Battle]):
 
         Returns:
             Created battle instance
+
+        Note:
+            Follows BR-ASYNC-003: Performers assigned before persist to avoid
+            lazy loading in async context.
         """
-        # Create Battle instance and persist it
-        battle_instance = Battle(
-            category_id=category_id,
-            phase=phase,
-            status=BattleStatus.PENDING,
-            outcome_type=outcome_type,
-        )
-        battle = await self.create(battle_instance)
-
-        # Add performers (need to load them from DB)
-        from app.models.performer import Performer
-
+        # Step 1: Load all performers FIRST
+        performers = []
         for performer_id in performer_ids:
             result = await self.session.execute(
                 select(Performer).where(Performer.id == performer_id)
             )
             performer = result.scalar_one()
-            battle.performers.append(performer)
+            performers.append(performer)
 
-        await self.session.flush()
-        await self.session.refresh(battle)
-        return battle
+        # Step 2: Create Battle instance (not yet persisted)
+        battle = Battle(
+            category_id=category_id,
+            phase=phase,
+            status=BattleStatus.PENDING,
+            outcome_type=outcome_type,
+        )
+
+        # Step 3: Assign performers BEFORE persisting (avoids lazy loading)
+        battle.performers = performers
+
+        # Step 4: Persist battle WITH performers
+        return await self.create(battle)
 
     async def get_by_tournament(self, tournament_id: uuid.UUID) -> List[Battle]:
         """Get all battles for a tournament.

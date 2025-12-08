@@ -398,3 +398,82 @@ async def test_pool_repository_create_with_instance():
         performer_ids = {p.id for p in loaded_pool.performers}
         assert performer1.id in performer_ids
         assert performer2.id in performer_ids
+
+
+@pytest.mark.asyncio
+async def test_battle_repository_create_battle_with_performer_ids():
+    """Test BattleRepository.create_battle() creates battle without lazy loading errors.
+
+    This test verifies the fix for BR-ASYNC-003: Performers must be assigned
+    to Battle before persisting to avoid MissingGreenlet errors in async context.
+
+    The create_battle() method was previously broken because it:
+    1. Created and persisted the battle
+    2. Then tried to append performers (triggering lazy loading)
+
+    The fix assigns performers BEFORE persisting, following the BattleService pattern.
+    """
+    async with async_session_maker() as session:
+        tournament_repo = TournamentRepository(session)
+        category_repo = CategoryRepository(session)
+        dancer_repo = DancerRepository(session)
+        performer_repo = PerformerRepository(session)
+        battle_repo = BattleRepository(session)
+
+        # Create tournament and category
+        tournament = await tournament_repo.create_tournament("Test Tournament")
+        category = await category_repo.create_category(
+            tournament_id=tournament.id,
+            name="Test Category",
+        )
+
+        # Create dancers and performers
+        dancer1 = await dancer_repo.create_dancer(
+            email="create_battle_dancer1@test.com",
+            first_name="Create",
+            last_name="Battle1",
+            date_of_birth=date(2000, 1, 1),
+            blaze="BBoy CreateBattle1",
+        )
+        dancer2 = await dancer_repo.create_dancer(
+            email="create_battle_dancer2@test.com",
+            first_name="Create",
+            last_name="Battle2",
+            date_of_birth=date(2000, 2, 2),
+            blaze="BBoy CreateBattle2",
+        )
+
+        performer1 = await performer_repo.create_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer1.id,
+        )
+        performer2 = await performer_repo.create_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer2.id,
+        )
+
+        # Use create_battle() with performer IDs
+        # This would trigger MissingGreenlet BEFORE the fix
+        battle = await battle_repo.create_battle(
+            category_id=category.id,
+            phase=BattlePhase.PRESELECTION,
+            outcome_type=BattleOutcomeType.SCORED,
+            performer_ids=[performer1.id, performer2.id],
+        )
+
+        # Verify battle was created correctly
+        assert battle.id is not None
+        assert battle.category_id == category.id
+        assert battle.phase == BattlePhase.PRESELECTION
+        assert battle.status == BattleStatus.PENDING
+        assert battle.outcome_type == BattleOutcomeType.SCORED
+
+        # Verify performers are linked (without triggering lazy loading)
+        loaded_battle = await battle_repo.get_with_performers(battle.id)
+        assert loaded_battle is not None
+        assert len(loaded_battle.performers) == 2
+        performer_ids = {p.id for p in loaded_battle.performers}
+        assert performer1.id in performer_ids
+        assert performer2.id in performer_ids
