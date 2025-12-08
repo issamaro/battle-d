@@ -30,31 +30,50 @@ Simple, fast, cost-free database perfect for our scale.
 ## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
-- Python 3.8+
-- pip
+- Python 3.11+
+- [uv](https://github.com/astral-sh/uv) - Fast Python package manager
 
-### Installation
+### One-Command Setup
 
 ```bash
 # Navigate to web-app directory
 cd web-app
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Run development server
-uvicorn app.main:app --reload
-
-# Open browser
-# → http://localhost:8000
+# Run setup (creates venv, installs deps, seeds DB, starts server)
+./scripts/dev.sh
 ```
 
-### Test Accounts (POC)
+**That's it!** Open http://localhost:8000
+
+### Test Accounts
 - `admin@battle-d.com` (Admin)
 - `staff@battle-d.com` (Staff)
 - `mc@battle-d.com` (MC)
 
-**Magic links** print to console in development mode.
+**Magic links** print to console - copy/paste the URL to log in.
+
+### Manual Setup (if preferred)
+
+```bash
+# Create virtual environment
+uv venv
+source .venv/bin/activate
+
+# Install dependencies
+uv pip install -r requirements.txt
+
+# Copy environment file
+cp .env.example .env
+
+# Run migrations
+alembic upgrade head
+
+# Seed test accounts
+python seed_db.py
+
+# Start server
+uvicorn app.main:app --reload
+```
 
 ---
 

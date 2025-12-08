@@ -65,7 +65,56 @@ pytest tests/test_new_feature.py -v
 
 ---
 
-### Step 3: Manual Testing Checklist (Methodology §6.6)
+### Step 3: Browser Smoke Test (MANDATORY for UI changes)
+
+**Skip condition:** ONLY skip if feature has ZERO UI changes (pure backend/tests/docs).
+
+**Prerequisites:**
+- Local dev running: `./scripts/dev.sh`
+- Browser open at http://localhost:8000
+- Logged in with test account (admin@battle-d.com)
+
+**3.1 Feature Page Loads:**
+- [ ] Navigate to the feature's primary page
+- [ ] Verify page renders without errors
+- [ ] Check: No 404, no 500, content displays correctly
+
+**3.2 Primary Action Works:**
+- [ ] Perform the main action (click button, submit form, etc.)
+- [ ] Verify expected result occurs
+- [ ] Check: Success message shows, data saved, redirect works
+
+**3.3 Console Check:**
+- [ ] Open browser DevTools (F12) > Console tab
+- [ ] Verify: No red errors
+- [ ] Note any warnings (optional to fix)
+
+**3.4 Navigation Links (if templates modified):**
+- [ ] Click all navigation links on the page
+- [ ] Verify: No 404 errors
+- [ ] Check: All links lead to correct pages
+
+**Document in test-results.md:**
+```markdown
+## Browser Smoke Test
+
+**Tested on:** localhost:8000
+**Account used:** admin@battle-d.com
+
+**Results:**
+| Test | Status | Notes |
+|------|--------|-------|
+| Feature page loads | ✅ | Renders correctly |
+| Primary action works | ✅ | Form submits, success message shows |
+| Console errors | ✅ | No errors |
+| Navigation links | ✅ | All sidebar links work |
+
+**Issues found:** None / [describe if any]
+```
+
+---
+
+### Step 3.5: Manual Testing Checklist (Methodology §6.6)
 
 **Test happy path (everything works correctly):**
 - [ ] Navigate to feature
@@ -543,6 +592,15 @@ Fix the 2 important issues, then ready for deployment.
 - [ ] Integration tests use REAL enum values (catches invalid references)
 - [ ] Integration tests verify actual database state after operations
 - [ ] No over-mocking that hides bugs (see TESTING.md for patterns)
+
+**Browser Verification (MANDATORY for UI changes):**
+- [ ] Local dev running (`./scripts/dev.sh`)
+- [ ] Feature page loads without errors
+- [ ] Primary action works correctly
+- [ ] No console errors in browser DevTools
+- [ ] Navigation links work (if templates modified)
+- [ ] Results documented in test-results.md
+- [ ] (Skip if: pure backend/tests/docs with ZERO UI changes)
 
 **Manual Testing:**
 - [ ] Happy path tested and works

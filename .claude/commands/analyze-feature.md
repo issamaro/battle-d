@@ -47,6 +47,45 @@ Scenario: [Scenario name]
 
 Create 2-4 scenarios covering different aspects of the feature.
 
+**1.4.5 Pattern Scan (For Bug Fixes - REQUIRED)**
+
+Before analyzing the specific bug, search for similar issues across the codebase:
+
+**Process:**
+1. Identify the problematic pattern in the reported bug
+2. Search codebase for similar patterns:
+   ```bash
+   # Example searches:
+   grep -rn "pattern_from_bug" app/
+   grep -rn "similar_anti_pattern" app/
+   ```
+3. Document all occurrences found
+4. Decide: Fix all now or track separately
+
+**Document in feature-spec.md:**
+```markdown
+## Pattern Scan Results
+
+**Pattern searched:** [describe the problematic pattern]
+
+**Search command:**
+`grep -rn "..." app/`
+
+**Results:**
+| File | Line | Description |
+|------|------|-------------|
+| file1.py | 123 | Same issue |
+| file2.py | 456 | Same issue |
+
+**Decision:**
+- [ ] Fix all in this feature
+- [ ] Fix reported bug only, track others in backlog
+```
+
+**For new features:** Search for similar existing implementations to follow as patterns.
+
+**Skip if:** Pure documentation change or methodology update with no code patterns to scan.
+
 **1.5 As-Is Analysis (Business Lens Only)**
 
 Read documentation and code to understand current state:
@@ -349,6 +388,12 @@ Feature: [Feature name]
 **Problem Understanding:**
 - [ ] Problem statement written in business terms (not technical)
 - [ ] BDD scenarios written with Given/When/Then format (2-4 scenarios)
+
+**Pattern Scan (Bug Fixes):**
+- [ ] Pattern scan performed (grep for similar issues)
+- [ ] All affected locations documented
+- [ ] Decision documented: fix all now or track separately
+- [ ] (Skip if: new feature, documentation-only, or methodology update)
 
 **Flow & Structure:**
 - [ ] User flow diagram created (if workflow feature)

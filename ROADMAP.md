@@ -1195,6 +1195,48 @@ E2E tests use sync TestClient while fixtures are async. This creates database se
 
 ---
 
+## Phase 3.7: Slash Command Methodology Improvement (COMPLETE ✅)
+
+**Duration:** <1 day
+
+**Objective:** Improve Claude's development workflow methodology to catch more bugs earlier and ensure comprehensive testing.
+
+**Deliverables:**
+- ✅ Updated `/analyze-feature` - Enhanced analysis workflow
+- ✅ Updated `/plan-implementation` - Improved planning steps
+- ✅ Updated `/verify-feature` - Comprehensive testing checklist with browser smoke tests
+- ✅ Updated `/close-feature` - Cross-feature impact checking to prevent regressions
+
+**New Methodology Features:**
+- Cross-feature impact checking before closure
+- Service integration test requirements (real repositories, real enums)
+- Browser smoke test requirements for UI changes
+- Accessibility and responsive testing checklists
+- Manual testing methodology (happy path, error paths, edge cases)
+- HTMX interaction testing guidelines
+
+**Impact:**
+- Catches bugs like invalid enum references at test time (not production)
+- Prevents cross-feature regressions through impact checking
+- Ensures UI changes are browser-verified before deployment
+- Provides comprehensive accessibility/responsive testing guidelines
+
+**Files Modified:**
+- `.claude/commands/analyze-feature.md`
+- `.claude/commands/close-feature.md`
+- `.claude/commands/plan-implementation.md`
+- `.claude/commands/verify-feature.md`
+- `README.md`
+- `scripts/` (new utility scripts)
+
+**Test Results:**
+- All 465 tests passing
+- No application code changed (methodology-only update)
+
+**Release:** Phase 3.7 COMPLETE ✅ (2025-12-08)
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days

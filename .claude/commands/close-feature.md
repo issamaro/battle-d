@@ -26,6 +26,56 @@ You are closing the feature development cycle. Follow these steps in order:
 
 ---
 
+### Step 1.5: Cross-Feature Impact Check
+
+**Purpose:** Verify that changes didn't break related features.
+
+**Based on files modified, test related features:**
+
+| If You Modified | Quick-Test These |
+|-----------------|------------------|
+| `base.html` | All sidebar links, all major pages |
+| `app/templates/*.html` | Pages including modified template |
+| Shared service (`*_service.py`) | All routes using that service |
+| Model (`app/models/*.py`) | All services using that model |
+| Router (`app/routers/*.py`) | Navigation to/from affected routes |
+| CSS files | Visual check on pages using those styles |
+| Slash commands | N/A - no runtime impact |
+
+**Process:**
+1. List all files modified in this feature (from git diff or workbench file)
+2. For each file type, identify dependent features (use table above)
+3. Quick-test each dependent feature:
+   - Navigate to the feature
+   - Click primary action
+   - Verify it still works
+4. Document results
+
+**Document:**
+```markdown
+## Cross-Feature Impact Check
+
+**Files modified in this feature:**
+- [list files from workbench/git]
+
+**Related features tested:**
+| Feature | What I Tested | Result |
+|---------|---------------|--------|
+| Dashboard | Page loads, quick actions work | ✅ |
+| Phase management | "Manage Phases" button works | ✅ |
+| Tournament list | Sidebar link works | ✅ |
+
+**Regressions found:** None / [describe if any]
+```
+
+**If regression found:**
+- STOP closure process
+- Fix the regression
+- Re-run `/verify-feature`
+- Then continue with closure
+
+---
+
 ### Step 2: Update CHANGELOG.md (Methodology §8.1)
 
 **Read existing CHANGELOG.md** to understand format, then add entry at top.
@@ -510,6 +560,13 @@ Create: `archive/CLOSURE_YYYY-MM-DD_[FEATURE-NAME].md`
 ## Quality Gate (BLOCKING)
 
 **Before marking this command complete, verify:**
+
+**Cross-Feature Validation:**
+- [ ] Files modified listed (from workbench/git)
+- [ ] Related features identified (using impact table)
+- [ ] Each related feature quick-tested
+- [ ] No regressions found (or fixed before proceeding)
+- [ ] Results documented
 
 **Closure Tasks:**
 - [ ] CHANGELOG.md updated with feature details

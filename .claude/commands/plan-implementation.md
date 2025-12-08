@@ -166,6 +166,54 @@ From feature-spec.md requirements, identify which docs need updates:
 
 ---
 
+### Step 3.5: Technical Risk POC (If Applicable)
+
+**When required:**
+- New integration pattern (new test framework, external API, unfamiliar library)
+- Significant architecture change (new service layer, caching, async patterns)
+- Technology you haven't used in this codebase before
+
+**When to skip:**
+- Standard CRUD operations following existing patterns
+- Simple template changes
+- Documentation-only changes
+- Bug fixes with clear solutions
+
+**POC Process (1-2 hours maximum):**
+1. Identify the riskiest technical assumption
+2. Create minimal proof-of-concept (separate file or test)
+3. Test whether the assumption holds
+4. Document findings
+5. Decide: proceed as planned / adjust approach / abandon
+
+**Document in implementation-plan.md:**
+```markdown
+## Technical POC
+
+**Risk identified:** [e.g., "Sync TestClient with async fixtures"]
+**Hypothesis:** [e.g., "TestClient can see data created by async fixtures"]
+
+**POC code:**
+```python
+# Minimal test to validate assumption
+...
+```
+
+**Result:** ✅ PASSED / ❌ FAILED
+**Findings:** [what you learned]
+**Decision:** [proceed / adjust target from X to Y / abandon approach]
+```
+
+**If no POC needed, document:**
+```markdown
+## Technical POC
+
+**Status:** Not required
+**Reason:** Standard CRUD following existing patterns
+```
+
+---
+
 ### Step 4: Plan Database Changes (Methodology §3.3)
 
 **4.1 Schema Changes:**
@@ -765,6 +813,12 @@ async def filter_battles(
 - [ ] Frontend patterns chosen (components, HTMX, accessibility)
 - [ ] Database changes planned with migrations
 - [ ] Documentation updates planned (which docs, which sections)
+
+**Technical Risk Validation:**
+- [ ] Technical risks identified (or "none - standard patterns" documented)
+- [ ] POC performed for high-risk items (if applicable)
+- [ ] POC results documented with decision
+- [ ] (Skip POC if: standard CRUD, simple changes, bug fixes)
 
 **Risk Analysis:**
 - [ ] Breaking changes identified
