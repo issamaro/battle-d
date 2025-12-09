@@ -48,6 +48,9 @@ This document provides a complete development methodology for the Battle-D proje
 - [When to Read Which Document](#when-to-read-which-document)
 - [How Plan Mode Maps to Methodology](#how-plan-mode-maps-to-methodology)
 
+### PART 6: TEST-TO-REQUIREMENT TRACEABILITY
+- [Test-to-Requirement Traceability](#test-to-requirement-traceability)
+
 ---
 
 # PART 1: QUICK REFERENCE
@@ -2986,6 +2989,109 @@ This methodology provides:
 **Key Principle:** Documentation first, code second, quality always.
 
 **Remember:** This methodology is a guide, not a prison. Use judgment, adapt as needed, but always maintain quality and consistency.
+
+---
+
+## Test-to-Requirement Traceability
+
+### Purpose
+
+Ensure tests validate CORRECT functional behavior, not scope creep or unintended implementation. When a test fails, it should be clear whether:
+- Implementation is wrong (bug in code)
+- Requirement is unclear/incorrect (needs user clarification)
+- Test itself validates wrong behavior (scope creep)
+
+### The Problem Without Traceability
+
+```
+Claude writes: test_filter_returns_battles_sorted_by_name()
+Gherkin says: "sorted by completion time (oldest first)"
+
+Test passes but validates WRONG behavior!
+```
+
+### E2E Test Docstring Standard (BLOCKING)
+
+All E2E tests in `tests/e2e/` MUST include Gherkin reference. This is BLOCKING.
+
+**Required format:**
+```python
+@pytest.mark.asyncio
+async def test_command_center_shows_tournament_data(
+    async_client_factory,
+    create_async_tournament_scenario,
+):
+    """Test command center displays fixture-created tournament.
+
+    Validates: feature-spec.md Scenario "View tournament command center"
+    Gherkin:
+        Given a tournament "Summer Battle 2024" exists in PRESELECTION phase
+        And the tournament has 1 category with 4 performers
+        When I navigate to /event/{tournament_id}
+        Then the page should load successfully (200)
+        And I should see the tournament name
+    """
+    # Test implementation with Given/When/Then comments
+```
+
+### Before Writing ANY Test
+
+Ask yourself:
+1. **Which Gherkin scenario from feature-spec.md does this test validate?**
+2. **Is the expected outcome clearly stated in the requirement?**
+3. **Am I adding behavior not in the spec?** (If yes, STOP and ask user)
+
+**If test feels "made up" (not from Gherkin):**
+```
+Use AskUserQuestion:
+"I'm about to write test X, but I don't see this in the Gherkin scenarios.
+Should I add this requirement or is it out of scope?"
+```
+
+### When E2E Test Fails
+
+Ask IN THIS ORDER:
+
+1. **"Does this test correctly reflect the Gherkin scenario?"**
+   - Read the test docstring
+   - Compare to feature-spec.md Gherkin
+   - If mismatch → test is wrong, fix the test
+
+2. **"Is the requirement clear, or is it ambiguous?"**
+   - If ambiguous → use AskUserQuestion to clarify with user
+   - DO NOT assume an interpretation
+
+3. **"Is this a bug in code OR a gap in requirements?"**
+   - Only after confirming test is correct and requirement is clear
+   - If code bug → fix the implementation
+   - If requirement gap → update feature-spec.md first, then fix
+
+### Test-to-Requirement Mapping (Verify Phase)
+
+During `/verify-feature`, create mapping table:
+
+```markdown
+| Gherkin Scenario (feature-spec.md) | E2E Test(s) That Validate It | Status |
+|-------------------------------------|------------------------------|--------|
+| "View tournament command center" | test_command_center_shows_tournament | ✅ Covered |
+| "Filter battles by encoding status" | test_filter_battles_by_pending | ✅ Covered |
+| "See visual status indicators" | [NONE] | ⚠️ Missing test |
+| [No scenario] | test_filter_sorted_by_name | 🚨 Scope creep? |
+```
+
+**Flag and resolve:**
+- **Missing tests (⚠️):** Write the test or ask user if needed
+- **Scope creep (🚨):** Ask user: "Should I add this requirement or remove the test?"
+
+### Strictness Levels
+
+| Test Type | Gherkin Reference | Enforcement |
+|-----------|-------------------|-------------|
+| E2E tests (`tests/e2e/`) | REQUIRED | BLOCKING |
+| Integration tests | RECOMMENDED | Guideline |
+| Unit tests | OPTIONAL | Guideline |
+
+**Why E2E is BLOCKING:** E2E tests validate complete user workflows (the "Then" in Gherkin). If they validate wrong behavior, the entire feature is broken from the user's perspective.
 
 ---
 

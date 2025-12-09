@@ -1,7 +1,48 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-08
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-09
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-09] - Test-to-Requirement Traceability Methodology
+
+### Added
+
+**Test-to-Requirement Traceability:**
+- E2E tests now MUST include Gherkin reference in docstring (BLOCKING)
+- Test-to-requirement mapping step in `/verify-feature`
+- "Question the Requirement" prompt before writing tests
+- "When E2E Test Fails" protocol (3 questions in order)
+
+**Documentation Sections:**
+- `.claude/README.md` - Added PART 6: Test-to-Requirement Traceability
+- `TESTING.md` - Added E2E Test Docstring Standard (BLOCKING)
+
+### Changed
+
+**Slash Commands:**
+- `.claude/commands/implement-feature.md` - Added 13.0 Requirement Validation, 13.4 E2E Test Standard
+- `.claude/commands/verify-feature.md` - Added Step 2.5 Test-to-Requirement Mapping, Quality Gate
+
+### Purpose
+
+Ensure tests validate CORRECT functional behavior, not scope creep. When an E2E test fails, Claude must now ask:
+1. "Does this test correctly reflect the Gherkin scenario?"
+2. "Is the requirement clear, or should I ask user for clarification?"
+3. "Is this a bug in code OR a gap in requirements?"
+
+### Files Modified
+
+**Methodology:**
+- `.claude/commands/implement-feature.md`
+- `.claude/commands/verify-feature.md`
+- `.claude/README.md`
+- `TESTING.md`
+
+### Test Results
+- All 473 tests passing
+- No regressions (documentation-only change)
 
 ---
 

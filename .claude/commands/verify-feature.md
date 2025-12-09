@@ -65,6 +65,84 @@ pytest tests/test_new_feature.py -v
 
 ---
 
+### Step 2.5: Test-to-Requirement Mapping (BLOCKING for E2E Tests)
+
+**Purpose:** Ensure tests validate the RIGHT behavior, not scope creep.
+
+**2.5.1 Create Mapping Table**
+
+Compare tests in `tests/e2e/` to Gherkin scenarios in `feature-spec.md`:
+
+```markdown
+## Test-to-Requirement Mapping
+
+| Gherkin Scenario (feature-spec.md) | E2E Test(s) That Validate It | Status |
+|-------------------------------------|------------------------------|--------|
+| "View tournament command center" | test_command_center_shows_tournament | ✅ Covered |
+| "Filter battles by encoding status" | test_filter_battles_by_pending | ✅ Covered |
+| "See visual status indicators" | [NONE] | ⚠️ Missing test |
+| [No scenario] | test_filter_sorted_by_name | 🚨 Scope creep? |
+```
+
+**2.5.2 Check for Issues**
+
+**Missing Tests (⚠️):**
+- Gherkin scenario exists but no E2E test validates it
+- Action: Write the missing test OR ask user if test is needed
+
+**Potential Scope Creep (🚨):**
+- E2E test exists but doesn't map to any Gherkin scenario
+- Action: Use **AskUserQuestion**:
+  - "Test `test_X` doesn't map to any Gherkin scenario in feature-spec.md. Should I add this as a new requirement, or is this scope creep that should be removed?"
+
+**2.5.3 Verify E2E Test Docstrings**
+
+All E2E tests in `tests/e2e/` MUST have:
+- `Validates:` line referencing the Gherkin scenario
+- `Gherkin:` block with the actual Given/When/Then
+
+**If docstring missing:**
+- STOP and add the docstring
+- If unclear which scenario the test validates, use **AskUserQuestion**
+
+**2.5.4 When Test Fails - The Key Question**
+
+When an E2E test fails, ask IN THIS ORDER:
+
+1. **"Does this test correctly reflect the Gherkin scenario?"**
+   - Read the test docstring
+   - Compare to feature-spec.md Gherkin
+   - If mismatch → test is wrong, fix the test
+
+2. **"Is the requirement clear, or is it ambiguous?"**
+   - If ambiguous → use **AskUserQuestion** to clarify with user
+   - DO NOT assume an interpretation
+
+3. **"Is this a bug in code OR a gap in requirements?"**
+   - Only after confirming test is correct and requirement is clear
+   - If code bug → fix the implementation
+   - If requirement gap → update feature-spec.md first, then fix
+
+**Document in test-results.md:**
+```markdown
+## Test-to-Requirement Mapping
+
+**Mapping Status:** ✅ All scenarios covered / ⚠️ Issues found
+
+| Scenario | Test | Status |
+|----------|------|--------|
+| View command center | test_command_center_shows_tournament | ✅ |
+| Filter battles | test_filter_by_encoding_status | ✅ |
+
+**Issues:**
+- None / [List issues that needed resolution]
+
+**Clarifications Asked:**
+- None / [List any AskUserQuestion clarifications]
+```
+
+---
+
 ### Step 3: Browser Smoke Test (MANDATORY for UI changes)
 
 **Skip condition:** ONLY skip if feature has ZERO UI changes (pure backend/tests/docs).
@@ -592,6 +670,13 @@ Fix the 2 important issues, then ready for deployment.
 - [ ] Integration tests use REAL enum values (catches invalid references)
 - [ ] Integration tests verify actual database state after operations
 - [ ] No over-mocking that hides bugs (see TESTING.md for patterns)
+
+**Test-to-Requirement Traceability (BLOCKING for E2E):**
+- [ ] Test-to-requirement mapping table created
+- [ ] All Gherkin scenarios from feature-spec.md have corresponding E2E tests
+- [ ] All E2E tests have `Validates:` docstring referencing Gherkin scenario
+- [ ] No E2E tests exist without corresponding Gherkin scenario (scope creep check)
+- [ ] Any discrepancies resolved via AskUserQuestion
 
 **Browser Verification (MANDATORY for UI changes):**
 - [ ] Local dev running (`./scripts/dev.sh`)

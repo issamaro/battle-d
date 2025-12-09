@@ -1,5 +1,5 @@
 # Battle-D Project Roadmap
-**Level 2: Derived** | Last Updated: 2025-12-08
+**Level 2: Derived** | Last Updated: 2025-12-09
 
 Phased development roadmap from POC to V2.
 
@@ -1234,6 +1234,47 @@ E2E tests use sync TestClient while fixtures are async. This creates database se
 - No application code changed (methodology-only update)
 
 **Release:** Phase 3.7 COMPLETE ✅ (2025-12-08)
+
+---
+
+## Phase 3.8: Test-to-Requirement Traceability (COMPLETE ✅)
+
+**Date:** 2025-12-09
+
+**Objective:** Add methodology to ensure E2E tests validate correct functional behavior, not scope creep or unintended implementation.
+
+**Problem Addressed:**
+Tests might validate wrong behavior because there's no explicit link between test assertions and documented Gherkin requirements. When a test fails, it's unclear if:
+- Implementation is wrong (bug)
+- Requirement is unclear (needs user clarification)
+- Test itself validates wrong behavior (scope creep)
+
+**Deliverables:**
+
+**Methodology Updates:**
+- ✅ `.claude/commands/implement-feature.md` - Added 13.0 Requirement Validation, 13.4 E2E Test Standard
+- ✅ `.claude/commands/verify-feature.md` - Added Step 2.5 Test-to-Requirement Mapping
+- ✅ `.claude/README.md` - Added PART 6: Test-to-Requirement Traceability
+- ✅ `TESTING.md` - Added E2E Test Docstring Standard (BLOCKING)
+
+**Key Changes:**
+1. **Before Writing Tests:** Ask "Which Gherkin scenario does this validate?"
+2. **E2E Test Docstring Standard (BLOCKING):** Must include `Validates:` and `Gherkin:` references
+3. **Verify Phase:** Create test-to-requirement mapping table
+4. **When Test Fails:** Ask 3 questions in order before assuming code is wrong
+
+**Strictness Levels:**
+| Test Type | Gherkin Reference | Enforcement |
+|-----------|-------------------|-------------|
+| E2E tests | REQUIRED | BLOCKING |
+| Integration | RECOMMENDED | Guideline |
+| Unit | OPTIONAL | Guideline |
+
+**Test Results:**
+- All 473 tests passing
+- No regressions (documentation-only change)
+
+**Release:** Phase 3.8 COMPLETE ✅ (2025-12-09)
 
 ---
 

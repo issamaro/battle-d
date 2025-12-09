@@ -527,6 +527,113 @@ def test_event_queue_returns_partial(mc_client, create_e2e_tournament):
    - All HTMX endpoints return partials
    - Full pages without HX-Request header
 
+### Async E2E Tests (Session Sharing Pattern)
+
+For E2E tests that need to access pre-created database data, use the async pattern with session sharing.
+
+**The Problem:**
+Standard E2E tests use sync TestClient, which creates separate database sessions. Data created in async fixtures is invisible to routes because of SQLAlchemy session isolation - each `async with async_session_maker()` creates an isolated transaction context.
+
+**The Solution:**
+Use `httpx.AsyncClient` with dependency override to share a single session between fixture data creation and HTTP request handling.
+
+**Location:** `tests/e2e/async_conftest.py`
+
+**Pattern:**
+```python
+@pytest.mark.asyncio
+async def test_with_fixture_data(
+    async_e2e_session,
+    async_client_factory,
+    create_async_tournament,
+):
+    """Test that can see fixture-created data."""
+    # Create data - uses shared session
+    tournament = await create_async_tournament(name="Test")
+
+    # Make HTTP request - same session via dependency override
+    async with async_client_factory("staff") as client:
+        response = await client.get(f"/tournaments/{tournament.id}")
+        assert response.status_code == 200  # Works!
+```
+
+**Key Fixtures:**
+
+| Fixture | Purpose |
+|---------|---------|
+| `async_e2e_session` | Shared SQLAlchemy session for entire test |
+| `async_client_factory(role)` | Creates authenticated AsyncClient with session override |
+| `create_async_tournament` | Factory for tournaments |
+| `create_async_category` | Factory for categories |
+| `create_async_performer` | Factory for performers with dancers |
+| `create_async_battle` | Factory for battles |
+| `create_async_tournament_scenario` | Complete scenario factory (tournament + categories + performers) |
+
+**When to Use Async E2E Tests:**
+- Testing with pre-created data (tournaments, battles, performers)
+- Multi-step workflows where data must persist between requests
+- Validating Gherkin scenarios with specific database state
+- Testing Event Mode with real battle data
+
+**When to Use Sync E2E Tests:**
+- Simple route tests without pre-created data
+- Tests that only need HTTP-created data (create via POST, then GET)
+- Tests where session isolation doesn't matter
+
+**E2E Test Docstring Standard (BLOCKING)**
+
+All E2E tests MUST include a Gherkin reference in their docstring. This ensures tests validate correct functional behavior, not scope creep.
+
+**Required docstring format:**
+```python
+@pytest.mark.asyncio
+async def test_command_center_shows_real_tournament(
+    async_client_factory,
+    create_async_tournament_scenario,
+):
+    """Test command center displays fixture-created tournament.
+
+    Validates: feature-spec.md Scenario "View tournament command center"
+    Gherkin:
+        Given a tournament "Summer Battle 2024" exists in PRESELECTION phase
+        And the tournament has 1 category with 4 performers
+        When I navigate to /event/{tournament_id}
+        Then the page should load successfully (200)
+        And I should see the tournament name
+    """
+    # Given - create tournament in PRESELECTION phase
+    data = await create_async_tournament_scenario(
+        name="Summer Battle 2024",
+        phase=TournamentPhase.PRESELECTION,
+        num_categories=1,
+        performers_per_category=4,
+    )
+
+    # When - navigate to command center
+    async with async_client_factory("mc") as client:
+        response = await client.get(f"/event/{data['tournament'].id}")
+
+    # Then - page loads with tournament data
+    assert response.status_code == 200
+    assert b"Summer Battle 2024" in response.content
+```
+
+**Why this is BLOCKING:**
+- E2E tests validate user workflows (the "Then" in Gherkin)
+- Without Gherkin reference, failing tests don't tell us: is code wrong, or is requirement wrong?
+- This prevents "tests that validate wrong behavior" (scope creep)
+
+**When E2E test fails, Claude MUST ask:**
+1. "Does this test correctly reflect the Gherkin scenario?" (compare docstring to feature-spec)
+2. "Is the requirement clear, or should I ask user for clarification?"
+3. "Is this a bug in code OR a gap in requirements?"
+
+**Technical Details:**
+- Session is shared via `app.dependency_overrides[get_db]`
+- Uses `session.flush()` instead of `commit()` to keep data in transaction
+- Transaction rolls back at end for automatic cleanup
+- AsyncClient uses `ASGITransport` for proper async handling
+
 ## Writing Tests
 
 ### Test File Naming

@@ -676,6 +676,32 @@ flash(request, "error", "Failed to encode battle")
 
 **Write tests AS YOU IMPLEMENT, not after.**
 
+**CRITICAL: Before writing ANY test, validate the requirement:**
+
+**13.0 Requirement Validation (BEFORE Writing Tests)**
+
+Before writing each test, ask yourself:
+1. **Which Gherkin scenario from feature-spec.md does this test validate?**
+2. **Is the expected outcome clearly stated in the requirement?**
+3. **Am I adding behavior not in the spec?** (If yes, STOP and ask user)
+
+**If a test feels "made up" (not derived from Gherkin):**
+- Use **AskUserQuestion**: "I'm about to write test X, but I don't see this in the Gherkin scenarios. Should I add this requirement or is it out of scope?"
+- DO NOT assume and proceed - scope creep in tests leads to validating wrong behavior
+
+**Example of the mindset:**
+```
+Claude thinking: "I should test that battles are sorted by name..."
+STOP! Check feature-spec.md Gherkin:
+  "And the list is sorted by completion time (oldest first)"
+
+The requirement says completion time, NOT name!
+Write: test_filter_returns_battles_sorted_by_completion_time()
+NOT: test_filter_returns_battles_sorted_by_name()
+```
+
+---
+
 **CRITICAL: Service tests should be INTEGRATION tests (real DB), not mocked unit tests.**
 
 Mocked unit tests hide bugs like:
@@ -758,6 +784,54 @@ async def test_filter_endpoint_returns_partial_html(async_client):
     # Should contain battle list
     assert 'id="battle-list"' in response.text
 ```
+
+**13.4 E2E Tests - MUST Reference Gherkin (BLOCKING)**
+
+E2E tests in `tests/e2e/` MUST include Gherkin reference in docstring. This is BLOCKING.
+
+**Required docstring format:**
+```python
+@pytest.mark.asyncio
+async def test_command_center_shows_tournament_data(
+    async_client_factory,
+    create_async_tournament_scenario,
+):
+    """Test command center displays fixture-created tournament.
+
+    Validates: feature-spec.md Scenario "View tournament command center"
+    Gherkin:
+        Given a tournament "Summer Battle 2024" exists in PRESELECTION phase
+        And the tournament has 1 category with 4 performers
+        When I navigate to /event/{tournament_id}
+        Then the page should load successfully (200)
+        And I should see the tournament name
+    """
+    # Given
+    data = await create_async_tournament_scenario(
+        name="Summer Battle 2024",
+        phase=TournamentPhase.PRESELECTION,
+    )
+
+    # When
+    async with async_client_factory("mc") as client:
+        response = await client.get(f"/event/{data['tournament'].id}")
+
+    # Then
+    assert response.status_code == 200
+    assert b"Summer Battle 2024" in response.content
+```
+
+**Why E2E tests are BLOCKING:**
+- E2E tests validate user workflows (the "Then" in Gherkin)
+- If an E2E test fails but has no Gherkin reference, we can't tell if:
+  - Implementation is wrong (bug)
+  - Requirement is wrong/unclear (needs user clarification)
+- This prevents "tests that validate wrong behavior"
+
+**When E2E test fails, Claude MUST ask:**
+1. "Does this test correctly reflect the Gherkin scenario?"
+2. "Is the requirement clear, or should I ask user for clarification?"
+3. "Is this a bug in code OR a gap in requirements?"
 
 ---
 
