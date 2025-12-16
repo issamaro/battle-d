@@ -22,16 +22,37 @@ class TestBattleListAccess:
     """Test battle list page access."""
 
     def test_battle_list_loads(self, staff_client):
-        """GET /battles loads battle list page."""
+        """GET /battles loads battle list page.
+
+        Validates: DOMAIN_MODEL.md Battle entity access
+        Gherkin:
+            Given I am authenticated as Staff
+            When I navigate to /battles
+            Then the page loads successfully (200)
+        """
+        # Given (authenticated via staff_client fixture)
+
+        # When
         response = staff_client.get("/battles")
 
+        # Then
         assert_status_ok(response)
 
     def test_battle_list_requires_authentication(self, e2e_client):
-        """GET /battles requires authentication."""
+        """GET /battles requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I navigate to /battles
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given (not authenticated via e2e_client fixture)
+
+        # When
         response = e2e_client.get("/battles")
 
-        # Should require auth
+        # Then
         assert response.status_code in [401, 302, 303]
 
 
@@ -39,18 +60,40 @@ class TestBattleDetailAccess:
     """Test battle detail page access patterns."""
 
     def test_battle_detail_nonexistent_returns_404(self, staff_client):
-        """GET /battles/{id} returns 404 for non-existent battle."""
+        """GET /battles/{id} returns 404 for non-existent battle.
+
+        Validates: [Derived] HTTP 404 pattern for missing resources
+        Gherkin:
+            Given I am authenticated as Staff
+            And no battle exists with the given ID
+            When I navigate to /battles/{id}
+            Then I receive a 404 Not Found response
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = staff_client.get(f"/battles/{fake_id}")
 
+        # Then
         assert response.status_code == 404
 
     def test_battle_detail_requires_authentication(self, e2e_client):
-        """GET /battles/{id} requires authentication."""
+        """GET /battles/{id} requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I navigate to /battles/{id}
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.get(f"/battles/{fake_id}")
 
-        # Should require auth (401) or redirect to login
+        # Then
         assert response.status_code in [401, 302, 303]
 
 
@@ -58,17 +101,40 @@ class TestBattleStartAccess:
     """Test battle start endpoint access patterns."""
 
     def test_start_battle_nonexistent_returns_404(self, staff_client):
-        """POST /battles/{id}/start returns 404 for non-existent battle."""
+        """POST /battles/{id}/start returns 404 for non-existent battle.
+
+        Validates: [Derived] HTTP 404 pattern for missing resources
+        Gherkin:
+            Given I am authenticated as Staff
+            And no battle exists with the given ID
+            When I POST to /battles/{id}/start
+            Then I receive a 404 Not Found response
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = staff_client.post(f"/battles/{fake_id}/start", follow_redirects=False)
 
+        # Then
         assert response.status_code == 404
 
     def test_start_battle_requires_authentication(self, e2e_client):
-        """POST /battles/{id}/start requires authentication."""
+        """POST /battles/{id}/start requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I POST to /battles/{id}/start
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.post(f"/battles/{fake_id}/start")
 
+        # Then
         assert response.status_code in [401, 302, 303]
 
 
@@ -76,35 +142,81 @@ class TestBattleEncodingAccess:
     """Test battle encoding endpoint access patterns."""
 
     def test_encode_form_nonexistent_returns_404(self, staff_client):
-        """GET /battles/{id}/encode returns 404 for non-existent battle."""
+        """GET /battles/{id}/encode returns 404 for non-existent battle.
+
+        Validates: [Derived] HTTP 404 pattern for missing resources
+        Gherkin:
+            Given I am authenticated as Staff
+            And no battle exists with the given ID
+            When I navigate to /battles/{id}/encode
+            Then I receive a 404 Not Found response
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = staff_client.get(f"/battles/{fake_id}/encode")
 
+        # Then
         assert response.status_code == 404
 
     def test_encode_form_requires_authentication(self, e2e_client):
-        """GET /battles/{id}/encode requires authentication."""
+        """GET /battles/{id}/encode requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I navigate to /battles/{id}/encode
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.get(f"/battles/{fake_id}/encode")
 
+        # Then
         assert response.status_code in [401, 302, 303]
 
     def test_encode_submit_nonexistent_returns_404(self, staff_client):
-        """POST /battles/{id}/encode returns 404 for non-existent battle."""
+        """POST /battles/{id}/encode returns 404 for non-existent battle.
+
+        Validates: [Derived] HTTP 404 pattern for missing resources
+        Gherkin:
+            Given I am authenticated as Staff
+            And no battle exists with the given ID
+            When I POST to /battles/{id}/encode with empty data
+            Then I receive a 404 Not Found response
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = staff_client.post(
             f"/battles/{fake_id}/encode",
             data={},
             follow_redirects=False,
         )
 
+        # Then
         assert response.status_code == 404
 
     def test_encode_submit_requires_authentication(self, e2e_client):
-        """POST /battles/{id}/encode requires authentication."""
+        """POST /battles/{id}/encode requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I POST to /battles/{id}/encode
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.post(f"/battles/{fake_id}/encode", data={})
 
+        # Then
         assert response.status_code in [401, 302, 303]
 
 
@@ -112,24 +224,58 @@ class TestEventModeAccess:
     """Test event mode command center access patterns."""
 
     def test_command_center_nonexistent_returns_404(self, mc_client):
-        """GET /event/{id} returns 404 for non-existent tournament."""
+        """GET /event/{id} returns 404 for non-existent tournament.
+
+        Validates: [Derived] HTTP 404 pattern for missing resources
+        Gherkin:
+            Given I am authenticated as MC
+            And no tournament exists with the given ID
+            When I navigate to /event/{id}
+            Then I receive a 404 Not Found response
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = mc_client.get(f"/event/{fake_id}")
 
+        # Then
         assert response.status_code == 404
 
     def test_command_center_requires_authentication(self, e2e_client):
-        """GET /event/{id} requires authentication."""
+        """GET /event/{id} requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I navigate to /event/{id}
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.get(f"/event/{fake_id}")
 
+        # Then
         assert response.status_code in [401, 302, 303]
 
     def test_command_center_requires_mc_role(self, judge_client):
-        """GET /event/{id} requires MC role."""
+        """GET /event/{id} requires MC role.
+
+        Validates: DOMAIN_MODEL.md User roles (MC access)
+        Gherkin:
+            Given I am authenticated as Judge (not MC)
+            When I navigate to /event/{id}
+            Then I am denied access (401/403/404)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = judge_client.get(f"/event/{fake_id}")
 
+        # Then
         # Judge role shouldn't access command center (should be 401/403)
         # or 404 if role check happens after tournament lookup
         assert response.status_code in [401, 403, 404]
@@ -139,18 +285,41 @@ class TestBattleQueueAccess:
     """Test battle queue endpoint access patterns."""
 
     def test_battle_queue_nonexistent_category(self, staff_client):
-        """GET /battles/queue/{category_id} handles non-existent category."""
+        """GET /battles/queue/{category_id} handles non-existent category.
+
+        Validates: [Derived] HTTP graceful handling of missing resources
+        Gherkin:
+            Given I am authenticated as Staff
+            And no category exists with the given ID
+            When I navigate to /battles/queue/{category_id}
+            Then I receive either empty results (200) or 404
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = staff_client.get(f"/battles/queue/{fake_id}")
 
+        # Then
         # Should return empty result or 404
         assert response.status_code in [200, 404]
 
     def test_battle_queue_requires_authentication(self, e2e_client):
-        """GET /battles/queue/{category_id} requires authentication."""
+        """GET /battles/queue/{category_id} requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I navigate to /battles/queue/{category_id}
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.get(f"/battles/queue/{fake_id}")
 
+        # Then
         assert response.status_code in [401, 302, 303]
 
 
@@ -158,24 +327,47 @@ class TestBattleReorderAccess:
     """Test battle reorder endpoint access patterns."""
 
     def test_reorder_nonexistent_battle_returns_404(self, staff_client):
-        """POST /battles/{id}/reorder returns 404 for non-existent battle."""
+        """POST /battles/{id}/reorder returns 404 for non-existent battle.
+
+        Validates: [Derived] HTTP 404 pattern for missing resources
+        Gherkin:
+            Given I am authenticated as Staff
+            And no battle exists with the given ID
+            When I POST to /battles/{id}/reorder with a new position
+            Then I receive a 404 Not Found response
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = staff_client.post(
             f"/battles/{fake_id}/reorder",
             data={"new_position": "1"},
             follow_redirects=False,
         )
 
+        # Then
         assert response.status_code == 404
 
     def test_reorder_requires_authentication(self, e2e_client):
-        """POST /battles/{id}/reorder requires authentication."""
+        """POST /battles/{id}/reorder requires authentication.
+
+        Validates: [Derived] HTTP authentication pattern
+        Gherkin:
+            Given I am not authenticated
+            When I POST to /battles/{id}/reorder
+            Then I am redirected to login or get unauthorized (401/302/303)
+        """
+        # Given
         fake_id = uuid4()
+
+        # When
         response = e2e_client.post(
             f"/battles/{fake_id}/reorder",
             data={"new_position": "1"},
         )
 
+        # Then
         assert response.status_code in [401, 302, 303]
 
 

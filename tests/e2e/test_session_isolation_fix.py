@@ -80,9 +80,19 @@ class TestAsyncClientApproach:
 
     @pytest.mark.asyncio
     async def test_fixture_data_visible_via_session_override(self):
-        """Verify fixture-created tournament is visible to HTTP request."""
+        """Verify fixture-created tournament is visible to HTTP request.
+
+        Validates: TESTING.md Async E2E Tests (Session Sharing Pattern)
+        Gherkin:
+            Given a tournament is created directly in the shared database session
+            And a staff user is created for authentication
+            When I make an HTTP request to view the tournament
+            Then the tournament should be visible (200 response)
+            And the tournament name should appear in the response
+        """
+        # Given
         async with async_session_maker() as session:
-            # 1. Create test data in shared session
+            # Create test data in shared session
             tournament_repo = TournamentRepository(session)
             tournament = await tournament_repo.create_tournament(
                 name=f"AsyncClient Test {uuid4().hex[:8]}"
@@ -97,7 +107,7 @@ class TestAsyncClientApproach:
             )
             await session.flush()
 
-            # 2. Override get_db to yield our shared session
+            # Override get_db to yield our shared session
             async def override_get_db():
                 yield session
 
@@ -111,10 +121,10 @@ class TestAsyncClientApproach:
             app.dependency_overrides[get_email_service] = get_mock_email_service
 
             try:
-                # 3. Generate auth token for staff user
+                # Generate auth token for staff user
                 token = magic_link_auth.generate_token("async_test@test.com", "staff")
 
-                # 4. Make HTTP request using AsyncClient
+                # When - Make HTTP request using AsyncClient
                 transport = ASGITransport(app=app)
                 async with AsyncClient(
                     transport=transport, base_url="http://test"
@@ -132,7 +142,7 @@ class TestAsyncClientApproach:
                         cookies=cookies,
                     )
 
-                    # 5. Verify - tournament should be visible!
+                    # Then - Verify tournament is visible!
                     assert response.status_code == 200
                     assert tournament.name.encode() in response.content
 
@@ -142,7 +152,17 @@ class TestAsyncClientApproach:
 
     @pytest.mark.asyncio
     async def test_can_query_fixture_created_performers(self):
-        """Verify we can query performers created in fixture."""
+        """Verify we can query performers created in fixture.
+
+        Validates: TESTING.md Async E2E Tests (Session Sharing Pattern)
+        Gherkin:
+            Given a tournament with a category and 4 performers is created in fixture
+            And a staff user is created for authentication
+            When I make an HTTP request to view the tournament
+            Then the tournament should be visible (200 response)
+            And the category should appear in the response
+        """
+        # Given
         async with async_session_maker() as session:
             # Create full test scenario
             tournament_repo = TournamentRepository(session)
@@ -202,6 +222,7 @@ class TestAsyncClientApproach:
             try:
                 token = magic_link_auth.generate_token("perf_test@test.com", "staff")
 
+                # When
                 transport = ASGITransport(app=app)
                 async with AsyncClient(
                     transport=transport, base_url="http://test"
@@ -217,7 +238,7 @@ class TestAsyncClientApproach:
                         cookies=cookies,
                     )
 
-                    # Tournament should be visible with category
+                    # Then - Tournament should be visible with category
                     assert response.status_code == 200
                     assert b"Test Category" in response.content
 
@@ -281,8 +302,19 @@ class TestHTTPOnlyApproach:
         return {cookie_name: cookie_value}
 
     def test_create_and_view_tournament_via_http(self, sync_client, auth_cookies):
-        """Create tournament via HTTP, then view it via HTTP."""
-        # 1. Create tournament via HTTP POST
+        """Create tournament via HTTP, then view it via HTTP.
+
+        Validates: TESTING.md HTTP-only Factory Pattern
+        Gherkin:
+            Given I am authenticated as Staff
+            When I create a tournament via HTTP POST to /tournaments/create
+            Then the response should redirect to the tournament page (303)
+            And when I view the tournament page
+            Then the tournament should be visible (200 response)
+        """
+        # Given (authenticated via auth_cookies fixture)
+
+        # When - Create tournament via HTTP POST
         create_response = sync_client.post(
             "/tournaments/create",
             data={"name": f"HTTP Test {uuid4().hex[:8]}"},
@@ -290,7 +322,7 @@ class TestHTTPOnlyApproach:
             follow_redirects=False,
         )
 
-        # Should redirect to tournament page
+        # Then - Should redirect to tournament page
         assert create_response.status_code == 303
         redirect_url = create_response.headers.get("location", "")
         assert "/tournaments/" in redirect_url
@@ -298,19 +330,31 @@ class TestHTTPOnlyApproach:
         # Extract tournament ID from redirect URL
         tournament_id = redirect_url.split("/tournaments/")[-1]
 
-        # 2. View tournament via HTTP GET
+        # And when - View tournament via HTTP GET
         view_response = sync_client.get(
             f"/tournaments/{tournament_id}",
             cookies=auth_cookies,
         )
 
-        # Should see the tournament
+        # Then - Should see the tournament
         assert view_response.status_code == 200
         assert b"HTTP Test" in view_response.content
 
     def test_create_tournament_with_category_via_http(self, sync_client, auth_cookies):
-        """Create tournament and category, then verify both visible."""
-        # 1. Create tournament
+        """Create tournament and category, then verify both visible.
+
+        Validates: TESTING.md HTTP-only Factory Pattern
+        Gherkin:
+            Given I am authenticated as Staff
+            When I create a tournament via HTTP POST
+            And I add a category to the tournament via HTTP POST
+            Then both should redirect successfully (303)
+            And when I view the tournament page
+            Then I should see the category name in the response
+        """
+        # Given (authenticated via auth_cookies fixture)
+
+        # When - Create tournament
         create_response = sync_client.post(
             "/tournaments/create",
             data={"name": f"Cat Test {uuid4().hex[:8]}"},
@@ -319,7 +363,7 @@ class TestHTTPOnlyApproach:
         )
         tournament_id = create_response.headers.get("location", "").split("/tournaments/")[-1]
 
-        # 2. Create category via HTTP (correct route is add-category)
+        # And - Create category via HTTP (correct route is add-category)
         cat_response = sync_client.post(
             f"/tournaments/{tournament_id}/add-category",
             data={
@@ -332,15 +376,16 @@ class TestHTTPOnlyApproach:
             follow_redirects=False,
         )
 
-        # Should redirect back to tournament
+        # Then - Should redirect back to tournament
         assert cat_response.status_code == 303
 
-        # 3. View tournament - should show category
+        # And when - View tournament - should show category
         view_response = sync_client.get(
             f"/tournaments/{tournament_id}",
             cookies=auth_cookies,
         )
 
+        # Then
         assert view_response.status_code == 200
         assert b"Test Category" in view_response.content
 
@@ -357,9 +402,15 @@ class TestCompareApproaches:
     async def test_async_approach_can_create_complex_scenario(self):
         """AsyncClient approach can create any scenario directly in DB.
 
-        This demonstrates creating a complex scenario that would be
-        tedious or impossible via HTTP-only approach.
+        Validates: TESTING.md Async E2E Tests (Session Sharing Pattern)
+        Gherkin:
+            Given a tournament is created in PRESELECTION phase directly in fixture
+            And an MC user is created for authentication
+            When I access the event mode command center
+            Then the page should load successfully (200)
+            Because the tournament is already in the required phase
         """
+        # Given
         async with async_session_maker() as session:
             tournament_repo = TournamentRepository(session)
             user_repo = UserRepository(session)
@@ -389,8 +440,9 @@ class TestCompareApproaches:
 
             try:
                 token = magic_link_auth.generate_token("complex@test.com", "mc")
-                transport = ASGITransport(app=app)
 
+                # When
+                transport = ASGITransport(app=app)
                 async with AsyncClient(
                     transport=transport, base_url="http://test"
                 ) as client:
@@ -405,7 +457,7 @@ class TestCompareApproaches:
                         cookies=cookies,
                     )
 
-                    # Should work because tournament is in PRESELECTION
+                    # Then - Should work because tournament is in PRESELECTION
                     assert response.status_code == 200
 
             finally:

@@ -1,7 +1,60 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-09
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-16
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-16] - E2E Test Migration to Phase 3.8 Methodology
+
+### Added
+
+**Gherkin Docstrings:**
+- All 154 E2E tests now have Gherkin-style docstrings with `Validates:` references
+- Pattern: `Validates: [DOC_NAME.md] Section` or `Validates: [Derived] Pattern`
+- Given/When/Then comments in test code for clarity
+
+**Validates Reference Types:**
+- `DOMAIN_MODEL.md [Entity] entity` - for entity CRUD tests
+- `VALIDATION_RULES.md [Section]` - for business rule tests
+- `FRONTEND.md HTMX Patterns` - for UI pattern tests
+- `[Derived] HTTP authentication pattern` - for auth tests
+- `[Derived] HTTP 404 pattern` - for not-found tests
+- `[Derived] HTTP input validation` - for UUID/input validation tests
+- `[Derived] Session sharing pattern` - for session isolation tests
+
+### Changed
+
+**E2E Test Files Migrated:**
+- `tests/e2e/test_admin.py` - 37 tests with Gherkin docstrings
+- `tests/e2e/test_dancers.py` - 21 tests with Gherkin docstrings
+- `tests/e2e/test_event_mode.py` - 17 tests with Gherkin docstrings
+- `tests/e2e/test_event_mode_async.py` - 8 tests with Gherkin docstrings
+- `tests/e2e/test_htmx_interactions.py` - 10 tests with Gherkin docstrings
+- `tests/e2e/test_registration.py` - 41 tests with Gherkin docstrings
+- `tests/e2e/test_session_isolation_fix.py` - 5 tests with Gherkin docstrings
+- `tests/e2e/test_tournament_management.py` - 15 tests with Gherkin docstrings
+
+### Purpose
+
+Ensure all E2E tests are traceable to requirements per Phase 3.8 methodology. Each test now explicitly documents what it validates and follows a consistent Gherkin format.
+
+### Files Modified
+
+**Tests (8 files):**
+- tests/e2e/test_admin.py
+- tests/e2e/test_dancers.py
+- tests/e2e/test_event_mode.py
+- tests/e2e/test_event_mode_async.py
+- tests/e2e/test_htmx_interactions.py
+- tests/e2e/test_registration.py
+- tests/e2e/test_session_isolation_fix.py
+- tests/e2e/test_tournament_management.py
+
+### Test Results
+- All 154 E2E tests passing
+- All 473 total tests passing (no regressions)
+- 100% "Validates:" annotation coverage (154/154)
 
 ---
 

@@ -41,6 +41,7 @@ class TestEventModeWithRealData:
     ):
         """Test that command center displays fixture-created tournament.
 
+        Validates: DOMAIN_MODEL.md Tournament entity (Event Command Center display)
         Gherkin:
         Given a tournament "Summer Battle 2024" exists in PRESELECTION phase
         And the tournament has 1 category with 4 performers
@@ -73,6 +74,7 @@ class TestEventModeWithRealData:
     ):
         """Test that command center shows progress bar for tournament.
 
+        Validates: FRONTEND.md Event Mode UI (phase progress display)
         Gherkin:
         Given a tournament in PRESELECTION phase with performers
         When I view the Event Command Center
@@ -103,6 +105,7 @@ class TestEventModeWithRealData:
     ):
         """Test that battle queue HTMX endpoint returns partial HTML.
 
+        Validates: FRONTEND.md HTMX Patterns (partial HTML response)
         Gherkin:
         Given a tournament in PRESELECTION phase
         When I request /event/{tournament_id}/queue with HX-Request header
@@ -137,6 +140,7 @@ class TestEventModeWithRealData:
     ):
         """Test that progress HTMX endpoint returns partial HTML.
 
+        Validates: FRONTEND.md HTMX Patterns (partial HTML response)
         Gherkin:
         Given a tournament in PRESELECTION phase
         When I request /event/{tournament_id}/progress with HX-Request header
@@ -179,6 +183,7 @@ class TestBattleWorkflowWithRealData:
     ):
         """Test viewing a battle that was created in fixtures.
 
+        Validates: DOMAIN_MODEL.md Battle entity (detail view)
         Gherkin:
         Given a tournament with a pending battle
         When I view the battle details
@@ -217,6 +222,7 @@ class TestBattleWorkflowWithRealData:
     ):
         """Test starting a battle that was created in fixtures.
 
+        Validates: VALIDATION_RULES.md Battle Workflow (PENDING to ACTIVE transition)
         Gherkin:
         Given a battle exists with status PENDING
         And I am authenticated as Staff
@@ -272,6 +278,8 @@ class TestSessionIsolationFix:
     ):
         """Verify the core fix: fixture data visible to routes.
 
+        Validates: [Derived] Session sharing pattern (fixture data visible to HTTP)
+
         This is the fundamental test that proves session sharing works.
         If this test passes, the session isolation problem is solved.
         """
@@ -295,6 +303,8 @@ class TestSessionIsolationFix:
         create_async_tournament_scenario,
     ):
         """Verify multiple related entities are all visible.
+
+        Validates: [Derived] Session sharing pattern (multi-entity visibility)
 
         Tests that complex scenarios with multiple entities
         (tournament + categories + performers) all work.

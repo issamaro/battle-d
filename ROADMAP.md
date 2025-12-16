@@ -1274,7 +1274,12 @@ Tests might validate wrong behavior because there's no explicit link between tes
 - All 473 tests passing
 - No regressions (documentation-only change)
 
-**Release:** Phase 3.8 COMPLETE ✅ (2025-12-09)
+**Implementation (2025-12-16):**
+- Migrated all 154 E2E tests to include Gherkin docstrings with `Validates:` references
+- 100% coverage: all E2E tests now traceable to requirements
+- Files: test_admin.py, test_dancers.py, test_event_mode.py, test_event_mode_async.py, test_htmx_interactions.py, test_registration.py, test_session_isolation_fix.py, test_tournament_management.py
+
+**Release:** Phase 3.8 COMPLETE ✅ (2025-12-09, Implementation 2025-12-16)
 
 ---
 
