@@ -5,6 +5,49 @@
 
 ---
 
+## [2025-12-17] - Dev Setup: Fix DATABASE_URL + Add 40 Sample Dancers
+
+### Fixed
+
+**dev.sh Database Initialization:**
+- Fixed `.env` file having both local and production `DATABASE_URL` lines uncommented
+- Production URL (`sqlite:////data/battle_d.db`) was overwriting local dev URL
+- Alembic migrations were running against wrong database path
+- Root cause: The second `DATABASE_URL` line overwrites the first in environment variables
+
+### Added
+
+**Sample Dancer Seeding:**
+- Added 40 sample dancers to `seed_db.py` for local development testing
+- Diverse international breaking scene representation:
+  - International legends: Storm, Menno, Ami, Victor, Kastet, Phil Wizard, etc.
+  - French scene: Lilou, Mounir, Sarah Bee, Carlota, Lagaet
+  - Korean scene: Hong 10, Wing, Yell, Zooty, Vero
+  - USA scene: Sunny, Darkness, Terra, Gravity, Logistx
+  - UK scene: Sunni, Roxy, Killa T, Lil Zoo
+  - Additional: dancers from Italy, India, Sweden, Belgium, Russia, Spain, Taiwan, Egypt, Brazil
+- Find-or-create pattern: checks email before creating (idempotent)
+- Each dancer includes: email, first_name, last_name, blaze, date_of_birth, country, city
+
+### Changed
+
+**seed_db.py:**
+- Added `DancerRepository` import and initialization
+- Added `SAMPLE_DANCERS` list with 40 dancer records
+- Updated output messages with emoji sections (users, dancers)
+- Running seed twice shows "already exists" (no duplicates)
+
+**Files Modified:**
+- `.env` (commented out production DATABASE_URL)
+- `seed_db.py` (added 40 dancers with find-or-create)
+
+**Test Results:**
+- All 515 tests passing (no changes to tests)
+- Fresh seed: Creates 3 users + 40 dancers
+- Second run: Shows "already exists" for all
+
+---
+
 ## [2025-12-17] - Phase 3.9: Guest Performer Integration
 
 ### Added
