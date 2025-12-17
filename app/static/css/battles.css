@@ -47,6 +47,12 @@
     /* Contrast ratio: 4.63:1 (WCAG AA ✓) */
 }
 
+.badge-warning {
+    background-color: #dc3545; /* Red - for cancelled/warning states */
+    color: white;
+    /* Contrast ratio: 4.88:1 (WCAG AA ✓) */
+}
+
 /* Badge hover state for interactive badges */
 .badge-interactive {
     cursor: pointer;
@@ -428,6 +434,59 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+}
+
+/* ==================== Utility Classes ==================== */
+
+/* Inline form display for action buttons in tables */
+.inline-form {
+    display: inline-flex;
+    align-items: stretch;
+    margin: 0;
+}
+
+.inline-form button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* ==================== Table Action Groups ==================== */
+
+/* Horizontal action button group for tables */
+.action-group {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: stretch; /* Stretch ensures all children have same height */
+    flex-wrap: nowrap;
+}
+
+/* Ensure table cells with action groups are aligned */
+td:has(.action-group) {
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* Compact button styling for table actions */
+.action-group a,
+.action-group button,
+.action-group .inline-form button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    /* Override PicoCSS width: 100% on buttons */
+    width: auto;
+    /* Normalize box model for perfect alignment */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    margin: 0;
+}
+
+/* Style links as buttons in action groups */
+.action-group a[role="button"] {
+    text-decoration: none;
+    /* display: inline-flex inherited from above for alignment */
 }
 
 /* ==================== Print Styles ==================== */
