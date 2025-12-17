@@ -73,11 +73,15 @@ class TiebreakService:
                 [f"Cannot detect ties: {len(performers) - len(scored_performers)} performers missing scores"]
             )
 
-        # Sort by score descending
+        # Sort by score descending, then guest priority, then registration time
+        # BR-GUEST-006: Guests win tiebreak at pool qualification boundary
         sorted_performers = sorted(
             scored_performers,
-            key=lambda p: p.preselection_score,  # type: ignore
-            reverse=True,
+            key=lambda p: (
+                -p.preselection_score,  # Highest score first
+                -int(p.is_guest),       # Guests before regulars at same score
+                p.created_at,           # Earlier registration wins ties
+            ),
         )
 
         # Check if there's a tie at the qualification boundary

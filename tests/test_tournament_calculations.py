@@ -4,6 +4,7 @@ import pytest
 
 from app.utils.tournament_calculations import (
     calculate_minimum_performers,
+    calculate_adjusted_minimum,
     calculate_pool_capacity,
     distribute_performers_to_pools,
     calculate_minimum_for_category,
@@ -41,6 +42,131 @@ class TestCalculateMinimumPerformers:
 
         with pytest.raises(ValueError, match="groups_ideal must be at least 1"):
             calculate_minimum_performers(-1)
+
+
+class TestCalculateAdjustedMinimum:
+    """Tests for calculate_adjusted_minimum function (BR-GUEST-004).
+
+    Formula: max(2, (groups_ideal * 2) + 1 - guest_count)
+
+    Guest performers reduce the minimum required because they are
+    guaranteed to qualify for pools.
+    """
+
+    def test_no_guests_equals_standard_minimum(self):
+        """Test that zero guests returns standard minimum.
+
+        Validates: BR-GUEST-004 baseline (adjusted minimum = standard minimum when no guests)
+        """
+        # Standard: (2 * 2) + 1 = 5
+        assert calculate_adjusted_minimum(2, guest_count=0) == 5
+
+        # Standard: (3 * 2) + 1 = 7
+        assert calculate_adjusted_minimum(3, guest_count=0) == 7
+
+    def test_one_guest_reduces_by_one(self):
+        """Test that one guest reduces minimum by 1.
+
+        Validates: BR-GUEST-004 Scenario "Minimum reduced by guest count"
+        Gherkin:
+            Given a category with groups_ideal = 2
+            And the standard minimum is 5 performers
+            When I register 1 guest
+            Then the adjusted minimum becomes 4 (5 - 1)
+        """
+        # (2 * 2) + 1 - 1 = 4
+        assert calculate_adjusted_minimum(2, guest_count=1) == 4
+
+        # (3 * 2) + 1 - 1 = 6
+        assert calculate_adjusted_minimum(3, guest_count=1) == 6
+
+    def test_two_guests_reduces_by_two(self):
+        """Test that two guests reduce minimum by 2.
+
+        Validates: BR-GUEST-004 Scenario "Minimum reduced by guest count"
+        Gherkin:
+            Given a category with groups_ideal = 2
+            And the standard minimum is 5 performers
+            When I register 2 guests
+            Then the adjusted minimum becomes 3 (5 - 2)
+        """
+        # (2 * 2) + 1 - 2 = 3
+        assert calculate_adjusted_minimum(2, guest_count=2) == 3
+
+    def test_floor_at_two(self):
+        """Test that minimum never goes below 2.
+
+        Validates: BR-GUEST-004 Scenario "Minimum cannot go below 2"
+        Gherkin:
+            Given a category with groups_ideal = 2
+            And the standard minimum is 5 performers
+            When I register 4 guests
+            Then the adjusted minimum is 2 (not 1)
+        """
+        # (2 * 2) + 1 - 3 = 2 (would be 2)
+        assert calculate_adjusted_minimum(2, guest_count=3) == 2
+
+        # (2 * 2) + 1 - 4 = 1 → max(2, 1) = 2
+        assert calculate_adjusted_minimum(2, guest_count=4) == 2
+
+        # (2 * 2) + 1 - 5 = 0 → max(2, 0) = 2
+        assert calculate_adjusted_minimum(2, guest_count=5) == 2
+
+        # Even more guests still floor at 2
+        assert calculate_adjusted_minimum(2, guest_count=10) == 2
+
+    def test_with_three_pools(self):
+        """Test adjusted minimum with 3 pools (groups_ideal=3)."""
+        # Standard: (3 * 2) + 1 = 7
+        assert calculate_adjusted_minimum(3, guest_count=0) == 7
+
+        # 1 guest: 7 - 1 = 6
+        assert calculate_adjusted_minimum(3, guest_count=1) == 6
+
+        # 2 guests: 7 - 2 = 5
+        assert calculate_adjusted_minimum(3, guest_count=2) == 5
+
+        # 5 guests: max(2, 7-5) = max(2, 2) = 2
+        assert calculate_adjusted_minimum(3, guest_count=5) == 2
+
+    def test_invalid_groups_ideal_raises_error(self):
+        """Test that groups_ideal < 1 raises ValueError."""
+        with pytest.raises(ValueError, match="groups_ideal must be at least 1"):
+            calculate_adjusted_minimum(0, guest_count=0)
+
+    def test_negative_guest_count_raises_error(self):
+        """Test that negative guest count raises ValueError."""
+        with pytest.raises(ValueError, match="guest_count cannot be negative"):
+            calculate_adjusted_minimum(2, guest_count=-1)
+
+    def test_guest_count_default_is_zero(self):
+        """Test that guest_count defaults to 0."""
+        # Should work without guest_count
+        assert calculate_adjusted_minimum(2) == 5
+
+    def test_real_world_scenario(self):
+        """Test real-world scenario from VALIDATION_RULES.md.
+
+        Validates: BR-GUEST-004 Scenario "Phase validation uses adjusted minimum"
+        Gherkin:
+            Given a category with groups_ideal = 2
+            And 2 guests are registered
+            And 3 regular performers are registered
+            When I attempt to advance to PRESELECTION
+            Then the validation passes (5 total >= 3 adjusted minimum + 2 guests)
+
+        Example: 2 pools (groups_ideal=2), 2 guests
+        - Standard minimum = (2 × 2) + 1 = 5
+        - With 2 guests: 5 - 2 = 3 regulars needed
+        - Total: 3 regulars + 2 guests = 5 performers (valid)
+        """
+        adjusted_min = calculate_adjusted_minimum(2, guest_count=2)
+        assert adjusted_min == 3
+
+        # Verify this makes sense:
+        # If we have 3 performers total (2 guests + 1 regular), that's >= adjusted_min
+        total_performers = 2 + 1  # 2 guests + 1 regular
+        assert total_performers >= adjusted_min
 
 
 class TestCalculatePoolCapacity:

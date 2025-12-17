@@ -84,11 +84,15 @@ class PoolService:
         except ValueError as e:
             raise ValidationError([str(e)])
 
-        # Sort by preselection score (descending) and select top performers
+        # Sort by preselection score (descending), then guest priority, then registration time
+        # BR-GUEST-006: Guests win tiebreak at pool qualification boundary
         sorted_performers = sorted(
             performers,
-            key=lambda p: p.preselection_score,  # type: ignore
-            reverse=True,
+            key=lambda p: (
+                -p.preselection_score,  # Highest score first
+                -int(p.is_guest),       # Guests before regulars at same score
+                p.created_at,           # Earlier registration wins ties
+            ),
         )
         qualified_performers = sorted_performers[:pool_performers_count]
 

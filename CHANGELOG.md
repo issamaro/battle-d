@@ -1,7 +1,118 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-16
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-17
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-17] - Phase 3.9: Guest Performer Integration
+
+### Added
+
+**Guest Performer Feature:**
+- `is_guest` field to Performer model (Boolean, default=False)
+- Guests automatically receive preselection score of 10.0
+- Guest badge display in registration UI (purple theme)
+- Guest count indicator in category header
+- "Register as Guest" button in available dancers list
+- "Make Guest" button to convert regular performers
+
+**Business Rules (BR-GUEST-001 to BR-GUEST-006):**
+- BR-GUEST-001: Guest designation only during Registration phase
+- BR-GUEST-002: Guests receive automatic top score (10.0)
+- BR-GUEST-003: Guests count toward pool capacity
+- BR-GUEST-004: Each guest reduces minimum performer requirement by 1
+- BR-GUEST-005: Guests distributed via snake draft (same as regulars)
+- BR-GUEST-006: Guest wins tiebreak at pool qualification boundary
+
+**Repository Methods:**
+- `PerformerRepository.get_guest_count()` - Count guests in category
+- `PerformerRepository.get_regular_performers()` - Get non-guest performers
+- `PerformerRepository.get_guests()` - Get guest performers
+- `PerformerRepository.create_guest_performer()` - Create guest with score=10.0
+- `PerformerRepository.convert_to_guest()` - Convert regular to guest
+
+**Service Methods:**
+- `PerformerService.register_guest_performer()` - Register with phase validation
+- `PerformerService.convert_to_guest()` - Convert with phase validation
+- `PerformerService.get_guest_count()` / `get_regular_performers()` / `get_guests()`
+
+**Utility Functions:**
+- `calculate_adjusted_minimum(groups_ideal, guest_count)` - Adjusted minimum formula
+
+**Routes:**
+- `POST /registration/{t_id}/{c_id}/register-guest/{dancer_id}` - HTMX guest registration
+- `POST /registration/{t_id}/{c_id}/convert-to-guest/{performer_id}` - HTMX convert to guest
+
+**Templates:**
+- Updated `app/templates/registration/_available_list.html` - Added "Guest" button
+- Updated `app/templates/registration/_registered_list.html` - Added guest badge, count, "Make Guest" button
+
+**Styles:**
+- Updated `app/static/css/registration.css` - Added guest styling (purple #8b5cf6 theme)
+
+**Database:**
+- Migration: `alembic/versions/7d8616b32e9f_add_is_guest_to_performers.py`
+- Added index on (category_id, is_guest) for efficient queries
+
+**Tests (20 new tests):**
+- `tests/test_performer_service_integration.py` - 7 guest tests
+- `tests/test_tournament_calculations.py` - 9 adjusted minimum tests
+- `tests/test_pool_service.py` - 3 BR-GUEST-006 tiebreak tests
+- `tests/test_tiebreak_service.py` - Updated helper for is_guest/created_at
+
+### Changed
+
+**Battle Service:**
+- `generate_preselection_battles()` - Excludes guests from battles
+- `generate_tournament_preselection_battles()` - Uses regular performers only
+
+**Pool Service:**
+- Sorting now uses (score DESC, is_guest DESC, created_at ASC) for tiebreak priority
+
+**Tiebreak Service:**
+- Sorting updated for BR-GUEST-006 compliance
+
+**Phase Validators:**
+- `validate_registration_to_preselection()` - Uses adjusted minimum with guests
+- `validate_preselection_to_pools()` - Handles all-guest categories
+
+**Documentation:**
+- `DOMAIN_MODEL.md` - Added `is_guest` field, Section 9 Guest Performer Rules
+- `VALIDATION_RULES.md` - Added Guest Registration Validation section
+- `ROADMAP.md` - Added Phase 3.9 entry
+
+### Breaking Changes
+
+**None** - All changes are additive
+
+**Files Modified:**
+- alembic/versions/7d8616b32e9f_add_is_guest_to_performers.py (new)
+- app/models/performer.py (is_guest field)
+- app/repositories/performer.py (5 new methods)
+- app/services/performer_service.py (6 new methods)
+- app/services/battle_service.py (exclude guests)
+- app/services/pool_service.py (tiebreak sorting)
+- app/services/tiebreak_service.py (tiebreak sorting)
+- app/routers/registration.py (2 new endpoints, guest_count in context)
+- app/templates/registration/_available_list.html (Guest button)
+- app/templates/registration/_registered_list.html (Guest badge, count)
+- app/static/css/registration.css (purple guest styling)
+- app/utils/tournament_calculations.py (calculate_adjusted_minimum)
+- app/validators/phase_validators.py (adjusted minimum validation)
+- tests/test_performer_service_integration.py (7 new tests)
+- tests/test_tournament_calculations.py (9 new tests)
+- tests/test_pool_service.py (3 new tests)
+- tests/test_tiebreak_service.py (updated helper)
+- tests/test_battle_service.py (updated mocks)
+- DOMAIN_MODEL.md (is_guest, Section 9)
+- VALIDATION_RULES.md (Guest Registration Validation)
+- ROADMAP.md (Phase 3.9)
+
+**Test Results:**
+- All 505 tests passing (20 new guest tests)
+- Coverage: 67% overall, 80%+ for new code
+- No regressions detected
 
 ---
 

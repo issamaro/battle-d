@@ -45,20 +45,29 @@ class BattleService:
         Creates 1v1 battles with random pairing. If odd number of performers,
         creates one 3-way battle with the remaining performers.
 
+        BR-GUEST-002: Guest performers are EXCLUDED from preselection battles.
+        They automatically have 10.0 preselection score and skip directly to pools.
+
         Args:
             category_id: Category UUID
 
         Returns:
-            List of created battles
+            List of created battles (empty list if all performers are guests)
 
         Raises:
-            ValidationError: If category has no performers
+            ValidationError: If category has no performers (guest or regular)
         """
-        # Get all performers in category
-        performers = await self.performer_repo.get_by_category(category_id)
+        # Get only regular (non-guest) performers for preselection battles
+        performers = await self.performer_repo.get_regular_performers(category_id)
 
-        if not performers:
+        # Check if category has ANY performers (guest or regular)
+        all_performers = await self.performer_repo.get_by_category(category_id)
+        if not all_performers:
             raise ValidationError(["Cannot generate battles: no performers in category"])
+
+        # If all performers are guests, no battles needed
+        if not performers:
+            return []
 
         # Shuffle for random pairing
         performer_list = list(performers)
@@ -351,17 +360,32 @@ class BattleService:
             raise ValidationError(["No categories found for tournament"])
 
         # Generate battles for each category (stored with their category for interleaving)
+        # BR-GUEST-002: Only include regular (non-guest) performers in preselection battles
         category_battles: dict[uuid.UUID, List[Battle]] = {}
         for category in categories:
-            performers = await self.performer_repo.get_by_category(category.id)
-            if performers:
+            regular_performers = await self.performer_repo.get_regular_performers(category.id)
+            if regular_performers:
                 battles = await self._create_preselection_battles_for_category(
-                    category.id, performers
+                    category.id, regular_performers
                 )
                 category_battles[category.id] = battles
 
         if not category_battles:
-            raise ValidationError(["No performers found in any category"])
+            # Note: This error occurs when ALL performers are guests or no performers at all
+            # If all performers are guests, no preselection battles are needed
+            # Check if there are any performers at all
+            has_any_performers = False
+            for category in categories:
+                all_performers = await self.performer_repo.get_by_category(category.id)
+                if all_performers:
+                    has_any_performers = True
+                    break
+
+            if has_any_performers:
+                # All performers are guests - no battles needed (this is valid)
+                return []
+            else:
+                raise ValidationError(["No performers found in any category"])
 
         # Interleave across categories (round-robin)
         interleaved: List[Battle] = []

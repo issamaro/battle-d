@@ -3,6 +3,7 @@ import uuid
 from typing import Optional, TYPE_CHECKING
 from decimal import Decimal
 from sqlalchemy import (
+    Boolean,
     String,
     ForeignKey,
     Integer,
@@ -29,7 +30,8 @@ class Performer(BaseModel):
         category_id: Foreign key to category
         dancer_id: Foreign key to dancer
         duo_partner_id: Foreign key to partner performer (nullable, for 2v2)
-        preselection_score: Average score from preselection (nullable)
+        is_guest: Whether performer is a guest (skips preselection with 10.0 score)
+        preselection_score: Average score from preselection (nullable, or 10.0 for guests)
         pool_wins: Number of pool wins (default 0)
         pool_draws: Number of pool draws (default 0)
         pool_losses: Number of pool losses (default 0)
@@ -37,6 +39,12 @@ class Performer(BaseModel):
 
     Constraints:
         One dancer can only register in one category per tournament
+
+    Business Rules:
+        BR-GUEST-001: Guest designation only allowed during Registration phase
+        BR-GUEST-002: Guests automatically receive 10.0 preselection score
+        BR-GUEST-003: Guests count toward pool capacity
+        BR-GUEST-004: Each guest reduces minimum performer requirement by 1
     """
 
     __tablename__ = "performers"
@@ -62,6 +70,12 @@ class Performer(BaseModel):
     duo_partner_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("performers.id", ondelete="SET NULL"),
         nullable=True,
+    )
+
+    is_guest: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
     )
 
     preselection_score: Mapped[Optional[Decimal]] = mapped_column(

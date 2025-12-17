@@ -90,7 +90,8 @@ Links a Dancer to a specific Tournament + Category. Represents tournament-specif
 - `category_id`: FK → Category
 - `dancer_id`: FK → Dancer
 - `duo_partner_id`: FK → Performer (nullable, for 2v2 categories)
-- `preselection_score`: Decimal (nullable, set during preselection)
+- `is_guest`: bool (default False) - If true, performer skips preselection with automatic 10.0 score
+- `preselection_score`: Decimal (nullable, set during preselection or automatically for guests)
 - `pool_wins`: int (default 0)
 - `pool_draws`: int (default 0)
 - `pool_losses`: int (default 0)
@@ -580,6 +581,46 @@ Certain entities can only be deleted under specific conditions to maintain data 
 - Category: "Cannot delete category with registered performers"
 
 > **See also:** [VALIDATION_RULES.md - Deletion Rules](VALIDATION_RULES.md#deletion-rules) for detailed validation logic.
+
+### **9. Guest Performer Rules**
+
+Guest performers are pre-qualified invited performers who skip preselection and go directly to pools.
+
+**Business Rules:**
+
+| Rule ID | Rule Name | Description |
+|---------|-----------|-------------|
+| BR-GUEST-001 | Guest Designation Timing | Guest designation only allowed during Registration phase |
+| BR-GUEST-002 | Automatic Top Score | Guests automatically receive 10.0 preselection score at registration |
+| BR-GUEST-003 | Pool Capacity Impact | Guests count toward pool capacity (take spots from regulars) |
+| BR-GUEST-004 | Adjusted Minimum | Each guest reduces minimum performer requirement by 1: `max(2, (groups_ideal × 2) + 1 - guest_count)` |
+| BR-GUEST-005 | Pool Distribution | Guests distributed randomly across pools via snake draft (same as regulars) |
+| BR-GUEST-006 | Tiebreak Priority | Guest wins tiebreak at pool qualification boundary against regular with same score |
+
+**Guest Registration Flow:**
+```
+Staff → Select Tournament + Category
+     → Search Dancer
+     → Select "Register as Guest" OR "Register (Regular)"
+       └─ If Guest: is_guest = true, preselection_score = 10.0
+       └─ If Regular: is_guest = false, preselection_score = null
+
+→ Performer created with guest flag set
+→ Minimum count adjusts: min_required = (groups × 2) + 1 - guest_count
+```
+
+**Preselection Impact:**
+- Guests do NOT participate in preselection battles
+- Guests do NOT appear in preselection battle queue
+- Guests wait with score=10.0 (guaranteed top scorers)
+- Battle generation only includes regular performers
+
+**Example (groups_ideal = 2):**
+- Standard minimum = (2 × 2) + 1 = 5
+- With 2 guests: need only 3 regulars (5 - 2 = 3)
+- Total: 3 regulars + 2 guests = 5 performers (valid)
+
+> **See also:** [VALIDATION_RULES.md - Guest Registration Validation](VALIDATION_RULES.md#guest-registration-validation) for detailed validation logic.
 
 ---
 

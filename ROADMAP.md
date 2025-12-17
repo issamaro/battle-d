@@ -1283,6 +1283,95 @@ Tests might validate wrong behavior because there's no explicit link between tes
 
 ---
 
+## Phase 3.9: Guest Performer Integration (COMPLETE ✅)
+
+**Duration:** 2 days (2025-12-16 to 2025-12-17)
+
+**Status:** ✅ COMPLETE
+
+**Objective:** Support pre-qualified invited performers who skip preselection and go directly to pools.
+
+### Problem Statement
+
+Tournament organizers need to invite pre-qualified performers (e.g., champions from other events, judges' picks, sponsors' invites) who should skip preselection and go directly to pools, while still participating in pool battles like regular competitors. Currently, all performers must go through the full preselection process, leaving no way to accommodate invited guests.
+
+### Key Deliverables
+
+**Backend:**
+- `is_guest` boolean field on Performer model
+- Guest registration service methods with phase validation
+- Adjusted minimum calculation function
+- Preselection battle exclusion for guests
+- Phase transition validation updates
+
+**Frontend:**
+- Guest registration button in available dancers list
+- Guest badge display on registered performers
+- Guest/regular count display in registration header
+- Convert-to-guest action for existing performers
+
+**Documentation:**
+- DOMAIN_MODEL.md: Added `is_guest` field, BR-GUEST-001 through BR-GUEST-006
+- VALIDATION_RULES.md: Added Guest Registration Validation section
+- ROADMAP.md: This entry
+
+### Business Rules Implemented
+
+| Rule ID | Rule Name | Description |
+|---------|-----------|-------------|
+| BR-GUEST-001 | Guest Designation Timing | Guest designation only allowed during Registration phase |
+| BR-GUEST-002 | Automatic Top Score | Guests automatically receive 10.0 preselection score |
+| BR-GUEST-003 | Pool Capacity Impact | Guests count toward pool capacity |
+| BR-GUEST-004 | Adjusted Minimum | Each guest reduces minimum performer requirement by 1 |
+| BR-GUEST-005 | Pool Distribution | Guests distributed via snake draft like regulars |
+| BR-GUEST-006 | Tiebreak Priority | Guest wins tiebreak at boundary against regular with same score |
+
+### Files Created
+
+- `alembic/versions/YYYYMMDD_add_is_guest_to_performers.py` - Migration
+
+### Files Modified
+
+**Models:**
+- `app/models/performer.py` - Add `is_guest` field
+
+**Services:**
+- `app/services/performer_service.py` - Guest registration methods
+- `app/services/battle_service.py` - Exclude guests from preselection
+
+**Repositories:**
+- `app/repositories/performer.py` - Guest query methods
+
+**Utils:**
+- `app/utils/tournament_calculations.py` - Add `calculate_adjusted_minimum()`
+
+**Validators:**
+- `app/validators/phase_validators.py` - Update for adjusted minimum
+
+**Routes:**
+- `app/routers/registration.py` - Guest registration endpoints
+
+**Templates:**
+- `app/templates/registration/_available_list.html` - Guest button
+- `app/templates/registration/_registered_list.html` - Guest badge
+
+**CSS:**
+- `app/static/css/registration.css` - Guest styling
+
+**Tests:**
+- `tests/test_guest_performer.py` - New comprehensive tests
+- `tests/test_tournament_calculations.py` - Adjusted minimum tests
+
+### Test Results
+
+- [x] All existing tests passing (505 total)
+- [x] New guest performer tests passing (20 new tests)
+- [x] Coverage: 67% overall, 80%+ for new code
+
+**Release:** Phase 3.9 COMPLETE ✅ (2025-12-17)
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days

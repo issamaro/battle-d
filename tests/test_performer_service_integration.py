@@ -478,3 +478,297 @@ async def test_get_performers_by_tournament_empty():
         performers = await service.get_performers_by_tournament(tournament.id)
 
         assert len(performers) == 0
+
+
+# =============================================================================
+# GUEST PERFORMER TESTS (BR-GUEST-*)
+# =============================================================================
+
+
+def create_performer_service_with_tournament(session) -> PerformerService:
+    """Helper to create a PerformerService with tournament repo for guest operations."""
+    return PerformerService(
+        performer_repo=PerformerRepository(session),
+        category_repo=CategoryRepository(session),
+        dancer_repo=DancerRepository(session),
+        tournament_repo=TournamentRepository(session),
+    )
+
+
+@pytest.mark.asyncio
+async def test_register_guest_performer_success():
+    """Test successful guest performer registration.
+
+    Validates: BR-GUEST-001, BR-GUEST-002
+    Gherkin:
+        Scenario: Register dancer as guest during registration phase
+        Given a tournament in REGISTRATION phase
+        And a category "Hip Hop Boys 1v1" exists
+        And a dancer "B-Boy Champion" exists in the database
+        When I register "B-Boy Champion" as a guest
+        Then a performer record is created with is_guest = true
+        And the performer's preselection_score is set to 10.0
+        And the performer appears in the registration list with a "Guest" badge
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+        dancer = await create_dancer(session, "guest@test.com", "Guest Performer")
+
+        # When
+        performer = await service.register_guest_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer.id,
+        )
+
+        # Then
+        assert performer.id is not None
+        assert performer.is_guest is True
+        assert performer.preselection_score == 10.0
+        assert performer.dancer_id == dancer.id
+
+
+@pytest.mark.asyncio
+async def test_register_guest_wrong_phase_fails():
+    """Test that guest registration fails outside REGISTRATION phase.
+
+    Validates: BR-GUEST-001
+    Gherkin:
+        Scenario: Cannot add guest after registration phase ends
+        Given a tournament in PRESELECTION phase
+        And a category with existing performers
+        When I attempt to register a dancer as guest
+        Then the system rejects with error "Guests can only be added during Registration phase"
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+        tournament_repo = TournamentRepository(session)
+
+        # Given - tournament in PRESELECTION phase
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+        dancer = await create_dancer(session, "guest@test.com", "Guest")
+
+        # Advance tournament to PRESELECTION
+        await tournament_repo.update(tournament.id, phase=TournamentPhase.PRESELECTION)
+
+        # When/Then
+        with pytest.raises(ValidationError) as exc_info:
+            await service.register_guest_performer(
+                tournament_id=tournament.id,
+                category_id=category.id,
+                dancer_id=dancer.id,
+            )
+
+        assert "registration phase" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_register_guest_in_duo_category_fails():
+    """Test that guests cannot be registered in duo categories.
+
+    Validates: Guest validation rules (guests not allowed in duo categories)
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given
+        tournament = await create_tournament(session)
+        duo_category = await create_category(session, tournament.id, is_duo=True)
+        dancer = await create_dancer(session, "guest@test.com", "Guest")
+
+        # When/Then
+        with pytest.raises(ValidationError) as exc_info:
+            await service.register_guest_performer(
+                tournament_id=tournament.id,
+                category_id=duo_category.id,
+                dancer_id=dancer.id,
+            )
+
+        assert "duo" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_convert_regular_to_guest_success():
+    """Test converting a regular performer to guest.
+
+    Validates: BR-GUEST-001, BR-GUEST-002
+    Gherkin:
+        Scenario: Convert regular performer to guest
+        Given a tournament in REGISTRATION phase
+        And a performer "B-Boy John" is registered as regular
+        When I mark "B-Boy John" as a guest
+        Then the performer's is_guest becomes true
+        And the performer's preselection_score is set to 10.0
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given - regular performer already registered
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+        dancer = await create_dancer(session, "regular@test.com", "Regular")
+
+        regular_performer = await service.register_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer.id,
+        )
+
+        assert regular_performer.is_guest is False
+        assert regular_performer.preselection_score is None
+
+        # When
+        guest_performer = await service.convert_to_guest(regular_performer.id)
+
+        # Then
+        assert guest_performer.is_guest is True
+        assert guest_performer.preselection_score == 10.0
+
+
+@pytest.mark.asyncio
+async def test_convert_to_guest_already_guest_fails():
+    """Test that converting an already-guest performer fails.
+
+    Validates: Guest validation rules (idempotency check)
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+        dancer = await create_dancer(session, "guest@test.com", "Guest")
+
+        guest_performer = await service.register_guest_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer.id,
+        )
+
+        # When/Then
+        with pytest.raises(ValidationError) as exc_info:
+            await service.convert_to_guest(guest_performer.id)
+
+        assert "already a guest" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_get_guest_count():
+    """Test getting guest count for a category.
+
+    Validates: BR-GUEST-003, BR-GUEST-004 (guest count for capacity/minimum calculations)
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+
+        # Register 2 regulars and 1 guest
+        dancer1 = await create_dancer(session, "regular1@test.com", "Regular 1")
+        dancer2 = await create_dancer(session, "regular2@test.com", "Regular 2")
+        dancer3 = await create_dancer(session, "guest@test.com", "Guest")
+
+        await service.register_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer1.id,
+        )
+        await service.register_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer2.id,
+        )
+        await service.register_guest_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer3.id,
+        )
+
+        # When
+        guest_count = await service.get_guest_count(category.id)
+
+        # Then
+        assert guest_count == 1
+
+
+@pytest.mark.asyncio
+async def test_get_regular_performers():
+    """Test getting only regular (non-guest) performers.
+
+    Validates: BR-GUEST-002 Scenario "Battles generated only for regular performers"
+    Gherkin:
+        Given a category with 5 performers (2 guests + 3 regulars)
+        When the tournament advances to PRESELECTION
+        Then 3 preselection battles are created (one per regular)
+        And guests have no battles assigned
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+
+        dancer1 = await create_dancer(session, "regular@test.com", "Regular")
+        dancer2 = await create_dancer(session, "guest@test.com", "Guest")
+
+        await service.register_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer1.id,
+        )
+        await service.register_guest_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer2.id,
+        )
+
+        # When
+        regular_performers = await service.get_regular_performers(category.id)
+
+        # Then
+        assert len(regular_performers) == 1
+        assert regular_performers[0].is_guest is False
+
+
+@pytest.mark.asyncio
+async def test_get_guests():
+    """Test getting only guest performers.
+
+    Validates: BR-GUEST-002, BR-GUEST-003 (guest filtering for pool distribution)
+    """
+    async with async_session_maker() as session:
+        service = create_performer_service_with_tournament(session)
+
+        # Given
+        tournament = await create_tournament(session)
+        category = await create_category(session, tournament.id, is_duo=False)
+
+        dancer1 = await create_dancer(session, "regular@test.com", "Regular")
+        dancer2 = await create_dancer(session, "guest@test.com", "Guest")
+
+        await service.register_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer1.id,
+        )
+        await service.register_guest_performer(
+            tournament_id=tournament.id,
+            category_id=category.id,
+            dancer_id=dancer2.id,
+        )
+
+        # When
+        guests = await service.get_guests(category.id)
+
+        # Then
+        assert len(guests) == 1
+        assert guests[0].is_guest is True
+        assert guests[0].preselection_score == 10.0

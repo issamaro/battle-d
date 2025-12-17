@@ -41,6 +41,48 @@ def calculate_minimum_performers(groups_ideal: int) -> int:
     return (groups_ideal * 2) + 1
 
 
+def calculate_adjusted_minimum(groups_ideal: int, guest_count: int = 0) -> int:
+    """Calculate adjusted minimum performers with guests (BR-GUEST-004).
+
+    Formula: max(2, (groups_ideal * 2) + 1 - guest_count)
+
+    Guests reduce the minimum required performers because they are
+    guaranteed to qualify for pools. The minimum is capped at 2 to
+    ensure at least some competition.
+
+    Args:
+        groups_ideal: Target number of pools (must be >= 1)
+        guest_count: Number of guest performers (default 0)
+
+    Returns:
+        Adjusted minimum number of performers required
+
+    Raises:
+        ValueError: If groups_ideal < 1 or guest_count < 0
+
+    Examples:
+        >>> calculate_adjusted_minimum(2, guest_count=0)
+        5  # Standard: (2 * 2) + 1 = 5
+
+        >>> calculate_adjusted_minimum(2, guest_count=2)
+        3  # Adjusted: max(2, 5 - 2) = 3
+
+        >>> calculate_adjusted_minimum(2, guest_count=4)
+        2  # Floor: max(2, 5 - 4) = 2 (not 1)
+
+        >>> calculate_adjusted_minimum(3, guest_count=1)
+        6  # (3 * 2) + 1 - 1 = 6
+    """
+    if groups_ideal < 1:
+        raise ValueError("groups_ideal must be at least 1")
+    if guest_count < 0:
+        raise ValueError("guest_count cannot be negative")
+
+    standard_minimum = calculate_minimum_performers(groups_ideal)
+    adjusted = standard_minimum - guest_count
+    return max(2, adjusted)
+
+
 def calculate_pool_capacity(
     registered_performers: int,
     groups_ideal: int,

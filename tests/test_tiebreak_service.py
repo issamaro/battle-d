@@ -5,6 +5,7 @@ See: ROADMAP.md §2.3 Tiebreak Service
 """
 import pytest
 import uuid
+from datetime import datetime
 from typing import List
 from unittest.mock import AsyncMock, MagicMock, patch
 from decimal import Decimal
@@ -71,6 +72,8 @@ def create_performer_with_score(
     category_id: uuid.UUID,
     score: Decimal,
     name: str = "Performer",
+    is_guest: bool = False,
+    created_at: datetime = None,
 ) -> Performer:
     """Helper to create a performer with preselection score."""
     performer = Performer(
@@ -78,8 +81,10 @@ def create_performer_with_score(
         category_id=category_id,
         dancer_id=uuid.uuid4(),
         preselection_score=score,
+        is_guest=is_guest,
     )
     performer.id = uuid.uuid4()
+    performer.created_at = created_at or datetime.utcnow()
     return performer
 
 

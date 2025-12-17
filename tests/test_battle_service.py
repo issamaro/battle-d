@@ -103,6 +103,9 @@ class TestGeneratePreselectionBattles:
             create_performer(tournament_id, category_id, f"Performer{i}")
             for i in range(4)
         ]
+        # Mock both methods - get_regular_performers for battle generation,
+        # get_by_category for validation (checking if any performers exist)
+        performer_repo.get_regular_performers.return_value = performers
         performer_repo.get_by_category.return_value = performers
 
         # Mock battle creation - return a battle with assigned performers
@@ -138,6 +141,7 @@ class TestGeneratePreselectionBattles:
             create_performer(tournament_id, category_id, f"Performer{i}")
             for i in range(5)
         ]
+        performer_repo.get_regular_performers.return_value = performers
         performer_repo.get_by_category.return_value = performers
 
         def create_battle_mock(battle):
@@ -172,6 +176,7 @@ class TestGeneratePreselectionBattles:
             create_performer(tournament_id, category_id, f"Performer{i}")
             for i in range(3)
         ]
+        performer_repo.get_regular_performers.return_value = performers
         performer_repo.get_by_category.return_value = performers
 
         def create_battle_mock(battle):
@@ -191,6 +196,8 @@ class TestGeneratePreselectionBattles:
         self, battle_service, performer_repo, category_id
     ):
         """Test that no performers raises ValidationError."""
+        # No regular performers AND no performers at all
+        performer_repo.get_regular_performers.return_value = []
         performer_repo.get_by_category.return_value = []
 
         with pytest.raises(ValidationError, match="no performers in category"):
@@ -673,6 +680,7 @@ class TestGenerateInterleavedPreselectionBattles:
             return k_performers
 
         performer_repo.get_by_category.side_effect = get_performers_by_cat
+        performer_repo.get_regular_performers.side_effect = get_performers_by_cat
 
         # Mock category repo
         mock_category_repo = AsyncMock(spec=CategoryRepository)
@@ -719,6 +727,7 @@ class TestGenerateInterleavedPreselectionBattles:
         performers = [create_performer(tournament_id, category.id) for _ in range(6)]
 
         performer_repo.get_by_category.return_value = performers
+        performer_repo.get_regular_performers.return_value = performers
 
         mock_category_repo = AsyncMock(spec=CategoryRepository)
         mock_category_repo.get_by_tournament.return_value = [category]
@@ -753,6 +762,7 @@ class TestGenerateInterleavedPreselectionBattles:
         performers = [create_performer(tournament_id, category.id) for _ in range(6)]
 
         performer_repo.get_by_category.return_value = performers
+        performer_repo.get_regular_performers.return_value = performers
 
         mock_category_repo = AsyncMock(spec=CategoryRepository)
         mock_category_repo.get_by_tournament.return_value = [category]
@@ -798,6 +808,7 @@ class TestGenerateInterleavedPreselectionBattles:
         """Test raises error when no performers in any category."""
         category = create_category(tournament_id, "Empty")
         performer_repo.get_by_category.return_value = []
+        performer_repo.get_regular_performers.return_value = []
 
         mock_category_repo = AsyncMock(spec=CategoryRepository)
         mock_category_repo.get_by_tournament.return_value = [category]
@@ -832,6 +843,7 @@ class TestGenerateInterleavedPreselectionBattles:
             return b_performers
 
         performer_repo.get_by_category.side_effect = get_performers_by_cat
+        performer_repo.get_regular_performers.side_effect = get_performers_by_cat
 
         mock_category_repo = AsyncMock(spec=CategoryRepository)
         mock_category_repo.get_by_tournament.return_value = [cat_a, cat_b]

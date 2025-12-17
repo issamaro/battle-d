@@ -9,6 +9,7 @@ This document specifies all validation rules for the Battle-D tournament managem
 - [Phase Transition Validation](#phase-transition-validation)
 - [Tournament Calculations](#tournament-calculations)
 - [Duo Registration Validation](#duo-registration-validation)
+- [Guest Registration Validation](#guest-registration-validation)
 - [Battle Encoding Validation](#battle-encoding-validation)
 
 ---
@@ -500,6 +501,143 @@ performer2.duo_partner_id = performer1.id
 - Unregistering one partner does NOT automatically unregister the other
 - System allows orphaned duo partners
 - **Future Enhancement:** Cascade unregister both partners
+
+---
+
+## Guest Registration Validation
+
+### Guest Performer Concept
+
+Guest performers are pre-qualified invited performers (e.g., champions from other events, judges' picks, sponsors' invites) who skip preselection and go directly to pools.
+
+### Guest Designation Rules (BR-GUEST-001)
+
+**Timing Constraint:**
+- Guests can ONLY be designated during REGISTRATION phase
+- Cannot change guest status after tournament advances to PRESELECTION
+- Applies to both new registrations and converting existing performers
+
+**Validation:**
+```python
+if tournament.phase != TournamentPhase.REGISTRATION:
+    raise ValidationError(["Guests can only be added during Registration phase"])
+```
+
+### Automatic Score Assignment (BR-GUEST-002)
+
+**Rule:** Guest performers receive `preselection_score = 10.0` automatically at registration time.
+
+**Implementation:**
+```python
+# In PerformerService.register_guest_performer()
+performer = await self.performer_repo.create(
+    tournament_id=tournament_id,
+    category_id=category_id,
+    dancer_id=dancer_id,
+    is_guest=True,
+    preselection_score=Decimal("10.00"),
+)
+```
+
+**Characteristics:**
+- Score is immutable (cannot be changed by encoding)
+- Guarantees guest is top scorer
+- Guests do NOT appear in preselection battle queue
+
+### Adjusted Minimum Calculation (BR-GUEST-004)
+
+**Formula:**
+```
+adjusted_minimum = max(2, (groups_ideal × 2) + 1 - guest_count)
+```
+
+**Rationale:**
+- Each guest reduces minimum requirement by 1 (guaranteed to qualify)
+- Floor at 2 ensures minimum competition exists
+- Total performers must still be >= adjusted minimum
+
+**Examples (groups_ideal = 2):**
+
+| Guest Count | Standard Min | Adjusted Min | Explanation |
+|-------------|--------------|--------------|-------------|
+| 0           | 5            | 5            | No adjustment |
+| 1           | 5            | 4            | 5 - 1 = 4 |
+| 2           | 5            | 3            | 5 - 2 = 3 |
+| 3           | 5            | 2            | max(2, 5-3) = 2 (floor) |
+| 4           | 5            | 2            | max(2, 5-4) = 2 (floor) |
+
+**Implementation:**
+```python
+from app.utils.tournament_calculations import calculate_adjusted_minimum
+
+adjusted_min = calculate_adjusted_minimum(groups_ideal=2, guest_count=2)
+# Returns: 3
+```
+
+### Phase Transition Validation Update
+
+**Registration → Preselection:**
+```python
+for category in tournament.categories:
+    performers = await performer_repo.get_by_category(category.id)
+    performer_count = len(performers)
+    guest_count = sum(1 for p in performers if p.is_guest)
+
+    # Use adjusted minimum
+    adjusted_min = calculate_adjusted_minimum(category.groups_ideal, guest_count)
+
+    if performer_count < adjusted_min:
+        errors.append(
+            f"Category '{category.name}': has {performer_count} performers "
+            f"({guest_count} guests), minimum required: {adjusted_min}"
+        )
+```
+
+### Preselection Battle Generation
+
+**Rule:** Guests are EXCLUDED from preselection battle generation (BR-GUEST-002).
+
+**Validation:**
+```python
+# In BattleService.generate_preselection_battles()
+regular_performers = await self.performer_repo.get_regular_performers(category_id)
+
+if not regular_performers:
+    # All performers are guests - no battles needed
+    return []
+
+# Generate battles only for regular performers
+```
+
+### Tiebreak at Pool Boundary (BR-GUEST-006)
+
+**Rule:** When a guest and regular performer have the same score at the pool qualification boundary, the guest wins the tiebreak.
+
+**Sort Order for Pool Qualification:**
+```python
+performers.sort(key=lambda p: (
+    -p.preselection_score,  # Highest score first
+    -int(p.is_guest),        # Guests before regulars at same score
+    p.created_at             # Earlier registration wins ties
+))
+```
+
+### Error Messages
+
+**Guest Registration Errors:**
+```
+✗ Guests can only be added during Registration phase
+✗ Dancer is already registered in this tournament
+✗ Performer is already a guest
+```
+
+**Phase Transition with Guests:**
+```
+Cannot advance to PRESELECTION phase:
+
+• Category "Hip Hop 1v1": has 3 performers (2 guests, 1 regular), minimum required: 3 ✓
+• Category "Breaking 1v1": has 2 performers (0 guests, 2 regular), minimum required: 5 ✗ (needs 3 more)
+```
 
 ---
 

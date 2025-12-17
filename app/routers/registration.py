@@ -14,11 +14,13 @@ from app.dependencies import (
     get_performer_repo,
     get_flash_messages_dependency,
 )
+from app.models.tournament import TournamentPhase
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.dancer import DancerRepository
 from app.repositories.performer import PerformerRepository
 from app.utils.flash import add_flash_message
+from app.utils.tournament_calculations import calculate_adjusted_minimum
 
 router = APIRouter(prefix="/registration", tags=["registration"])
 templates = Jinja2Templates(directory="app/templates")
@@ -542,6 +544,7 @@ async def registered_dancers_partial(
 
     # Get registered performers
     performers = await performer_repo.get_by_category_with_partners(category_uuid)
+    guest_count = sum(1 for p in performers if p.is_guest)
 
     return templates.TemplateResponse(
         request=request,
@@ -552,8 +555,9 @@ async def registered_dancers_partial(
             "category_id": category_id,
             "is_duo": category.is_duo,
             "registered_count": len(performers),
+            "guest_count": guest_count,
             "ideal_count": category.performers_ideal * category.groups_ideal,
-            "minimum_required": category.performers_ideal,
+            "minimum_required": calculate_adjusted_minimum(category.groups_ideal, guest_count),
         },
     )
 
@@ -626,6 +630,7 @@ async def register_dancer_htmx(
 
     # Get updated registered performers
     performers = await performer_repo.get_by_category_with_partners(category_uuid)
+    guest_count = sum(1 for p in performers if p.is_guest)
 
     return templates.TemplateResponse(
         request=request,
@@ -637,8 +642,9 @@ async def register_dancer_htmx(
             "category_id": category_id,
             "is_duo": category.is_duo,
             "registered_count": len(performers),
+            "guest_count": guest_count,
             "ideal_count": category.performers_ideal * category.groups_ideal,
-            "minimum_required": category.performers_ideal,
+            "minimum_required": calculate_adjusted_minimum(category.groups_ideal, guest_count),
         },
     )
 
@@ -696,6 +702,7 @@ async def unregister_dancer_htmx(
             available.append(d)
 
     performers = await performer_repo.get_by_category_with_partners(category_uuid)
+    guest_count = sum(1 for p in performers if p.is_guest)
 
     return templates.TemplateResponse(
         request=request,
@@ -707,7 +714,216 @@ async def unregister_dancer_htmx(
             "category_id": category_id,
             "is_duo": category.is_duo,
             "registered_count": len(performers),
+            "guest_count": guest_count,
             "ideal_count": category.performers_ideal * category.groups_ideal,
-            "minimum_required": category.performers_ideal,
+            "minimum_required": calculate_adjusted_minimum(category.groups_ideal, guest_count),
+        },
+    )
+
+
+# =============================================================================
+# Guest Registration Endpoints (BR-GUEST-*)
+# =============================================================================
+
+
+@router.post("/{tournament_id}/{category_id}/register-guest/{dancer_id}", response_class=HTMLResponse)
+async def register_guest_htmx(
+    tournament_id: str,
+    category_id: str,
+    dancer_id: str,
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """HTMX: Register dancer as guest and return both panels.
+
+    Guest performers skip preselection with automatic 10.0 score (BR-GUEST-002).
+    Only allowed during Registration phase (BR-GUEST-001).
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        dancer_id: Dancer UUID to register as guest
+        request: FastAPI request
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+        performer_repo: Performer repository
+
+    Returns:
+        HTML with both panels updated via OOB swap
+    """
+    user = require_staff(current_user)
+
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+        category_uuid = uuid.UUID(category_id)
+        dancer_uuid = uuid.UUID(dancer_id)
+    except ValueError:
+        return HTMLResponse("<p>Invalid ID</p>")
+
+    # Verify tournament exists
+    tournament = await tournament_repo.get_by_id(tournament_uuid)
+    if not tournament:
+        return HTMLResponse("<p>Tournament not found</p>")
+
+    # BR-GUEST-001: Check tournament is in Registration phase
+    if tournament.phase != TournamentPhase.REGISTRATION:
+        return HTMLResponse(
+            f"<p class='error'>Guests can only be added during Registration phase. "
+            f"Tournament is in {tournament.phase.value} phase.</p>"
+        )
+
+    # Verify category exists
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        return HTMLResponse("<p>Category not found</p>")
+
+    # Guests cannot be in duo categories
+    if category.is_duo:
+        return HTMLResponse("<p class='error'>Guests cannot be registered in duo categories</p>")
+
+    # Verify dancer exists
+    dancer = await dancer_repo.get_by_id(dancer_uuid)
+    if not dancer:
+        return HTMLResponse("<p>Dancer not found</p>")
+
+    # Check if already registered
+    if await performer_repo.dancer_registered_in_tournament(dancer_uuid, tournament_uuid):
+        return HTMLResponse(f"<p class='error'>Already registered</p>")
+
+    # BR-GUEST-002: Register as guest with automatic 10.0 score
+    await performer_repo.create_guest_performer(
+        tournament_id=tournament_uuid,
+        category_id=category_uuid,
+        dancer_id=dancer_uuid,
+    )
+
+    # Return both updated lists using OOB swap
+    all_dancers = await dancer_repo.get_all()
+    available = []
+    for d in all_dancers[:20]:
+        if not await performer_repo.dancer_registered_in_tournament(d.id, tournament_uuid):
+            available.append(d)
+
+    performers = await performer_repo.get_by_category_with_partners(category_uuid)
+    guest_count = sum(1 for p in performers if p.is_guest)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_registration_update.html",
+        context={
+            "available_dancers": available,
+            "performers": performers,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "is_duo": category.is_duo,
+            "registered_count": len(performers),
+            "guest_count": guest_count,
+            "ideal_count": category.performers_ideal * category.groups_ideal,
+            "minimum_required": calculate_adjusted_minimum(category.groups_ideal, guest_count),
+        },
+    )
+
+
+@router.post("/{tournament_id}/{category_id}/convert-to-guest/{performer_id}", response_class=HTMLResponse)
+async def convert_to_guest_htmx(
+    tournament_id: str,
+    category_id: str,
+    performer_id: str,
+    request: Request,
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+    category_repo: CategoryRepository = Depends(get_category_repo),
+    dancer_repo: DancerRepository = Depends(get_dancer_repo),
+    performer_repo: PerformerRepository = Depends(get_performer_repo),
+):
+    """HTMX: Convert an existing regular performer to guest.
+
+    Sets is_guest=True and preselection_score=10.0 (BR-GUEST-002).
+    Only allowed during Registration phase (BR-GUEST-001).
+
+    Args:
+        tournament_id: Tournament UUID
+        category_id: Category UUID
+        performer_id: Performer UUID to convert
+        request: FastAPI request
+        current_user: Current authenticated user
+        tournament_repo: Tournament repository
+        category_repo: Category repository
+        dancer_repo: Dancer repository
+        performer_repo: Performer repository
+
+    Returns:
+        HTML with both panels updated via OOB swap
+    """
+    user = require_staff(current_user)
+
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+        category_uuid = uuid.UUID(category_id)
+        performer_uuid = uuid.UUID(performer_id)
+    except ValueError:
+        return HTMLResponse("<p>Invalid ID</p>")
+
+    # Verify tournament exists
+    tournament = await tournament_repo.get_by_id(tournament_uuid)
+    if not tournament:
+        return HTMLResponse("<p>Tournament not found</p>")
+
+    # BR-GUEST-001: Check tournament is in Registration phase
+    if tournament.phase != TournamentPhase.REGISTRATION:
+        return HTMLResponse(
+            f"<p class='error'>Guests can only be designated during Registration phase. "
+            f"Tournament is in {tournament.phase.value} phase.</p>"
+        )
+
+    # Verify category exists and is not duo
+    category = await category_repo.get_by_id(category_uuid)
+    if not category:
+        return HTMLResponse("<p>Category not found</p>")
+
+    if category.is_duo:
+        return HTMLResponse("<p class='error'>Cannot convert to guest in duo category</p>")
+
+    # Get performer
+    performer = await performer_repo.get_by_id(performer_uuid)
+    if not performer:
+        return HTMLResponse("<p>Performer not found</p>")
+
+    # Already a guest?
+    if performer.is_guest:
+        return HTMLResponse("<p class='error'>Already a guest</p>")
+
+    # Convert to guest
+    await performer_repo.convert_to_guest(performer_uuid)
+
+    # Return both updated lists
+    all_dancers = await dancer_repo.get_all()
+    available = []
+    for d in all_dancers[:20]:
+        if not await performer_repo.dancer_registered_in_tournament(d.id, tournament_uuid):
+            available.append(d)
+
+    performers = await performer_repo.get_by_category_with_partners(category_uuid)
+    guest_count = sum(1 for p in performers if p.is_guest)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="registration/_registration_update.html",
+        context={
+            "available_dancers": available,
+            "performers": performers,
+            "tournament_id": tournament_id,
+            "category_id": category_id,
+            "is_duo": category.is_duo,
+            "registered_count": len(performers),
+            "guest_count": guest_count,
+            "ideal_count": category.performers_ideal * category.groups_ideal,
+            "minimum_required": calculate_adjusted_minimum(category.groups_ideal, guest_count),
         },
     )

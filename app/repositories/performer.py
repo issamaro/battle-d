@@ -2,7 +2,7 @@
 import uuid
 from typing import Optional, List
 from decimal import Decimal
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.performer import Performer
@@ -243,3 +243,112 @@ class PerformerRepository(BaseRepository[Performer]):
             .where(Pool.category_id == category_id)
         )
         return list(result.scalars().all())
+
+    # ========== Guest Performer Methods ==========
+
+    async def get_guest_count(self, category_id: uuid.UUID) -> int:
+        """Get count of guest performers in a category.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            Number of guest performers
+        """
+        result = await self.session.execute(
+            select(func.count(Performer.id)).where(
+                Performer.category_id == category_id,
+                Performer.is_guest == True,
+            )
+        )
+        return result.scalar_one()
+
+    async def get_regular_performers(
+        self, category_id: uuid.UUID
+    ) -> List[Performer]:
+        """Get non-guest performers in a category.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of regular (non-guest) performers
+        """
+        result = await self.session.execute(
+            select(Performer)
+            .options(selectinload(Performer.dancer))
+            .where(
+                Performer.category_id == category_id,
+                Performer.is_guest == False,
+            )
+        )
+        return list(result.scalars().all())
+
+    async def get_guests(self, category_id: uuid.UUID) -> List[Performer]:
+        """Get guest performers in a category.
+
+        Args:
+            category_id: Category UUID
+
+        Returns:
+            List of guest performers
+        """
+        result = await self.session.execute(
+            select(Performer)
+            .options(selectinload(Performer.dancer))
+            .where(
+                Performer.category_id == category_id,
+                Performer.is_guest == True,
+            )
+        )
+        return list(result.scalars().all())
+
+    async def create_guest_performer(
+        self,
+        tournament_id: uuid.UUID,
+        category_id: uuid.UUID,
+        dancer_id: uuid.UUID,
+    ) -> Performer:
+        """Create a guest performer with automatic top score.
+
+        Guest performers skip preselection and are guaranteed to qualify
+        for pools with the maximum preselection score (10.0).
+
+        Args:
+            tournament_id: Tournament UUID
+            category_id: Category UUID
+            dancer_id: Dancer UUID
+
+        Returns:
+            Created guest performer with preselection_score=10.0
+        """
+        return await self.create(
+            tournament_id=tournament_id,
+            category_id=category_id,
+            dancer_id=dancer_id,
+            is_guest=True,
+            preselection_score=Decimal("10.00"),
+        )
+
+    async def convert_to_guest(self, performer_id: uuid.UUID) -> Performer:
+        """Convert a regular performer to guest.
+
+        Sets is_guest=True and preselection_score=10.0.
+
+        Args:
+            performer_id: Performer UUID
+
+        Returns:
+            Updated performer with guest status
+
+        Raises:
+            ValueError: If performer not found
+        """
+        performer = await self.get_by_id(performer_id)
+        if not performer:
+            raise ValueError(f"Performer {performer_id} not found")
+
+        performer.is_guest = True
+        performer.preselection_score = Decimal("10.00")
+        await self.session.commit()
+        return performer

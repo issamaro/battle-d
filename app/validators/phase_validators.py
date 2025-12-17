@@ -12,7 +12,10 @@ from app.repositories.category import CategoryRepository
 from app.repositories.performer import PerformerRepository
 from app.repositories.pool import PoolRepository
 from app.repositories.tournament import TournamentRepository
-from app.utils.tournament_calculations import calculate_minimum_performers
+from app.utils.tournament_calculations import (
+    calculate_minimum_performers,
+    calculate_adjusted_minimum,
+)
 from app.validators.result import ValidationResult
 
 
@@ -27,8 +30,9 @@ async def validate_registration_to_preselection(
     Business Rules:
     - Tournament must exist
     - Tournament must have at least one category
-    - Each category must have minimum performers: (groups_ideal * 2 + 1)
-    - This ensures preselection will eliminate at least 1 performer
+    - Each category must have minimum performers: adjusted for guests
+      Formula: max(2, (groups_ideal * 2) + 1 - guest_count) per BR-GUEST-004
+    - This ensures preselection will eliminate at least 1 performer (for regulars)
 
     Args:
         tournament_id: Tournament UUID
@@ -62,23 +66,45 @@ async def validate_registration_to_preselection(
             ["Tournament has no categories. Add at least one category."]
         )
 
-    # Check each category meets minimum performers
+    # Check each category meets minimum performers (adjusted for guests)
     for category in tournament.categories:
         performers = await performer_repo.get_by_category(category.id)
         performer_count = len(performers)
-        min_required = calculate_minimum_performers(category.groups_ideal)
 
-        if performer_count < min_required:
-            errors.append(
-                f"Category '{category.name}': has {performer_count} performers, "
-                f"minimum required: {min_required} "
-                f"({category.groups_ideal} pools × 2 minimum + 1 elimination)"
-            )
-        elif performer_count == min_required:
-            warnings.append(
-                f"Category '{category.name}': has exactly minimum performers "
-                f"({min_required}). Only 1 will be eliminated in preselection."
-            )
+        # BR-GUEST-004: Calculate guest count and adjusted minimum
+        guest_count = sum(1 for p in performers if p.is_guest)
+        regular_count = performer_count - guest_count
+
+        # Use adjusted minimum when guests are present
+        adjusted_min = calculate_adjusted_minimum(category.groups_ideal, guest_count)
+        standard_min = calculate_minimum_performers(category.groups_ideal)
+
+        if performer_count < adjusted_min:
+            if guest_count > 0:
+                errors.append(
+                    f"Category '{category.name}': has {performer_count} performers "
+                    f"({guest_count} guests, {regular_count} regulars), "
+                    f"minimum required: {adjusted_min} "
+                    f"(standard {standard_min} - {guest_count} guests)"
+                )
+            else:
+                errors.append(
+                    f"Category '{category.name}': has {performer_count} performers, "
+                    f"minimum required: {standard_min} "
+                    f"({category.groups_ideal} pools × 2 minimum + 1 elimination)"
+                )
+        elif performer_count == adjusted_min:
+            if guest_count > 0:
+                warnings.append(
+                    f"Category '{category.name}': has exactly adjusted minimum "
+                    f"({performer_count} = {adjusted_min}) with {guest_count} guests. "
+                    f"Only {performer_count - adjusted_min + 1} elimination(s) possible."
+                )
+            else:
+                warnings.append(
+                    f"Category '{category.name}': has exactly minimum performers "
+                    f"({standard_min}). Only 1 will be eliminated in preselection."
+                )
 
     if errors:
         return ValidationResult.failure(errors, warnings)
@@ -94,8 +120,9 @@ async def validate_preselection_to_pools(
     """Validate tournament can advance from PRESELECTION to POOLS.
 
     Business Rules:
-    - All preselection battles must be completed
+    - All preselection battles must be completed (or none if all guests)
     - All performers must have preselection scores assigned
+      (guests have 10.0 automatically per BR-GUEST-002)
     - All tiebreak battles must be resolved
 
     Args:
@@ -115,37 +142,61 @@ async def validate_preselection_to_pools(
     # Check all preselection battles completed
     for category in categories:
         category_battles = await battle_repo.get_by_category(category.id)
+        performers = await performer_repo.get_by_category(category.id)
+
+        # Count guests vs regulars
+        guest_count = sum(1 for p in performers if p.is_guest)
+        regular_count = len(performers) - guest_count
 
         # Check preselection battles
         preselection_battles = [
             b for b in category_battles if b.phase == BattlePhase.PRESELECTION
         ]
-        if not preselection_battles:
+
+        # If all performers are guests, no preselection battles are expected
+        if regular_count == 0:
+            # All guests - no battles needed, verify all have scores (should be 10.0)
+            pass
+        elif not preselection_battles:
             errors.append(
                 f"Category '{category.name}': no preselection battles found. "
                 "Generate battles before advancing."
             )
             continue
-
-        incomplete_preselection = [
-            b for b in preselection_battles if b.status != BattleStatus.COMPLETED
-        ]
-        if incomplete_preselection:
-            errors.append(
-                f"Category '{category.name}': "
-                f"{len(incomplete_preselection)} preselection battles not completed"
-            )
+        else:
+            incomplete_preselection = [
+                b for b in preselection_battles if b.status != BattleStatus.COMPLETED
+            ]
+            if incomplete_preselection:
+                errors.append(
+                    f"Category '{category.name}': "
+                    f"{len(incomplete_preselection)} preselection battles not completed"
+                )
 
         # Check all performers have scores
-        performers = await performer_repo.get_by_category(category.id)
+        # Note: Guests automatically have 10.0 score per BR-GUEST-002
         performers_without_scores = [
             p for p in performers if p.preselection_score is None
         ]
         if performers_without_scores:
-            errors.append(
-                f"Category '{category.name}': "
-                f"{len(performers_without_scores)} performers missing preselection scores"
-            )
+            # Filter out guests from error message (they should have scores)
+            regular_without_scores = [
+                p for p in performers_without_scores if not p.is_guest
+            ]
+            if regular_without_scores:
+                errors.append(
+                    f"Category '{category.name}': "
+                    f"{len(regular_without_scores)} regular performers missing preselection scores"
+                )
+            # If guests are missing scores, that's a bug
+            guests_without_scores = [
+                p for p in performers_without_scores if p.is_guest
+            ]
+            if guests_without_scores:
+                errors.append(
+                    f"Category '{category.name}': "
+                    f"{len(guests_without_scores)} guest performers missing scores (bug: should be 10.0)"
+                )
 
         # Check tiebreak battles resolved
         tiebreak_battles = [

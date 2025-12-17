@@ -8,13 +8,26 @@
             <span class="dancer-name">{{ dancer.full_name }}</span>
             <small class="dancer-meta">{{ dancer.country or "-" }} | Age {{ dancer.age }}</small>
         </div>
-        <button class="btn-add"
-                hx-post="/registration/{{ tournament_id }}/{{ category_id }}/register/{{ dancer.id }}"
-                hx-target="#available-list"
-                hx-swap="innerHTML"
-                hx-indicator="#reg-loading">
-            + Add
-        </button>
+        <div class="dancer-actions">
+            <button class="btn-add"
+                    hx-post="/registration/{{ tournament_id }}/{{ category_id }}/register/{{ dancer.id }}"
+                    hx-target="#available-list"
+                    hx-swap="innerHTML"
+                    hx-indicator="#reg-loading"
+                    title="Register as regular performer">
+                + Add
+            </button>
+            {% if not is_duo %}
+            <button class="btn-guest"
+                    hx-post="/registration/{{ tournament_id }}/{{ category_id }}/register-guest/{{ dancer.id }}"
+                    hx-target="#available-list"
+                    hx-swap="innerHTML"
+                    hx-indicator="#reg-loading"
+                    title="Register as guest (skips preselection with 10.0 score)">
+                Guest
+            </button>
+            {% endif %}
+        </div>
     </article>
     {% endfor %}
 </div>

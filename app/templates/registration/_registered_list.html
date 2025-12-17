@@ -1,6 +1,9 @@
 <!-- Registered Dancers List (HTMX Partial) -->
 <div class="registered-header">
     <strong>{{ registered_count }}</strong> / {{ ideal_count }} registered
+    {% if guest_count is defined and guest_count > 0 %}
+    <small class="guest-count">({{ guest_count }} guest{{ 's' if guest_count != 1 else '' }})</small>
+    {% endif %}
     {% if registered_count >= minimum_required %}
     <mark class="status-ready">Ready</mark>
     {% else %}
@@ -11,22 +14,43 @@
 {% if performers %}
 <div class="performer-list">
     {% for performer in performers %}
-    <article class="performer-card">
+    <article class="performer-card {% if performer.is_guest %}performer-guest{% endif %}">
         <div class="performer-info">
-            <strong class="performer-blaze">{{ performer.dancer.blaze }}</strong>
+            <strong class="performer-blaze">
+                {{ performer.dancer.blaze }}
+                {% if performer.is_guest %}
+                <span class="badge-guest" title="Guest performer (skips preselection)">GUEST</span>
+                {% endif %}
+            </strong>
             <span class="performer-name">{{ performer.dancer.full_name }}</span>
             {% if is_duo and performer.duo_partner %}
             <small class="duo-partner">Partner: {{ performer.duo_partner.dancer.blaze }}</small>
             {% endif %}
+            {% if performer.is_guest %}
+            <small class="guest-score">Preselection score: 10.0 (automatic)</small>
+            {% endif %}
         </div>
-        <button class="btn-remove"
-                hx-post="/registration/{{ tournament_id }}/{{ category_id }}/unregister-htmx/{{ performer.id }}"
-                hx-target="#available-list"
-                hx-swap="innerHTML"
-                hx-confirm="Unregister {{ performer.dancer.blaze }}?"
-                hx-indicator="#reg-loading">
-            Remove
-        </button>
+        <div class="performer-actions">
+            {% if not performer.is_guest and not is_duo %}
+            <button class="btn-make-guest"
+                    hx-post="/registration/{{ tournament_id }}/{{ category_id }}/convert-to-guest/{{ performer.id }}"
+                    hx-target="#available-list"
+                    hx-swap="innerHTML"
+                    hx-confirm="Make {{ performer.dancer.blaze }} a guest? They will skip preselection with 10.0 score."
+                    hx-indicator="#reg-loading"
+                    title="Convert to guest performer">
+                Make Guest
+            </button>
+            {% endif %}
+            <button class="btn-remove"
+                    hx-post="/registration/{{ tournament_id }}/{{ category_id }}/unregister-htmx/{{ performer.id }}"
+                    hx-target="#available-list"
+                    hx-swap="innerHTML"
+                    hx-confirm="Unregister {{ performer.dancer.blaze }}?"
+                    hx-indicator="#reg-loading">
+                Remove
+            </button>
+        </div>
     </article>
     {% endfor %}
 </div>
