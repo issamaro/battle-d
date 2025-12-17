@@ -5,6 +5,26 @@
 
 ---
 
+## [2025-12-17] - Fix Action Button Vertical Alignment
+
+### Fixed
+
+**User Management Table (.action-group):**
+- Fixed Edit/Resend/Delete buttons not vertically aligned
+- Edit button (link styled as button) was lower than adjacent buttons
+- Root cause: mixed display types (`inline-block` vs default button) with different baseline behavior
+
+### Technical Solution
+- Changed `.action-group` from `align-items: center` to `align-items: stretch`
+- Applied `display: inline-flex` to all action items (a, button)
+- Normalized `line-height: 1.2` across all elements
+- Added `align-items: center` + `justify-content: center` for text centering
+
+**Files Modified:**
+- `app/static/css/battles.css` (action-group, inline-form classes)
+
+---
+
 ## [2025-12-17] - Dev Setup: Fix DATABASE_URL + Add 40 Sample Dancers
 
 ### Fixed
