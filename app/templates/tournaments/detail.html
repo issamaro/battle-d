@@ -38,10 +38,10 @@
         </tr>
     </table>
 
-    {% if current_user.is_admin %}
+    {% if current_user.is_mc or current_user.is_admin %}
     <footer>
-        <a href="/tournaments/{{ tournament.id }}/phase" role="button" class="secondary">
-            Manage Phase
+        <a href="/event/{{ tournament.id }}" role="button" class="secondary">
+            Event Mode
         </a>
     </footer>
     {% endif %}

@@ -9,8 +9,7 @@
         <p>The tournament is currently in progress. Enter Event Mode for the full command center experience.</p>
         <footer>
             <a href="/event/{{ dashboard.tournament.id }}" role="button">Enter Event Mode</a>
-            <a href="/battles" role="button" class="secondary">Battle Queue</a>
-            <a href="/tournaments/{{ dashboard.tournament.id }}/phase" role="button" class="secondary">Phase Management</a>
+            <a href="/tournaments/{{ dashboard.tournament.id }}" role="button" class="secondary">Tournament Details</a>
         </footer>
     </article>
 </section>
@@ -20,7 +19,7 @@
 <section>
     <h3>Quick Actions</h3>
     <div role="group">
-        <a href="/battles" role="button" class="secondary">Battle Queue</a>
+        <a href="/event/{{ dashboard.tournament.id }}" role="button" class="secondary">Event Mode</a>
         <a href="/tournaments/{{ dashboard.tournament.id }}" role="button" class="secondary">Tournament Details</a>
     </div>
 </section>

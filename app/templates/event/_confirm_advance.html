@@ -1,0 +1,90 @@
+<!-- Event Mode: Phase Advance Confirmation Dialog -->
+<!-- HTMX partial - no base template extension -->
+<article class="advance-confirm-dialog">
+    <header>
+        <h3>Confirm Phase Advancement</h3>
+    </header>
+
+    <p><strong>Tournament:</strong> {{ tournament.name }}</p>
+
+    <section class="phase-transition">
+        <p>
+            Advance from <mark>{{ from_phase.value|upper }}</mark>
+            to <mark>{{ to_phase.value|upper }}</mark>?
+        </p>
+    </section>
+
+    <section class="warning-box" role="alert">
+        <h4>WARNING - THIS ACTION IS IRREVERSIBLE</h4>
+        <p><strong>{{ warning_message }}</strong></p>
+    </section>
+
+    {% if warnings %}
+    <section class="additional-warnings">
+        <h4>Additional Warnings</h4>
+        <ul>
+        {% for warning in warnings %}
+            <li>{{ warning }}</li>
+        {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <footer>
+        <form method="post" action="/event/{{ tournament.id }}/advance" hx-boost="false">
+            <input type="hidden" name="confirmed" value="true">
+            <div class="button-group">
+                <button type="button"
+                        class="secondary"
+                        onclick="this.closest('dialog, article')?.remove()">
+                    Cancel
+                </button>
+                <button type="submit" class="danger">
+                    Yes, Advance Phase (Irreversible)
+                </button>
+            </div>
+        </form>
+    </footer>
+</article>
+
+<style>
+.advance-confirm-dialog {
+    max-width: 500px;
+    margin: 0 auto;
+}
+.phase-transition mark {
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.warning-box {
+    background-color: var(--pico-form-element-invalid-focus-color, #ffc107);
+    border: 2px solid var(--pico-form-element-invalid-border-color, #856404);
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+.warning-box h4 {
+    color: var(--pico-form-element-invalid-border-color, #856404);
+    margin-bottom: 0.5rem;
+}
+.warning-box p {
+    color: var(--pico-form-element-invalid-border-color, #664d03);
+    margin-bottom: 0;
+}
+.additional-warnings ul {
+    color: orange;
+}
+.button-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+button.danger {
+    background-color: var(--pico-del-color, #dc3545);
+    border-color: var(--pico-del-color, #dc3545);
+}
+button.danger:hover {
+    background-color: #bb2d3b;
+    border-color: #b02a37;
+}
+</style>

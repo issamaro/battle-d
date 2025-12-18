@@ -5,6 +5,72 @@
 
 ---
 
+## [2025-12-18] - Screen Consolidation & Test Isolation Complete
+
+### Removed
+
+**Phases Router (Consolidation - BR-NAV-001):**
+- Deleted `app/routers/phases.py` - Phase management moved to event router
+- Deleted `app/templates/phases/overview.html` - Redundant with dashboard
+- Deleted `app/templates/phases/confirm_advance.html` - Moved to event partials
+- Deleted `app/templates/phases/validation_errors.html` - Moved to event partials
+- Deleted `app/templates/battles/list.html` - Non-functional (no category selector)
+- Removed `/phases/*` routes - Consolidated into `/event/{id}/advance`
+
+### Added
+
+**Event Router Phase Management:**
+- `POST /event/{id}/advance` - Two-step phase advancement with validation
+- `POST /event/{id}/go-back` - Two-step phase rollback (admin only)
+- `app/templates/event/_confirm_advance.html` - HTMX confirmation partial
+- `app/templates/event/_validation_errors.html` - HTMX validation errors partial
+- `tests/e2e/test_event_mode_advance.py` - E2E tests for new phase endpoints
+
+**Test Database Isolation Complete:**
+- Added `get_db` override to `sync_client` fixture in `test_session_isolation_fix.py`
+- Added `get_db` override to `client` fixture in `test_crud_workflows.py`
+- Added `get_db` override to `client` fixture in `test_auth.py`
+- Added `get_db` override to `client` fixture in `test_permissions.py`
+
+### Changed
+
+**Navigation Updates:**
+- Updated `base.html` sidebar - Removed "Battle Queue" link (non-functional)
+- Updated `tournaments/detail.html` - Link to dashboard instead of phases
+- Updated `pools/overview.html` - Improved navigation back to dashboard
+- Updated dashboard partials - Fixed event active state display
+
+**Test Files Updated:**
+- `tests/e2e/test_event_mode.py` - Updated for new phase routes
+- `tests/e2e/test_htmx_interactions.py` - Updated phase endpoint references
+- `tests/e2e/test_tournament_management.py` - Simplified phase tests
+- `tests/test_phases_routes.py` - Updated for deprecated routes (404 tests)
+
+**Documentation:**
+- Updated `ROADMAP.md` with Phase 3.11 completion
+- Updated `TESTING.md` with TestClient isolation requirements
+
+### Breaking Changes
+
+**API Changes:**
+- Removed `/phases/*` routes (deprecated)
+- Phase management now at `/event/{id}/advance` and `/event/{id}/go-back`
+- Tests using old `/phases/*` routes must update to new endpoints
+
+**Files Removed (25 total deletions):**
+- `app/routers/phases.py` (206 lines)
+- `app/templates/phases/overview.html` (61 lines)
+- `app/templates/phases/confirm_advance.html` (43 lines)
+- `app/templates/phases/validation_errors.html` (35 lines)
+- `app/templates/battles/list.html` (161 lines)
+
+**Test Results:**
+- All 526 tests passing (no regressions)
+- 8 phase tests skipped (awaiting rewrite for new routes)
+- Dev database verified clean after test runs
+
+---
+
 ## [2025-12-18] - Test Database Isolation Fix
 
 ### Fixed

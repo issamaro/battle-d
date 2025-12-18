@@ -169,24 +169,20 @@ class TestFullPageResponses:
         assert_status_ok(response)
         assert is_full_page(response.text)
 
-    def test_battles_list_full_page(self, staff_client):
-        """GET /battles returns full page.
+    def test_battles_list_route_removed(self, staff_client):
+        """GET /battles returns 404 (route removed).
 
-        Validates: FRONTEND.md Page Structure (full HTML pages)
-        Gherkin:
-            Given I am authenticated as Staff
-            When I navigate to /battles without HX-Request header
-            Then the response is successful (200)
-            And the response is a full HTML page with <html> tag
+        Note: The /battles list route was removed as part of screen consolidation.
+        Battle management is now done exclusively through Event Mode.
+        See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
         """
         # Given (authenticated via staff_client fixture)
 
         # When
         response = staff_client.get("/battles")
 
-        # Then
-        assert_status_ok(response)
-        assert is_full_page(response.text)
+        # Then - route should no longer exist
+        assert response.status_code == 404
 
 
 class TestHTMXHeaderBehavior:

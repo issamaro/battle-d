@@ -180,9 +180,8 @@
                 <li><hr></li>
                 <li><small style="color: var(--pico-muted-color);">{{ active_tournament.name }}</small></li>
                 <li><a href="/tournaments/{{ active_tournament.id }}">Tournament Details</a></li>
-                <li><a href="/tournaments/{{ active_tournament.id }}/phase">Phases</a></li>
                 {% if current_user.is_mc or current_user.is_admin %}
-                <li><a href="/battles">Battle Queue</a></li>
+                <li><a href="/event/{{ active_tournament.id }}">Event Mode</a></li>
                 {% endif %}
                 {% endif %}
 

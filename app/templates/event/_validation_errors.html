@@ -1,0 +1,64 @@
+<!-- Event Mode: Phase Validation Errors -->
+<!-- HTMX partial - no base template extension -->
+<article class="validation-errors-dialog">
+    <header>
+        <h3>Cannot Advance Phase</h3>
+    </header>
+
+    <p><strong>Tournament:</strong> {{ tournament.name }}</p>
+    <p><strong>Current Phase:</strong> {{ tournament.phase.value|upper }}</p>
+
+    <section class="errors-section">
+        <h4>Errors</h4>
+        <ul class="error-list">
+        {% for error in errors %}
+            <li>{{ error }}</li>
+        {% endfor %}
+        </ul>
+    </section>
+
+    {% if warnings %}
+    <section class="warnings-section">
+        <h4>Warnings</h4>
+        <ul class="warning-list">
+        {% for warning in warnings %}
+            <li>{{ warning }}</li>
+        {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <footer>
+        <p>Please resolve the errors above before attempting to advance to the next phase.</p>
+        <button type="button"
+                class="secondary"
+                onclick="this.closest('dialog, article')?.remove()">
+            Close
+        </button>
+    </footer>
+</article>
+
+<style>
+.validation-errors-dialog {
+    max-width: 500px;
+    margin: 0 auto;
+}
+.errors-section h4 {
+    color: var(--pico-del-color, #dc3545);
+}
+.error-list {
+    color: var(--pico-del-color, #dc3545);
+}
+.error-list li {
+    margin-bottom: 0.5rem;
+}
+.warnings-section h4 {
+    color: var(--pico-form-element-invalid-border-color, #ffc107);
+}
+.warning-list {
+    color: var(--pico-form-element-invalid-border-color, #ffc107);
+}
+.warning-list li {
+    margin-bottom: 0.5rem;
+}
+</style>

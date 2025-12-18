@@ -274,13 +274,26 @@ class TestHTTPOnlyApproach:
 
     @pytest.fixture
     def sync_client(self):
-        """Sync TestClient with mocked email."""
+        """Sync TestClient with mocked email and isolated test database."""
         mock_email = MockEmailProvider()
 
         def get_mock_email_service():
             return EmailService(mock_email)
 
+        async def get_test_db():
+            """Override database dependency to use test database."""
+            async with test_session_maker() as session:
+                try:
+                    yield session
+                    await session.commit()
+                except Exception:
+                    await session.rollback()
+                    raise
+                finally:
+                    await session.close()
+
         app.dependency_overrides[get_email_service] = get_mock_email_service
+        app.dependency_overrides[get_db] = get_test_db
 
         with TestClient(app) as client:
             yield client

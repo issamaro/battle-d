@@ -272,17 +272,23 @@ class TestCategoryManagement:
 
 
 class TestPhaseOverview:
-    """Test tournament phase overview page."""
+    """Test tournament phase overview page routes are removed.
+
+    NOTE: The /tournaments/{id}/phase route has been removed as part of
+    screen consolidation. Phase management is now done exclusively through
+    Event Mode (/event/{id}).
+    See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
+    """
 
     def test_phase_overview_loads(self, staff_client, create_e2e_tournament):
-        """GET /tournaments/{id}/phase loads phase overview.
+        """GET /tournaments/{id}/phase returns 404 (route removed).
 
-        Validates: DOMAIN_MODEL.md Tournament phase management
+        Validates: BR-NAV-001 - Single path to functions
         Gherkin:
             Given I am authenticated as Staff
             And a tournament exists
             When I navigate to /tournaments/{id}/phase
-            Then the page loads successfully (200)
+            Then I receive a 404 Not Found response
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
@@ -293,20 +299,15 @@ class TestPhaseOverview:
         # When
         response = staff_client.get(f"/tournaments/{tournament.id}/phase")
 
-        # Then
-        assert_status_ok(response)
+        # Then - route should no longer exist
+        assert response.status_code == 404
 
     def test_phase_overview_shows_current_phase(
         self, staff_client, create_e2e_tournament
     ):
-        """GET /tournaments/{id}/phase shows current phase.
+        """GET /tournaments/{id}/phase returns 404 (route removed).
 
-        Validates: DOMAIN_MODEL.md Tournament phase display
-        Gherkin:
-            Given I am authenticated as Staff
-            And a tournament exists in REGISTRATION phase
-            When I navigate to /tournaments/{id}/phase
-            Then the page shows "registration" phase information
+        Note: Phase information is now shown in Event Mode.
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
@@ -317,24 +318,22 @@ class TestPhaseOverview:
         # When
         response = staff_client.get(f"/tournaments/{tournament.id}/phase")
 
-        # Then
-        assert_status_ok(response)
-        # Should show registration phase
-        assert "registration" in response.text.lower()
+        # Then - route should no longer exist
+        assert response.status_code == 404
 
 
 class TestPhaseAdvancement:
-    """Test advancing tournament phases via HTTP."""
+    """Test advancing tournament phases via HTTP.
+
+    NOTE: The /tournaments/{id}/advance route has been removed.
+    Phase advancement is now done via /event/{id}/advance.
+    See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
+    """
 
     def test_advance_phase_requires_admin(self, staff_client, create_e2e_tournament):
-        """POST /tournaments/{id}/advance requires admin role.
+        """POST /tournaments/{id}/advance returns 404 (route removed).
 
-        Validates: DOMAIN_MODEL.md User roles (admin-only phase advancement)
-        Gherkin:
-            Given I am authenticated as Staff (not Admin)
-            And a tournament exists with sufficient performers
-            When I POST to /tournaments/{id}/advance
-            Then I am denied access (401/403)
+        Note: Phase advancement is now at /event/{id}/advance.
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
@@ -348,19 +347,13 @@ class TestPhaseAdvancement:
             follow_redirects=False,
         )
 
-        # Then
-        # Staff cannot advance phases (admin only)
-        assert response.status_code in [401, 403]
+        # Then - route should no longer exist
+        assert response.status_code == 404
 
     def test_advance_phase_shows_validation(self, admin_client, create_e2e_tournament):
-        """POST /tournaments/{id}/advance with insufficient performers shows errors.
+        """POST /tournaments/{id}/advance returns 404 (route removed).
 
-        Validates: VALIDATION_RULES.md Phase Transition Validation
-        Gherkin:
-            Given I am authenticated as Admin
-            And a tournament exists with only 1 performer per category
-            When I POST to /tournaments/{id}/advance without confirmation
-            Then I see validation errors or a confirmation page
+        Note: Validation is now shown at /event/{id}/advance.
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
@@ -374,24 +367,17 @@ class TestPhaseAdvancement:
             data={"confirmed": "false"},
         )
 
-        # Then
-        # Should show validation errors or confirmation page
-        # Status could be 200 (error page) or 400 (validation failed)
-        assert response.status_code in [200, 400]
+        # Then - route should no longer exist
+        assert response.status_code == 404
 
     def test_advance_phase_shows_confirmation(self, admin_client, create_e2e_tournament):
-        """POST /tournaments/{id}/advance shows confirmation page.
+        """POST /tournaments/{id}/advance returns 404 (route removed).
 
-        Validates: VALIDATION_RULES.md Phase Transition Validation
-        Gherkin:
-            Given I am authenticated as Admin
-            And a tournament exists with sufficient performers (5 per category)
-            When I POST to /tournaments/{id}/advance without confirmation
-            Then I see a confirmation or validation page (200)
+        Note: Confirmation is now shown at /event/{id}/advance.
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
-            create_e2e_tournament(performers_per_category=5)  # Enough for advancement
+            create_e2e_tournament(performers_per_category=5)
         )
         tournament = data["tournament"]
 
@@ -401,6 +387,5 @@ class TestPhaseAdvancement:
             data={"confirmed": "false"},
         )
 
-        # Then
-        # Should show confirmation or validation page
-        assert_status_ok(response)
+        # Then - route should no longer exist
+        assert response.status_code == 404

@@ -84,6 +84,64 @@ sqlite3 data/battle_d.db "SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM dance
 
 See: `workbench/FEATURE_SPEC_2025-12-18_TEST-DATABASE-ISOLATION.md` for technical details.
 
+### TestClient Fixture Pattern (CRITICAL)
+
+**Every TestClient fixture MUST override `get_db` to use the isolated test database.**
+
+Without this override, HTTP requests from TestClient bypass the test database and write directly to the production database (`./data/battle_d.db`), polluting your development data.
+
+**Required Pattern:**
+```python
+from app.db.database import get_db
+from tests.conftest import test_session_maker
+
+@pytest.fixture
+def client():
+    """Create test client with isolated test database."""
+    async def get_test_db():
+        """Override database dependency to use test database."""
+        async with test_session_maker() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+
+    app.dependency_overrides[get_db] = get_test_db  # REQUIRED!
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
+```
+
+**Why This Is Critical:**
+
+TestClient creates its own event loop and session context. Even if your test file imports `test_session_maker`, HTTP requests through TestClient will use the production `get_db` dependency unless overridden.
+
+```python
+# ❌ WRONG - Missing get_db override
+@pytest.fixture
+def client():
+    return TestClient(app)  # HTTP requests use production DB!
+
+# ✅ CORRECT - get_db override ensures test DB isolation
+@pytest.fixture
+def client():
+    app.dependency_overrides[get_db] = get_test_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
+```
+
+**Symptoms of Missing Override:**
+- Test entries appear in dev database (e.g., "HTTP Test", "Cat Test" tournaments)
+- Tests pass but leave garbage data behind
+- Development database gets polluted over time
+
 ## Test Structure
 
 ```

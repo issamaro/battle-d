@@ -19,41 +19,29 @@ from tests.e2e import (
 
 
 class TestBattleListAccess:
-    """Test battle list page access."""
+    """Test battle list page access.
 
-    def test_battle_list_loads(self, staff_client):
-        """GET /battles loads battle list page.
+    NOTE: The /battles list route was removed as part of screen consolidation.
+    Battle management is now done exclusively through Event Mode.
+    See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
+    """
 
-        Validates: DOMAIN_MODEL.md Battle entity access
+    def test_battle_list_route_removed(self, staff_client):
+        """GET /battles returns 404 (route removed).
+
+        Validates: BR-NAV-001 - Single path to functions
         Gherkin:
             Given I am authenticated as Staff
             When I navigate to /battles
-            Then the page loads successfully (200)
+            Then I receive a 404 Not Found response
         """
         # Given (authenticated via staff_client fixture)
 
         # When
         response = staff_client.get("/battles")
 
-        # Then
-        assert_status_ok(response)
-
-    def test_battle_list_requires_authentication(self, e2e_client):
-        """GET /battles requires authentication.
-
-        Validates: [Derived] HTTP authentication pattern
-        Gherkin:
-            Given I am not authenticated
-            When I navigate to /battles
-            Then I am redirected to login or get unauthorized (401/302/303)
-        """
-        # Given (not authenticated via e2e_client fixture)
-
-        # When
-        response = e2e_client.get("/battles")
-
-        # Then
-        assert response.status_code in [401, 302, 303]
+        # Then - route should no longer exist
+        assert response.status_code == 404
 
 
 class TestBattleDetailAccess:

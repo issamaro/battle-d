@@ -30,61 +30,10 @@ router = APIRouter(prefix="/battles", tags=["battles"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-@router.get("", response_class=HTMLResponse)
-async def list_battles(
-    request: Request,
-    category_id: Optional[uuid.UUID] = None,
-    status_filter: Optional[str] = None,
-    current_user: Optional[CurrentUser] = Depends(get_current_user),
-    battle_repo: BattleRepository = Depends(get_battle_repo),
-    category_repo: CategoryRepository = Depends(get_category_repo),
-    flash_messages: list = Depends(get_flash_messages_dependency),
-):
-    """List battles for a category.
-
-    Args:
-        request: FastAPI request
-        category_id: Category UUID to filter battles
-        status_filter: Optional status filter (PENDING, ACTIVE, COMPLETED)
-        current_user: Current authenticated user
-        battle_repo: Battle repository
-        category_repo: Category repository
-
-    Returns:
-        HTML page with battle list
-    """
-    user = require_staff(current_user)
-
-    category = None
-    if category_id:
-        category = await category_repo.get_by_id(category_id)
-        if not category:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Category not found"
-            )
-
-    # Get battles
-    if category_id:
-        battles = await battle_repo.get_by_category(category_id)
-    else:
-        battles = []
-
-    # Apply status filter
-    if status_filter and status_filter.upper() in [s.value.upper() for s in BattleStatus]:
-        battles = [b for b in battles if b.status.value.upper() == status_filter.upper()]
-
-    return templates.TemplateResponse(
-        request=request,
-        name="battles/list.html",
-        context={
-            "current_user": user,
-            "battles": battles,
-            "category": category,
-            "status_filter": status_filter,
-            "flash_messages": flash_messages,
-        },
-    )
+# NOTE: The list_battles route (GET /battles) was removed as part of
+# screen consolidation. Battle management is now done exclusively through
+# Event Mode (/event/{tournament_id}).
+# See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
 
 
 @router.get("/{battle_id}", response_class=HTMLResponse)

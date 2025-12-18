@@ -1,20 +1,25 @@
 """Event mode routes for command center interface."""
 import uuid
 from typing import Optional
-from fastapi import APIRouter, Request, Depends, HTTPException, status
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.dependencies import (
     get_current_user,
     require_mc,
+    require_admin,
     CurrentUser,
     get_flash_messages_dependency,
     get_event_service,
     get_tournament_repo,
+    get_tournament_service,
 )
 from app.services.event_service import EventService
+from app.services.tournament_service import TournamentService
 from app.repositories.tournament import TournamentRepository
 from app.models.tournament import TournamentPhase
+from app.exceptions import ValidationError
+from app.utils.flash import add_flash_message
 
 router = APIRouter(prefix="/event", tags=["event"])
 templates = Jinja2Templates(directory="app/templates")
@@ -236,4 +241,186 @@ async def progress_partial(
             "current_user": user,
             "progress": progress,
         },
+    )
+
+
+@router.post("/{tournament_id}/advance", response_class=HTMLResponse)
+async def advance_tournament_phase(
+    tournament_id: str,
+    request: Request,
+    confirmed: bool = Form(False),
+    current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_service: TournamentService = Depends(get_tournament_service),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
+):
+    """Advance tournament to next phase with validation.
+
+    Two-step process:
+    1. First request: Validate and show confirmation dialog
+    2. Second request (confirmed=True): Actually advance phase
+
+    Only admins can advance phases.
+    Phases are forward-only (no rollback).
+
+    Args:
+        tournament_id: Tournament UUID
+        request: FastAPI request
+        confirmed: Whether user confirmed the advancement
+        current_user: Current authenticated user
+        tournament_service: Tournament service for phase operations
+        tournament_repo: Tournament repository
+
+    Returns:
+        HTML partial with confirmation dialog, validation errors, or redirect
+    """
+    user = require_admin(current_user)
+
+    # Parse tournament UUID
+    try:
+        tournament_uuid = uuid.UUID(tournament_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid tournament ID",
+        )
+
+    # Get tournament
+    tournament = await tournament_repo.get_by_id(tournament_uuid)
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tournament not found",
+        )
+
+    # Check if HTMX request (for partial responses)
+    is_htmx = request.headers.get("HX-Request") == "true"
+
+    # First request: Show validation and confirmation
+    if not confirmed:
+        try:
+            # Validate phase transition
+            validation_result = await tournament_service.get_phase_validation(
+                tournament_uuid
+            )
+
+            if not validation_result:
+                # Validation failed - show errors
+                template_name = "event/_validation_errors.html"
+                return templates.TemplateResponse(
+                    request=request,
+                    name=template_name,
+                    context={
+                        "current_user": user,
+                        "tournament": tournament,
+                        "errors": validation_result.errors if validation_result else [],
+                        "warnings": validation_result.warnings if validation_result else [],
+                    },
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Validation passed - show confirmation
+            next_phase = TournamentPhase.get_next_phase(tournament.phase)
+            template_name = "event/_confirm_advance.html"
+            return templates.TemplateResponse(
+                request=request,
+                name=template_name,
+                context={
+                    "current_user": user,
+                    "tournament": tournament,
+                    "from_phase": tournament.phase,
+                    "to_phase": next_phase,
+                    "warnings": validation_result.warnings,
+                    "warning_message": _get_phase_warning_message(tournament.phase),
+                },
+            )
+
+        except ValidationError as e:
+            template_name = "event/_validation_errors.html"
+            return templates.TemplateResponse(
+                request=request,
+                name=template_name,
+                context={
+                    "current_user": user,
+                    "tournament": tournament,
+                    "errors": e.errors,
+                    "warnings": e.warnings if hasattr(e, 'warnings') else [],
+                },
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+    # Second request: Confirmed - advance phase
+    try:
+        tournament = await tournament_service.advance_tournament_phase(tournament_uuid)
+        next_phase = TournamentPhase.get_next_phase(tournament.phase)
+        add_flash_message(
+            request,
+            f"Tournament advanced to {tournament.phase.value.upper()} phase successfully",
+            "success"
+        )
+
+        # Redirect back to event mode
+        if is_htmx:
+            # For HTMX, set redirect header
+            response = RedirectResponse(
+                url=f"/event/{tournament_id}",
+                status_code=status.HTTP_303_SEE_OTHER
+            )
+            response.headers["HX-Redirect"] = f"/event/{tournament_id}"
+            return response
+        else:
+            return RedirectResponse(
+                url=f"/event/{tournament_id}",
+                status_code=status.HTTP_303_SEE_OTHER
+            )
+
+    except ValidationError as e:
+        add_flash_message(
+            request,
+            f"Cannot advance phase: {', '.join(e.errors)}",
+            "error"
+        )
+        template_name = "event/_validation_errors.html"
+        return templates.TemplateResponse(
+            request=request,
+            name=template_name,
+            context={
+                "current_user": user,
+                "tournament": tournament,
+                "errors": e.errors,
+                "warnings": e.warnings if hasattr(e, 'warnings') else [],
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+def _get_phase_warning_message(current_phase: TournamentPhase) -> str:
+    """Get appropriate warning message for phase advancement.
+
+    Args:
+        current_phase: Current tournament phase
+
+    Returns:
+        Warning message describing irreversibility
+    """
+    messages = {
+        TournamentPhase.REGISTRATION: (
+            "This will create preselection battles for all categories. "
+            "This action is IRREVERSIBLE - you cannot go back to registration."
+        ),
+        TournamentPhase.PRESELECTION: (
+            "This will finalize preselection results and create pools. "
+            "This action is IRREVERSIBLE - you cannot modify preselection scores after this."
+        ),
+        TournamentPhase.POOLS: (
+            "This will finalize pool results and create finals battles. "
+            "This action is IRREVERSIBLE - you cannot modify pool results after this."
+        ),
+        TournamentPhase.FINALS: (
+            "This will complete the tournament and archive all data. "
+            "This action is IRREVERSIBLE - the tournament will be marked as completed."
+        ),
+    }
+    return messages.get(
+        current_phase,
+        "This action is IRREVERSIBLE. Are you sure you want to proceed?",
     )

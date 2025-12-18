@@ -1452,6 +1452,76 @@ The Battle-D application has accumulated UX inconsistencies where new UI pattern
 
 ---
 
+## Phase 3.11: Screen Consolidation (COMPLETE ✅)
+
+**Duration:** 1 day
+**Date:** 2025-12-18
+
+**Objective:** Consolidate redundant and broken screens into Event Mode for unified tournament management workflow.
+
+**Problem Statement:**
+Two screens created UX confusion:
+1. **Battles screen** (`/battles`) - Non-functional (missing category selector)
+2. **Phases screen** (`/tournaments/{id}/phase`) - Redundant (same info on Dashboard + Event Mode)
+
+**Solution:**
+- Remove both problematic screens
+- Consolidate phase advancement into Event Mode (`/event/{id}/advance`)
+- Update navigation to use Event Mode as single entry point
+
+**Business Rules Implemented:**
+| ID | Rule | Description |
+|----|------|-------------|
+| BR-NAV-001 | Single Path to Functions | Users have ONE clear path to each function |
+| BR-UX-001 | No Dead-End Screens | All navigable screens must be functional |
+| BR-WF-001 | Event Mode as Primary | Event Mode is designed workflow for tournaments |
+
+**Changes Made:**
+
+1. **Routes Removed:**
+   - `GET /battles` - List battles (broken, no category selector)
+   - `GET /tournaments/{id}/phase` - Phase overview (redundant)
+   - `POST /tournaments/{id}/advance` - Phase advancement (moved)
+
+2. **Route Added:**
+   - `POST /event/{id}/advance` - Phase advancement in Event Mode
+
+3. **Files Deleted:**
+   - `app/routers/phases.py`
+   - `app/templates/phases/overview.html`
+   - `app/templates/phases/confirm_advance.html`
+   - `app/templates/phases/validation_errors.html`
+   - `app/templates/battles/list.html`
+
+4. **Files Created:**
+   - `app/templates/event/_confirm_advance.html` - HTMX partial
+   - `app/templates/event/_validation_errors.html` - HTMX partial
+   - `tests/e2e/test_event_mode_advance.py` - 9 tests
+
+5. **Files Modified:**
+   - `app/routers/event.py` - Added advance route
+   - `app/routers/battles.py` - Removed list_battles route
+   - `app/main.py` - Removed phases router registration
+   - `app/templates/base.html` - Updated sidebar navigation
+   - `app/templates/dashboard/_event_active.html` - Removed broken links
+   - `app/templates/dashboard/_registration_mode.html` - Removed phase link
+   - `app/templates/tournaments/detail.html` - Changed to Event Mode link
+   - Various test files updated for route removal
+
+**Tests:**
+- 526 tests passing (1 pre-existing failure in inline styles audit)
+- 9 new tests for Event Mode advance functionality
+- Updated existing tests to expect 404 for removed routes
+
+**Documentation:**
+- `workbench/FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md` - Feature specification
+- `workbench/IMPLEMENTATION_PLAN_2024-12-18_SCREEN-CONSOLIDATION.md` - Implementation plan
+- `ROADMAP.md` - This entry
+
+**Release:** Phase 3.11 COMPLETE ✅ (2025-12-18)
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days

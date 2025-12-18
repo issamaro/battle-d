@@ -7,6 +7,7 @@ from app.config import settings
 from app.services.email.service import EmailService
 from app.services.email.provider import BaseEmailProvider
 from app.dependencies import get_email_service
+from app.db.database import get_db
 # Use isolated test database - NEVER import from app.db.database!
 from tests.conftest import test_session_maker
 from app.repositories.user import UserRepository
@@ -62,17 +63,29 @@ async def setup_auth_test_users():
 
 @pytest.fixture
 def client(mock_email_provider):
-    """Create test client with mock email provider."""
+    """Create test client with mock email provider and isolated test database."""
 
     def get_mock_email_service():
         return EmailService(mock_email_provider)
 
-    # Override the email service dependency
+    async def get_test_db():
+        """Override database dependency to use test database."""
+        async with test_session_maker() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+
+    # Override dependencies
     app.dependency_overrides[get_email_service] = get_mock_email_service
+    app.dependency_overrides[get_db] = get_test_db
 
-    client = TestClient(app)
-
-    yield client
+    with TestClient(app) as test_client:
+        yield test_client
 
     # Clean up after test
     app.dependency_overrides.clear()

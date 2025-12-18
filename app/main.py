@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.exceptions import ValidationError
-from app.routers import auth, phases, admin, dancers, tournaments, registration, battles, dashboard, event
+from app.routers import auth, admin, dancers, tournaments, registration, battles, dashboard, event
 from app.dependencies import set_email_service
 from app.services.email.factory import create_email_provider
 from app.services.email.service import EmailService
@@ -142,7 +142,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 # Dashboard router handles / and /overview
 app.include_router(dashboard.router)
 app.include_router(auth.router)
-app.include_router(phases.router)
+# NOTE: phases.router removed - phase management consolidated into Event Mode
+# See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
 app.include_router(admin.router)
 app.include_router(dancers.router)
 app.include_router(tournaments.router)

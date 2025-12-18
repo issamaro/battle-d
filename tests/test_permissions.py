@@ -5,12 +5,31 @@ from app.main import app
 from app.auth import magic_link_auth
 from app.config import settings
 from app.dependencies import CurrentUser
+from app.db.database import get_db
+from tests.conftest import test_session_maker
 
 
 @pytest.fixture
 def client():
-    """Create test client."""
-    return TestClient(app)
+    """Create test client with isolated test database."""
+    async def get_test_db():
+        """Override database dependency to use test database."""
+        async with test_session_maker() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+
+    app.dependency_overrides[get_db] = get_test_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
 
 
 def get_session_cookie(email: str, role: str) -> str:
