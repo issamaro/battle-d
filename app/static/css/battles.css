@@ -438,6 +438,12 @@
 
 /* ==================== Utility Classes ==================== */
 
+/* Grid alignment utilities */
+.align-end { align-items: end; }
+
+/* Spacing utilities */
+.mb-0 { margin-bottom: 0; }
+
 /* Inline form display for action buttons in tables */
 .inline-form {
     display: inline-flex;
