@@ -11,7 +11,8 @@ import pytest
 from datetime import date
 from uuid import uuid4
 
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.battle import BattleRepository
@@ -103,7 +104,7 @@ async def create_battle(session, category_id, phase=BattlePhase.PRESELECTION,
 @pytest.mark.asyncio
 async def test_get_command_center_context_basic():
     """Test getting command center context with basic tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -120,7 +121,7 @@ async def test_get_command_center_context_basic():
 @pytest.mark.asyncio
 async def test_get_command_center_context_with_battles():
     """Test command center context includes pending battles in queue."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -145,7 +146,7 @@ async def test_get_command_center_context_with_battles():
 @pytest.mark.asyncio
 async def test_get_command_center_context_with_active_battle():
     """Test command center context detects active battles."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -175,7 +176,7 @@ async def test_get_command_center_context_with_active_battle():
 @pytest.mark.asyncio
 async def test_get_command_center_context_tournament_not_found():
     """Test command center context raises error for non-existent tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
         fake_id = uuid4()
 
@@ -188,7 +189,7 @@ async def test_get_command_center_context_tournament_not_found():
 @pytest.mark.asyncio
 async def test_get_command_center_context_with_category_filter():
     """Test command center context with category filter."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -221,7 +222,7 @@ async def test_get_command_center_context_with_category_filter():
 @pytest.mark.asyncio
 async def test_get_phase_progress_empty():
     """Test phase progress with no battles."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -236,7 +237,7 @@ async def test_get_phase_progress_empty():
 @pytest.mark.asyncio
 async def test_get_phase_progress_with_battles():
     """Test phase progress calculation with battles."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -262,7 +263,7 @@ async def test_get_phase_progress_with_battles():
 @pytest.mark.asyncio
 async def test_get_phase_progress_tournament_not_found():
     """Test phase progress with non-existent tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
         fake_id = uuid4()
 
@@ -281,7 +282,7 @@ async def test_get_phase_progress_tournament_not_found():
 @pytest.mark.asyncio
 async def test_get_battle_queue_empty():
     """Test battle queue with no battles."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -294,7 +295,7 @@ async def test_get_battle_queue_empty():
 @pytest.mark.asyncio
 async def test_get_battle_queue_ordering():
     """Test battle queue is ordered by sequence_order."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -317,7 +318,7 @@ async def test_get_battle_queue_ordering():
 @pytest.mark.asyncio
 async def test_get_battle_queue_limit():
     """Test battle queue respects limit parameter."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -336,7 +337,7 @@ async def test_get_battle_queue_limit():
 @pytest.mark.asyncio
 async def test_get_battle_queue_excludes_completed():
     """Test battle queue excludes completed battles."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -370,7 +371,7 @@ async def test_get_command_center_context_with_performer_names():
     Bug: https://sqlalche.me/e/20/xd2s (MissingGreenlet)
     Fix: BattleRepository now uses chained selectinload for Performer.dancer
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)
@@ -431,7 +432,7 @@ async def test_get_battle_queue_with_performer_names():
     Verifies that queue items have performer names populated from
     eagerly loaded Performer.dancer relationship.
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_event_service(session)
 
         tournament = await create_tournament(session)

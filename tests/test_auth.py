@@ -7,7 +7,8 @@ from app.config import settings
 from app.services.email.service import EmailService
 from app.services.email.provider import BaseEmailProvider
 from app.dependencies import get_email_service
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.user import UserRepository
 from app.models.user import UserRole
 
@@ -49,7 +50,7 @@ async def setup_auth_test_users():
     This fixture only creates the test users needed for auth tests.
     """
     # Create test users
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         user_repo = UserRepository(session)
         await user_repo.create_user("admin@battle-d.com", "Admin", UserRole.ADMIN)
         await user_repo.create_user("staff@battle-d.com", "Staff", UserRole.STAFF)

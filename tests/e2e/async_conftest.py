@@ -30,7 +30,9 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
-from app.db.database import async_session_maker, get_db
+# Use isolated test database - NEVER import test_session_maker from app.db.database!
+from app.db.database import get_db
+from tests.conftest import test_session_maker
 from app.repositories.user import UserRepository
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
@@ -90,7 +92,7 @@ async def async_e2e_session() -> AsyncGenerator[AsyncSession, None]:
     Uses flush() instead of commit() to keep data in transaction.
     Transaction rolls back at end for automatic cleanup.
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         yield session
         # Rollback at end - no need to clean up manually
         await session.rollback()

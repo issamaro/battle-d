@@ -13,13 +13,14 @@ from app.repositories.pool import PoolRepository
 from app.models import UserRole, TournamentPhase, TournamentStatus
 from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeType
 from app.models.pool import Pool
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 
 
 @pytest.mark.asyncio
 async def test_user_repository_create_and_get():
     """Test UserRepository create and get operations."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         user_repo = UserRepository(session)
 
         # Create user
@@ -47,7 +48,7 @@ async def test_user_repository_create_and_get():
 @pytest.mark.asyncio
 async def test_user_repository_get_by_role():
     """Test UserRepository get_by_role."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         user_repo = UserRepository(session)
 
         # Create multiple users
@@ -67,7 +68,7 @@ async def test_user_repository_get_by_role():
 @pytest.mark.asyncio
 async def test_dancer_repository_search():
     """Test DancerRepository search functionality."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
 
         # Create dancers
@@ -100,7 +101,7 @@ async def test_dancer_repository_search():
 @pytest.mark.asyncio
 async def test_tournament_repository():
     """Test TournamentRepository operations."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
 
         # Create tournament
@@ -131,7 +132,7 @@ async def test_tournament_repository():
 @pytest.mark.asyncio
 async def test_category_repository():
     """Test CategoryRepository operations."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
 
@@ -163,7 +164,7 @@ async def test_category_repository():
 @pytest.mark.asyncio
 async def test_performer_repository():
     """Test PerformerRepository operations."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         dancer_repo = DancerRepository(session)
@@ -208,7 +209,7 @@ async def test_performer_repository():
 @pytest.mark.asyncio
 async def test_performer_repository_unique_constraint():
     """Test that dancer can only register once per tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         dancer_repo = DancerRepository(session)
@@ -261,7 +262,7 @@ async def test_performer_repository_unique_constraint():
 @pytest.mark.asyncio
 async def test_battle_repository_create_with_instance():
     """Test BattleRepository.create() accepts a Battle instance with performers."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         dancer_repo = DancerRepository(session)
@@ -334,7 +335,7 @@ async def test_battle_repository_create_with_instance():
 @pytest.mark.asyncio
 async def test_pool_repository_create_with_instance():
     """Test PoolRepository.create() accepts a Pool instance with performers."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         dancer_repo = DancerRepository(session)
@@ -413,7 +414,7 @@ async def test_battle_repository_create_battle_with_performer_ids():
 
     The fix assigns performers BEFORE persisting, following the BattleService pattern.
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         dancer_repo = DancerRepository(session)

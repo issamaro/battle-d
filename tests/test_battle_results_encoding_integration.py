@@ -13,7 +13,8 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.dancer import DancerRepository
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
@@ -116,7 +117,7 @@ async def create_battle_with_performers(session, category_id, phase, performers)
 @pytest.mark.asyncio
 async def test_encode_preselection_battle_not_found():
     """Test preselection encoding with non-existent battle."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         battle_repo = BattleRepository(session)
         performer_repo = PerformerRepository(session)
 
@@ -137,7 +138,7 @@ async def test_encode_preselection_battle_not_found():
 @pytest.mark.asyncio
 async def test_encode_pool_battle_not_found():
     """Test pool encoding with non-existent battle."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         battle_repo = BattleRepository(session)
         performer_repo = PerformerRepository(session)
 
@@ -158,7 +159,7 @@ async def test_encode_pool_battle_not_found():
 @pytest.mark.asyncio
 async def test_encode_tiebreak_battle_not_found():
     """Test tiebreak encoding with non-existent battle."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         battle_repo = BattleRepository(session)
         performer_repo = PerformerRepository(session)
 
@@ -180,7 +181,7 @@ async def test_encode_tiebreak_battle_not_found():
 @pytest.mark.asyncio
 async def test_encode_finals_battle_not_found():
     """Test finals encoding with non-existent battle."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         battle_repo = BattleRepository(session)
         performer_repo = PerformerRepository(session)
 
@@ -202,7 +203,7 @@ async def test_encode_finals_battle_not_found():
 @pytest.mark.asyncio
 async def test_encode_battle_results_battle_not_found():
     """Test generic encoder handles non-existent battle."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         battle_repo = BattleRepository(session)
         performer_repo = PerformerRepository(session)
 

@@ -12,7 +12,8 @@ import pytest
 from datetime import date
 from uuid import uuid4
 
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.dancer import DancerRepository
 from app.services.dancer_service import DancerService
 from app.exceptions import ValidationError
@@ -26,7 +27,7 @@ from app.exceptions import ValidationError
 @pytest.mark.asyncio
 async def test_create_dancer_success():
     """Test successful dancer creation with all fields."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -52,7 +53,7 @@ async def test_create_dancer_success():
 @pytest.mark.asyncio
 async def test_create_dancer_email_lowercase():
     """Test that email is converted to lowercase."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -70,7 +71,7 @@ async def test_create_dancer_email_lowercase():
 @pytest.mark.asyncio
 async def test_create_dancer_duplicate_email():
     """Test that duplicate email raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -99,7 +100,7 @@ async def test_create_dancer_duplicate_email():
 @pytest.mark.asyncio
 async def test_create_dancer_age_too_young():
     """Test that dancer under 10 years raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -121,7 +122,7 @@ async def test_create_dancer_age_too_young():
 @pytest.mark.asyncio
 async def test_create_dancer_age_too_old():
     """Test that dancer over 100 years raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -143,7 +144,7 @@ async def test_create_dancer_age_too_old():
 @pytest.mark.asyncio
 async def test_create_dancer_optional_fields():
     """Test dancer creation with minimal required fields (no country/city)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -168,7 +169,7 @@ async def test_create_dancer_optional_fields():
 @pytest.mark.asyncio
 async def test_update_dancer_success():
     """Test successful dancer update."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -196,7 +197,7 @@ async def test_update_dancer_success():
 @pytest.mark.asyncio
 async def test_update_dancer_email_change():
     """Test updating dancer email to a new unique email."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -219,7 +220,7 @@ async def test_update_dancer_email_change():
 @pytest.mark.asyncio
 async def test_update_dancer_email_duplicate():
     """Test that updating email to existing email raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -253,7 +254,7 @@ async def test_update_dancer_email_duplicate():
 @pytest.mark.asyncio
 async def test_update_dancer_not_found():
     """Test updating non-existent dancer raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -271,7 +272,7 @@ async def test_update_dancer_not_found():
 @pytest.mark.asyncio
 async def test_update_dancer_age_validation():
     """Test that updating birth date validates age."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -302,7 +303,7 @@ async def test_update_dancer_age_validation():
 @pytest.mark.asyncio
 async def test_search_dancers_by_blaze():
     """Test searching dancers by blaze."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -331,7 +332,7 @@ async def test_search_dancers_by_blaze():
 @pytest.mark.asyncio
 async def test_search_dancers_by_name():
     """Test searching dancers by first/last name."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -360,7 +361,7 @@ async def test_search_dancers_by_name():
 @pytest.mark.asyncio
 async def test_search_dancers_empty_query():
     """Test that empty query returns all dancers."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -388,7 +389,7 @@ async def test_search_dancers_empty_query():
 @pytest.mark.asyncio
 async def test_search_dancers_no_results():
     """Test search with no matching results."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -413,7 +414,7 @@ async def test_search_dancers_no_results():
 @pytest.mark.asyncio
 async def test_get_dancer_by_id_success():
     """Test getting dancer by ID."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -434,7 +435,7 @@ async def test_get_dancer_by_id_success():
 @pytest.mark.asyncio
 async def test_get_dancer_by_id_not_found():
     """Test getting non-existent dancer raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -454,7 +455,7 @@ async def test_get_dancer_by_id_not_found():
 @pytest.mark.asyncio
 async def test_update_dancer_age_over_100():
     """Test that updating birth date to age > 100 raises ValidationError."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -480,7 +481,7 @@ async def test_update_dancer_age_over_100():
 @pytest.mark.asyncio
 async def test_update_dancer_all_optional_fields():
     """Test updating all optional fields at once covers all update paths."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -517,7 +518,7 @@ async def test_update_dancer_all_optional_fields():
 @pytest.mark.asyncio
 async def test_update_dancer_same_email_no_error():
     """Test updating dancer with same email doesn't raise duplicate error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 
@@ -543,7 +544,7 @@ async def test_update_dancer_same_email_no_error():
 @pytest.mark.asyncio
 async def test_search_dancers_whitespace_query():
     """Test that whitespace-only query returns all dancers."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         dancer_repo = DancerRepository(session)
         service = DancerService(dancer_repo)
 

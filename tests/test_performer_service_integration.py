@@ -12,7 +12,8 @@ import pytest
 from datetime import date
 from uuid import uuid4
 
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.dancer import DancerRepository
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
@@ -76,7 +77,7 @@ def create_performer_service(session) -> PerformerService:
 @pytest.mark.asyncio
 async def test_register_solo_performer_success():
     """Test successful solo performer registration."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         # Create test data
@@ -101,7 +102,7 @@ async def test_register_solo_performer_success():
 @pytest.mark.asyncio
 async def test_register_solo_with_partner_fails():
     """Test that registering solo with duo partner raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -128,7 +129,7 @@ async def test_register_solo_with_partner_fails():
 @pytest.mark.asyncio
 async def test_register_duo_performer_success():
     """Test successful duo performer registration."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -151,7 +152,7 @@ async def test_register_duo_performer_success():
 @pytest.mark.asyncio
 async def test_register_duo_without_partner_fails():
     """Test that registering duo without partner raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -172,7 +173,7 @@ async def test_register_duo_without_partner_fails():
 @pytest.mark.asyncio
 async def test_register_duo_self_partner_fails():
     """Test that registering with self as partner raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -198,7 +199,7 @@ async def test_register_duo_self_partner_fails():
 @pytest.mark.asyncio
 async def test_register_category_not_found():
     """Test that non-existent category raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -218,7 +219,7 @@ async def test_register_category_not_found():
 @pytest.mark.asyncio
 async def test_register_wrong_tournament():
     """Test that category from wrong tournament raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament1 = await create_tournament(session)
@@ -239,7 +240,7 @@ async def test_register_wrong_tournament():
 @pytest.mark.asyncio
 async def test_register_dancer_not_found():
     """Test that non-existent dancer raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -259,7 +260,7 @@ async def test_register_dancer_not_found():
 @pytest.mark.asyncio
 async def test_register_dancer_already_registered():
     """Test that already registered dancer raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -288,7 +289,7 @@ async def test_register_dancer_already_registered():
 @pytest.mark.asyncio
 async def test_register_partner_not_found():
     """Test that non-existent duo partner raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -310,7 +311,7 @@ async def test_register_partner_not_found():
 @pytest.mark.asyncio
 async def test_register_partner_already_registered():
     """Test that already registered partner raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -347,7 +348,7 @@ async def test_register_partner_already_registered():
 @pytest.mark.asyncio
 async def test_unregister_performer_success():
     """Test successful performer unregistration."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -372,7 +373,7 @@ async def test_unregister_performer_success():
 @pytest.mark.asyncio
 async def test_unregister_performer_not_found():
     """Test unregistering non-existent performer raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         fake_performer_id = uuid4()
@@ -391,7 +392,7 @@ async def test_unregister_performer_not_found():
 @pytest.mark.asyncio
 async def test_get_performers_by_category():
     """Test getting all performers in a category."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -428,7 +429,7 @@ async def test_get_performers_by_category():
 @pytest.mark.asyncio
 async def test_get_performers_by_category_empty():
     """Test getting performers from empty category."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -442,7 +443,7 @@ async def test_get_performers_by_category_empty():
 @pytest.mark.asyncio
 async def test_get_performers_by_tournament():
     """Test getting all performers in a tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -470,7 +471,7 @@ async def test_get_performers_by_tournament():
 @pytest.mark.asyncio
 async def test_get_performers_by_tournament_empty():
     """Test getting performers from empty tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service(session)
 
         tournament = await create_tournament(session)
@@ -510,7 +511,7 @@ async def test_register_guest_performer_success():
         And the performer's preselection_score is set to 10.0
         And the performer appears in the registration list with a "Guest" badge
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given
@@ -544,7 +545,7 @@ async def test_register_guest_wrong_phase_fails():
         When I attempt to register a dancer as guest
         Then the system rejects with error "Guests can only be added during Registration phase"
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
         tournament_repo = TournamentRepository(session)
 
@@ -573,7 +574,7 @@ async def test_register_guest_in_duo_category_fails():
 
     Validates: Guest validation rules (guests not allowed in duo categories)
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given
@@ -605,7 +606,7 @@ async def test_convert_regular_to_guest_success():
         Then the performer's is_guest becomes true
         And the performer's preselection_score is set to 10.0
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given - regular performer already registered
@@ -636,7 +637,7 @@ async def test_convert_to_guest_already_guest_fails():
 
     Validates: Guest validation rules (idempotency check)
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given
@@ -663,7 +664,7 @@ async def test_get_guest_count():
 
     Validates: BR-GUEST-003, BR-GUEST-004 (guest count for capacity/minimum calculations)
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given
@@ -709,7 +710,7 @@ async def test_get_regular_performers():
         Then 3 preselection battles are created (one per regular)
         And guests have no battles assigned
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given
@@ -744,7 +745,7 @@ async def test_get_guests():
 
     Validates: BR-GUEST-002, BR-GUEST-003 (guest filtering for pool distribution)
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_performer_service_with_tournament(session)
 
         # Given

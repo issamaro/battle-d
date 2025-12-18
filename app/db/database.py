@@ -1,4 +1,15 @@
-"""Database connection and session management."""
+"""Database connection and session management.
+
+WARNING FOR TEST AUTHORS:
+    DO NOT import async_session_maker in test files!
+    Tests must use the isolated test database from tests/conftest.py:
+
+    CORRECT:   from tests.conftest import test_session_maker
+    WRONG:     from app.db.database import async_session_maker
+
+    See: workbench/FEATURE_SPEC_2025-12-18_TEST-DATABASE-ISOLATION.md
+"""
+import os
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,

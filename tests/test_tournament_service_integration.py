@@ -13,7 +13,8 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.performer import PerformerRepository
@@ -100,7 +101,7 @@ async def register_performer(session, tournament_id, category_id, dancer_id) -> 
 @pytest.mark.asyncio
 async def test_advance_from_registration_success():
     """Test successful phase advance from REGISTRATION to PRESELECTION."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
 
         # Create tournament with category and sufficient performers
@@ -122,7 +123,7 @@ async def test_advance_from_registration_success():
 @pytest.mark.asyncio
 async def test_advance_auto_activates_tournament():
     """Test that tournament auto-activates when advancing from REGISTRATION."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
         tournament_repo = TournamentRepository(session)
 
@@ -147,7 +148,7 @@ async def test_advance_auto_activates_tournament():
 @pytest.mark.asyncio
 async def test_advance_tournament_not_found():
     """Test advance with non-existent tournament raises error."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
         fake_id = uuid4()
 
@@ -165,7 +166,7 @@ async def test_advance_tournament_not_found():
 @pytest.mark.asyncio
 async def test_advance_fails_insufficient_performers():
     """Test that advance fails when category has insufficient performers."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
 
         tournament = await create_tournament(session)
@@ -185,7 +186,7 @@ async def test_advance_fails_insufficient_performers():
 @pytest.mark.asyncio
 async def test_advance_fails_another_tournament_active():
     """Test that advance fails when another tournament is already active."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
         tournament_repo = TournamentRepository(session)
 
@@ -214,7 +215,7 @@ async def test_advance_fails_another_tournament_active():
 @pytest.mark.asyncio
 async def test_advance_fails_no_categories():
     """Test that advance fails when tournament has no categories."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
 
         tournament = await create_tournament(session)
@@ -235,7 +236,7 @@ async def test_advance_fails_no_categories():
 @pytest.mark.asyncio
 async def test_get_phase_validation_success():
     """Test getting phase validation result without advancing."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
 
         tournament = await create_tournament(session)
@@ -256,7 +257,7 @@ async def test_get_phase_validation_success():
 @pytest.mark.asyncio
 async def test_get_phase_validation_with_errors():
     """Test getting phase validation with insufficient performers."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
 
         tournament = await create_tournament(session)
@@ -277,7 +278,7 @@ async def test_get_phase_validation_with_errors():
 @pytest.mark.asyncio
 async def test_get_phase_validation_tournament_not_found():
     """Test get_phase_validation with non-existent tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
         fake_id = uuid4()
 
@@ -295,7 +296,7 @@ async def test_get_phase_validation_tournament_not_found():
 @pytest.mark.asyncio
 async def test_completed_tournament_cannot_advance():
     """Test that completed tournament cannot advance further."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         service = create_tournament_service(session)
 
@@ -321,7 +322,7 @@ async def test_completed_tournament_cannot_advance():
 @pytest.mark.asyncio
 async def test_get_phase_validation_preselection_phase():
     """Test phase validation for PRESELECTION phase (validates preselection battles)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         service = create_tournament_service(session)
         battle_repo = BattleRepository(session)
@@ -353,7 +354,7 @@ async def test_get_phase_validation_preselection_phase():
 @pytest.mark.asyncio
 async def test_get_phase_validation_pools_phase():
     """Test phase validation for POOLS phase (validates pool battles)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         service = create_tournament_service(session)
 
@@ -377,7 +378,7 @@ async def test_get_phase_validation_pools_phase():
 @pytest.mark.asyncio
 async def test_get_phase_validation_finals_phase():
     """Test phase validation for FINALS phase (validates finals battles)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         service = create_tournament_service(session)
 
@@ -410,7 +411,7 @@ async def test_advance_from_registration_generates_preselection_battles():
     This test verifies the phase transition hook for REGISTRATION -> PRESELECTION.
     The hook calls battle_service.generate_preselection_battles for each category.
     """
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         service = create_tournament_service(session)
 
         # Create tournament with performers
@@ -433,7 +434,7 @@ async def test_advance_from_registration_generates_preselection_battles():
 @pytest.mark.asyncio
 async def test_tournament_service_without_battle_service():
     """Test tournament service works without battle_service (skip hooks)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         performer_repo = PerformerRepository(session)
@@ -476,7 +477,7 @@ async def test_tournament_service_without_battle_service():
 @pytest.mark.asyncio
 async def test_advance_from_preselection_creates_pools():
     """Test advancing from PRESELECTION creates pools (hook test)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         battle_repo = BattleRepository(session)
         pool_repo = PoolRepository(session)
@@ -512,7 +513,7 @@ async def test_advance_from_preselection_creates_pools():
 @pytest.mark.asyncio
 async def test_advance_from_pools_generates_finals():
     """Test advancing from POOLS generates finals battles (hook test)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         service = create_tournament_service(session)
 
@@ -536,7 +537,7 @@ async def test_advance_from_pools_generates_finals():
 @pytest.mark.asyncio
 async def test_advance_from_finals_completes_tournament():
     """Test advancing from FINALS completes tournament (hook test)."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         service = create_tournament_service(session)
 
@@ -560,7 +561,7 @@ async def test_advance_from_finals_completes_tournament():
 @pytest.mark.asyncio
 async def test_execute_phase_hooks_preselection_without_services():
     """Test PRESELECTION phase hooks when pool_service is None."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         performer_repo = PerformerRepository(session)
@@ -608,7 +609,7 @@ async def test_execute_phase_hooks_preselection_without_services():
 @pytest.mark.asyncio
 async def test_execute_phase_hooks_pools_without_battle_service():
     """Test POOLS phase hooks when battle_service is None."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         tournament_repo = TournamentRepository(session)
         category_repo = CategoryRepository(session)
         performer_repo = PerformerRepository(session)

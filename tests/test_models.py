@@ -17,13 +17,14 @@ from app.models import (
     BattleStatus,
     BattleOutcomeType,
 )
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 
 
 @pytest.mark.asyncio
 async def test_user_model():
     """Test User model creation and properties."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create user
         user = User(
             email="test@example.com",
@@ -51,7 +52,7 @@ async def test_user_model():
 @pytest.mark.asyncio
 async def test_dancer_model():
     """Test Dancer model creation and properties."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create dancer
         dancer = Dancer(
             email="dancer@example.com",
@@ -76,7 +77,7 @@ async def test_dancer_model():
 @pytest.mark.asyncio
 async def test_tournament_phase_progression():
     """Test tournament phase progression."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create tournament
         tournament = Tournament(
             name="Test Tournament",
@@ -104,7 +105,7 @@ async def test_tournament_phase_progression():
 @pytest.mark.asyncio
 async def test_category_model():
     """Test Category model and computed properties."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create tournament
         tournament = Tournament(name="Test Tournament")
         session.add(tournament)
@@ -130,7 +131,7 @@ async def test_category_model():
 @pytest.mark.asyncio
 async def test_performer_pool_points():
     """Test Performer pool_points calculation."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create necessary objects
         tournament = Tournament(name="Test")
         dancer = Dancer(
@@ -169,7 +170,7 @@ async def test_performer_pool_points():
 @pytest.mark.asyncio
 async def test_battle_outcome_types():
     """Test Battle model with different outcome types."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create necessary objects
         tournament = Tournament(name="Test")
         session.add(tournament)
@@ -206,7 +207,7 @@ async def test_battle_outcome_types():
 @pytest.mark.asyncio
 async def test_unique_dancer_per_tournament():
     """Test that a dancer can only register once per tournament."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # Create tournament and dancer
         tournament = Tournament(name="Test")
         dancer = Dancer(

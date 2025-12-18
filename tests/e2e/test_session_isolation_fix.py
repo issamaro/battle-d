@@ -15,7 +15,9 @@ from httpx import AsyncClient, ASGITransport
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.db.database import async_session_maker, get_db
+# Use isolated test database - NEVER import test_session_maker from app.db.database!
+from app.db.database import get_db
+from tests.conftest import test_session_maker
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.dancer import DancerRepository
@@ -91,7 +93,7 @@ class TestAsyncClientApproach:
             And the tournament name should appear in the response
         """
         # Given
-        async with async_session_maker() as session:
+        async with test_session_maker() as session:
             # Create test data in shared session
             tournament_repo = TournamentRepository(session)
             tournament = await tournament_repo.create_tournament(
@@ -163,7 +165,7 @@ class TestAsyncClientApproach:
             And the category should appear in the response
         """
         # Given
-        async with async_session_maker() as session:
+        async with test_session_maker() as session:
             # Create full test scenario
             tournament_repo = TournamentRepository(session)
             category_repo = CategoryRepository(session)
@@ -411,7 +413,7 @@ class TestCompareApproaches:
             Because the tournament is already in the required phase
         """
         # Given
-        async with async_session_maker() as session:
+        async with test_session_maker() as session:
             tournament_repo = TournamentRepository(session)
             user_repo = UserRepository(session)
 

@@ -5,6 +5,53 @@
 
 ---
 
+## [2025-12-18] - Test Database Isolation Fix
+
+### Fixed
+
+**Critical Bug: Tests Purging Development Database:**
+- Fixed recurring bug where running pytest would purge `./data/battle_d.db`
+- Root cause: 11 test files imported `async_session_maker` from production database module
+- Tests now use isolated in-memory SQLite database (`sqlite+aiosqlite:///:memory:`)
+
+### Added
+
+**Test Infrastructure:**
+- Created `test_session_maker` export in `tests/conftest.py` for test files
+- Added 5 new tests in `tests/e2e/test_session_isolation_fix.py` validating isolation
+
+**Documentation:**
+- Added warning docstring to `app/db/database.py` for test authors
+- Added "Database Isolation (BLOCKING)" section to `TESTING.md`
+- Created feature spec and implementation plan in workbench/
+
+### Changed
+
+**Test Files Updated (13 files):**
+- `tests/conftest.py` - Added isolated test database engine
+- `tests/e2e/conftest.py` - Uses isolated database
+- `tests/e2e/async_conftest.py` - Updated imports
+- `tests/test_repositories.py` - Updated imports
+- `tests/test_models.py` - Updated imports
+- `tests/test_crud_workflows.py` - Updated imports
+- `tests/test_auth.py` - Updated imports
+- `tests/test_dancer_service_integration.py` - Updated imports
+- `tests/test_event_service_integration.py` - Updated imports
+- `tests/test_tournament_service_integration.py` - Updated imports
+- `tests/test_performer_service_integration.py` - Updated imports
+- `tests/test_battle_results_encoding_integration.py` - Updated imports
+- `tests/e2e/test_session_isolation_fix.py` - New test file
+
+### Breaking Changes
+**None** - Test infrastructure only, no runtime changes
+
+**Test Results:**
+- All 521 tests passing (no regressions)
+- 5 new isolation tests added
+- Database preserved after test runs verified
+
+---
+
 ## [2025-12-18] - UX Consistency Audit (Phase 3.10)
 
 ### Fixed

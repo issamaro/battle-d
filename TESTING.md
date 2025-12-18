@@ -15,6 +15,75 @@ Before reading this document, familiarize yourself with:
 
 The project uses pytest as the primary testing framework with support for async tests and code coverage reporting. As of Phase 1, we maintain 100% test pass rate (97+ tests passing, 8 skipped).
 
+---
+
+## Database Isolation (BLOCKING)
+
+**All tests MUST use the isolated in-memory test database. NEVER import `async_session_maker` from `app.db.database` in test files.**
+
+This is the most important testing rule. Violating it will **purge your development database** on every test run.
+
+### Correct Pattern
+
+```python
+# tests/test_something.py
+from tests.conftest import test_session_maker
+
+@pytest.mark.asyncio
+async def test_example():
+    async with test_session_maker() as session:
+        # Uses in-memory SQLite - NEVER touches ./data/battle_d.db
+        repo = SomeRepository(session)
+        result = await repo.create(...)
+        assert result is not None
+```
+
+### Anti-Pattern (DO NOT USE)
+
+```python
+# WRONG - This uses production database!
+from app.db.database import async_session_maker  # <-- NEVER DO THIS IN TESTS
+
+@pytest.mark.asyncio
+async def test_example():
+    async with async_session_maker() as session:  # <-- PURGES YOUR DEV DATA!
+        ...
+```
+
+### Why This Matters
+
+Direct import from `app.db.database` bypasses test isolation and:
+- **Purges your development database** on every test run
+- Causes "no such table: tournaments" errors after tests
+- Wastes developer time on database resets
+- Can lose hours of manually created test data
+
+### How It Works
+
+The test isolation is configured in `tests/conftest.py`:
+
+1. **In-memory SQLite database** - Created fresh for each test
+2. **Automatic table creation** - `setup_test_database` fixture (autouse=True)
+3. **Automatic cleanup** - Tables dropped after each test
+4. **Zero impact on dev database** - `./data/battle_d.db` is never touched
+
+### Verification
+
+After running tests, verify your dev database is intact:
+
+```bash
+# Before tests
+sqlite3 data/battle_d.db "SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM dancers;"
+
+# Run tests
+pytest tests/
+
+# After tests - counts MUST be identical
+sqlite3 data/battle_d.db "SELECT COUNT(*) FROM users; SELECT COUNT(*) FROM dancers;"
+```
+
+See: `workbench/FEATURE_SPEC_2025-12-18_TEST-DATABASE-ISOLATION.md` for technical details.
+
 ## Test Structure
 
 ```
@@ -162,10 +231,12 @@ battle = Battle(status=BattleStatus.IN_PROGRESS, ...)  # Runtime error!
 
 **Pattern:**
 ```python
+from tests.conftest import test_session_maker  # IMPORTANT: Use isolated test DB!
+
 @pytest.mark.asyncio
-async def test_service_method_integration(async_session_maker):
+async def test_service_method_integration():
     """Integration test for service method."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         # 1. Create REAL repositories (not mocks)
         battle_repo = BattleRepository(session)
         category_repo = CategoryRepository(session)

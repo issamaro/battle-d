@@ -4,7 +4,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import magic_link_auth
 from app.config import settings
-from app.db.database import async_session_maker
+# Use isolated test database - NEVER import from app.db.database!
+from tests.conftest import test_session_maker
 from app.repositories.user import UserRepository
 from app.repositories.dancer import DancerRepository
 from app.repositories.tournament import TournamentRepository
@@ -46,7 +47,7 @@ def mock_email_provider():
 @pytest.fixture(scope="function", autouse=True)
 async def setup_test_users():
     """Create test users for CRUD tests."""
-    async with async_session_maker() as session:
+    async with test_session_maker() as session:
         user_repo = UserRepository(session)
         await user_repo.create_user("admin@test.com", "Admin", UserRole.ADMIN)
         await user_repo.create_user("staff@test.com", "Staff", UserRole.STAFF)
@@ -126,7 +127,7 @@ class TestUserManagementCRUD:
 
         # Get user ID
         async def get_user_id():
-            async with async_session_maker() as session:
+            async with test_session_maker() as session:
                 user_repo = UserRepository(session)
                 user = await user_repo.get_by_email("staff@test.com")
                 return str(user.id)
@@ -165,7 +166,7 @@ class TestUserManagementCRUD:
 
         # Get user ID
         async def get_user_id():
-            async with async_session_maker() as session:
+            async with test_session_maker() as session:
                 user_repo = UserRepository(session)
                 user = await user_repo.get_by_email("todelete@test.com")
                 return str(user.id) if user else None
@@ -229,7 +230,7 @@ class TestTournamentCRUD:
 
         # Get tournament ID
         async def get_tournament_id():
-            async with async_session_maker() as session:
+            async with test_session_maker() as session:
                 tournament_repo = TournamentRepository(session)
                 tournaments = await tournament_repo.get_all()
                 return str(tournaments[0].id) if tournaments else None
@@ -268,7 +269,7 @@ class TestTournamentCRUD:
 
         # Get tournament ID
         async def get_tournament_id():
-            async with async_session_maker() as session:
+            async with test_session_maker() as session:
                 tournament_repo = TournamentRepository(session)
                 tournaments = await tournament_repo.get_all()
                 return str(tournaments[0].id) if tournaments else None

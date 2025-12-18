@@ -3,7 +3,11 @@
 Provides authenticated test clients and pre-built test scenarios.
 Follows patterns from tests/test_crud_workflows.py.
 
+IMPORTANT: E2E tests use the isolated in-memory test database from conftest.py.
+This ensures tests NEVER affect the development database (./data/battle_d.db).
+
 See: TESTING.md §End-to-End Tests
+See: workbench/FEATURE_SPEC_2025-12-18_DATABASE-PURGE-BUG.md
 """
 import pytest
 import pytest_asyncio
@@ -14,7 +18,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.auth import magic_link_auth
 from app.config import settings
-from app.db.database import async_session_maker
+from app.db.database import get_db
 from app.repositories.user import UserRepository
 from app.repositories.dancer import DancerRepository
 from app.repositories.tournament import TournamentRepository
@@ -27,6 +31,9 @@ from app.models.battle import Battle, BattlePhase, BattleStatus, BattleOutcomeTy
 from app.services.email.service import EmailService
 from app.services.email.provider import BaseEmailProvider
 from app.dependencies import get_email_service
+
+# Import the isolated test session maker from main conftest
+from tests.conftest import _test_session_maker
 
 
 # =============================================================================
@@ -68,7 +75,7 @@ def mock_email_provider():
 @pytest_asyncio.fixture(scope="function")
 async def e2e_test_users():
     """Create test users for E2E tests (admin, staff, mc, judge)."""
-    async with async_session_maker() as session:
+    async with _test_session_maker() as session:
         user_repo = UserRepository(session)
         await user_repo.create_user("admin@e2e-test.com", "Admin User", UserRole.ADMIN)
         await user_repo.create_user("staff@e2e-test.com", "Staff User", UserRole.STAFF)
@@ -114,7 +121,11 @@ def get_session_cookie(client: TestClient, email: str, role: str) -> str:
 
 @pytest.fixture
 def e2e_client(mock_email_provider):
-    """Base test client with mocked email service.
+    """Base test client with mocked email service and isolated test database.
+
+    IMPORTANT: This fixture overrides the database dependency to use the
+    isolated in-memory test database, preventing any changes to the
+    development database (./data/battle_d.db).
 
     Note: Use authenticated client fixtures (admin_client, etc.) for most tests.
     """
@@ -122,7 +133,20 @@ def e2e_client(mock_email_provider):
     def get_mock_email_service():
         return EmailService(mock_email_provider)
 
+    async def get_test_db():
+        """Override database dependency to use test database."""
+        async with _test_session_maker() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+
     app.dependency_overrides[get_email_service] = get_mock_email_service
+    app.dependency_overrides[get_db] = get_test_db
 
     with TestClient(app) as test_client:
         yield test_client
@@ -226,7 +250,7 @@ def create_e2e_tournament():
         Returns:
             Dict with tournament, categories, dancers, performers
         """
-        async with async_session_maker() as session:
+        async with _test_session_maker() as session:
             # Create tournament
             tournament_repo = TournamentRepository(session)
             tournament = await tournament_repo.create_tournament(
@@ -322,7 +346,7 @@ def create_e2e_battle():
         Returns:
             Battle instance
         """
-        async with async_session_maker() as session:
+        async with _test_session_maker() as session:
             battle_repo = BattleRepository(session)
 
             # Determine outcome type based on phase
