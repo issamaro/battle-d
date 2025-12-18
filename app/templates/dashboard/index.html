@@ -33,19 +33,19 @@
             <tbody>
                 <tr>
                     <td>Admin</td>
-                    <td>{{ "Yes" if current_user.is_admin else "No" }}</td>
+                    <td>{{ "✓" if current_user.is_admin else "✗" }}</td>
                 </tr>
                 <tr>
                     <td>Staff</td>
-                    <td>{{ "Yes" if current_user.is_staff else "No" }}</td>
+                    <td>{{ "✓" if current_user.is_staff else "✗" }}</td>
                 </tr>
                 <tr>
                     <td>MC</td>
-                    <td>{{ "Yes" if current_user.is_mc else "No" }}</td>
+                    <td>{{ "✓" if current_user.is_mc else "✗" }}</td>
                 </tr>
                 <tr>
                     <td>Judge</td>
-                    <td>{{ "Yes" if current_user.is_judge else "No" }}</td>
+                    <td>{{ "✓" if current_user.is_judge else "✗" }}</td>
                 </tr>
             </tbody>
         </table>

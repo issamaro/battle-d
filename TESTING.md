@@ -967,6 +967,77 @@ Before committing code:
 
 ---
 
-**Current Status**: Phase 3.6 - E2E Testing Framework - 316+ tests passing, 8 skipped ✅
+## UX Consistency Tests (Phase 3.10)
 
-Last updated: 2025-12-08
+E2E tests that validate template consistency and prevent UX regressions.
+
+**Location:** `tests/e2e/test_ux_consistency.py`
+
+**Purpose:** Automated tests to catch UX inconsistencies like orphaned templates, inline styles, and inconsistent patterns.
+
+**What's Tested:**
+
+| Test | Business Rule | Purpose |
+|------|---------------|---------|
+| `test_no_orphaned_templates` | BR-UX-003 | Detect unused template files |
+| `test_overview_html_deleted` | BR-UX-003 | Verify legacy file removed |
+| `test_inline_styles_below_threshold` | BR-UX-001 | Enforce style consistency |
+| `test_no_inline_color_styles` | BR-UX-001 | Enforce badge pattern usage |
+| `test_permission_uses_symbols` | BR-UX-004 | Enforce checkmark format |
+
+**Running UX Tests:**
+```bash
+# Run all UX consistency tests
+pytest tests/e2e/test_ux_consistency.py -v
+
+# Run specific test class
+pytest tests/e2e/test_ux_consistency.py::TestOrphanedTemplates -v
+```
+
+**Configuration:**
+
+Tests use configuration constants at the top of the file:
+
+```python
+# Templates intentionally not wired to routes (future features)
+ALLOWED_ORPHANED_TEMPLATES = {
+    "pools/overview.html",  # Future: Pool standings view
+}
+
+# Maximum allowed inline styles (after filtering exceptions)
+MAX_INLINE_STYLES = 5
+
+# Inline styles that are acceptable exceptions
+ALLOWED_INLINE_STYLE_PATTERNS = [
+    # Add patterns here as needed
+]
+```
+
+**Adding New Exceptions:**
+
+If a template is intentionally orphaned or an inline style is necessary:
+
+1. **Orphaned Template:** Add to `ALLOWED_ORPHANED_TEMPLATES`
+2. **Inline Style:** Add regex pattern to `ALLOWED_INLINE_STYLE_PATTERNS`
+
+**Why These Tests Exist:**
+
+The Battle-D application accumulated UX inconsistencies after Phase 3.3 (UX Navigation Redesign) where:
+- Legacy `overview.html` remained but was replaced by `dashboard/index.html`
+- Inline styles were used instead of `.badge` CSS classes
+- Permission display used `Yes/No` instead of checkmark symbols
+
+These tests prevent similar regressions by automatically detecting:
+- Templates with no references (orphaned code)
+- Inline styles that should use CSS classes
+- Inconsistent patterns across templates
+
+**Related Documentation:**
+- `FRONTEND.md` - Badge classes, permission display standard
+- `ROADMAP.md` - Phase 3.10 UX Consistency Audit
+
+---
+
+**Current Status**: Phase 3.10 - UX Consistency Audit - Tests in progress
+
+Last updated: 2025-12-17

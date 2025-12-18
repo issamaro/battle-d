@@ -1,35 +1,37 @@
 {% if dancers %}
-    <table border="1" cellpadding="10" style="width: 100%; border-collapse: collapse;">
-        <thead>
-            <tr style="background-color: #f4f4f4;">
-                <th>Blaze</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Age</th>
-                <th>Country</th>
-                <th>City</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dancer in dancers %}
-            <tr>
-                <td><strong>{{ dancer.blaze }}</strong></td>
-                <td>{{ dancer.full_name }}</td>
-                <td>{{ dancer.email }}</td>
-                <td>{{ dancer.age }}</td>
-                <td>{{ dancer.country or "-" }}</td>
-                <td>{{ dancer.city or "-" }}</td>
-                <td>
-                    <a href="/dancers/{{ dancer.id }}/profile" style="margin-right: 5px;">View</a>
-                    <a href="/dancers/{{ dancer.id }}/edit">Edit</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th>Blaze</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Age</th>
+                    <th>Country</th>
+                    <th>City</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dancer in dancers %}
+                <tr>
+                    <td><strong>{{ dancer.blaze }}</strong></td>
+                    <td>{{ dancer.full_name }}</td>
+                    <td>{{ dancer.email }}</td>
+                    <td>{{ dancer.age }}</td>
+                    <td>{{ dancer.country or "-" }}</td>
+                    <td>{{ dancer.city or "-" }}</td>
+                    <td>
+                        <a href="/dancers/{{ dancer.id }}/profile">View</a>
+                        <a href="/dancers/{{ dancer.id }}/edit">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </figure>
 
-    <p style="margin-top: 20px;">
+    <p>
         <strong>Total Dancers:</strong> {{ dancers|length }}
         {% if search %}<em>(Search results for "{{ search }}")</em>{% endif %}
     </p>
@@ -37,14 +39,14 @@
     {% if search %}
         {% set title = "No Dancers Found" %}
         {% set message = 'No dancers match your search for "' ~ search ~ '"' %}
-        {% set icon = "🔍" %}
+        {% set icon = "search" %}
         {% include "components/empty_state.html" %}
     {% else %}
         {% set title = "No Dancers Yet" %}
         {% set message = "Create your first dancer to get started" %}
         {% set action_url = "/dancers/create" %}
         {% set action_text = "Create Dancer" %}
-        {% set icon = "👤" %}
+        {% set icon = "user" %}
         {% include "components/empty_state.html" %}
     {% endif %}
 {% endif %}

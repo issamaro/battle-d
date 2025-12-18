@@ -1,3 +1,15 @@
+{#
+  FUTURE FEATURE: Pool Standings View
+
+  This template is prepared for the pool standings feature (V2).
+  It is not currently wired to any route.
+
+  Planned route: GET /pools/{pool_id}
+  Purpose: Display pool standings during POOLS phase
+
+  See: ROADMAP.md Phase 4+ for implementation schedule
+  Added: 2025-12-17 during Phase 3.10 UX Consistency Audit
+#}
 {% extends "base.html" %}
 
 {% block title %}Pool Standings{% if pool %} - {{ pool.name }}{% endif %} - Battle-D{% endblock %}

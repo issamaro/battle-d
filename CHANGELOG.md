@@ -5,6 +5,49 @@
 
 ---
 
+## [2025-12-18] - UX Consistency Audit (Phase 3.10)
+
+### Fixed
+
+**Removed Inline Styles (BR-UX-001):**
+- Refactored `admin/users.html` - replaced inline styles with PicoCSS classes
+- Refactored `dancers/list.html` - consistent button styling
+- Refactored `dancers/_table.html` - removed inline link styles
+- Refactored `tournaments/list.html` - consistent badge and button patterns
+
+**Permission Display Consistency (BR-UX-003):**
+- Updated `dashboard/index.html` to use checkmark symbols instead of "Yes/No"
+
+### Removed
+
+**Orphaned Template (BR-UX-003):**
+- Deleted `app/templates/overview.html` - replaced by `dashboard/index.html` in Phase 3.3
+- No routes referenced this file (verified via grep)
+
+### Added
+
+**E2E UX Consistency Tests:**
+- `tests/e2e/test_ux_consistency.py` - Automated tests for:
+  - No inline styles in templates (with allowlist for exceptions)
+  - Consistent badge class usage
+  - Permission display format validation
+  - PicoCSS pattern compliance
+
+**Documentation:**
+- Added future-use comment to `pools/overview.html` (prepared for pool standings feature)
+
+**Files Modified:**
+- `app/templates/admin/users.html` (refactored styles)
+- `app/templates/dancers/_table.html` (refactored styles)
+- `app/templates/dancers/list.html` (refactored styles)
+- `app/templates/dashboard/index.html` (permission symbols)
+- `app/templates/pools/overview.html` (documentation comment)
+- `app/templates/tournaments/list.html` (refactored styles)
+- `app/templates/overview.html` (DELETED)
+- `tests/e2e/test_ux_consistency.py` (NEW)
+
+---
+
 ## [2025-12-18] - Fix Registration Page Stale Status Display
 
 ### Fixed

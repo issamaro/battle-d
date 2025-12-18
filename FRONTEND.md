@@ -562,6 +562,84 @@ footer { grid-area: footer; }
 - ❌ **Missing ARIA labels**: Screen readers need context beyond color
 - ❌ **Low contrast**: Yellow #ffc107 + white = 3.5:1 (fails WCAG AA)
 
+#### Badge Classes Reference (from battles.css)
+
+Use badge classes for ALL status indicators throughout the application:
+
+```html
+<span class="badge badge-pending">PENDING</span>
+<span class="badge badge-active">ACTIVE</span>
+<span class="badge badge-completed">COMPLETED</span>
+<span class="badge badge-warning">CANCELLED</span>
+```
+
+| Class | Color | Background | Use Case | Contrast Ratio |
+|-------|-------|------------|----------|----------------|
+| `.badge-pending` | White | Gray (#6c757d) | Default/waiting state | 5.74:1 (WCAG AAA) |
+| `.badge-active` | White | Orange (#ff9800) | In-progress state | 4.52:1 (WCAG AA) |
+| `.badge-completed` | White | Green (#28a745) | Success/done state | 4.56:1 (WCAG AA) |
+| `.badge-warning` | Dark (#212529) | Yellow (#ffc107) | Warning/cancelled state | 8.59:1 (WCAG AAA) |
+
+**DO NOT use inline styles for badges:**
+```html
+<!-- BAD - inline styles -->
+<span style="padding: 4px 8px; background-color: #28a745; color: white;">ACTIVE</span>
+
+<!-- GOOD - CSS classes -->
+<span class="badge badge-active">ACTIVE</span>
+```
+
+---
+
+### 5.1 Permission Display Standard
+
+**Use Case:** Displaying user permissions/roles in tables and profile views.
+
+**Standard Format:** Use checkmark symbols (check/X), NOT Yes/No text.
+
+**HTML:**
+```html
+<!-- Permission display in tables -->
+<table>
+    <thead>
+        <tr>
+            <th>Permission</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Admin</td>
+            <td>{{ "&#10003;" if current_user.is_admin else "&#10007;" }}</td>
+        </tr>
+        <tr>
+            <td>Staff</td>
+            <td>{{ "&#10003;" if current_user.is_staff else "&#10007;" }}</td>
+        </tr>
+    </tbody>
+</table>
+```
+
+**Alternative (Unicode directly in Jinja):**
+```html
+<td>{{ "✓" if current_user.is_admin else "✗" }}</td>
+```
+
+**Why Checkmarks:**
+- More compact than Yes/No
+- Universal visual meaning
+- Better for tables with many columns
+- Consistent across the application
+
+**DO NOT use Yes/No text:**
+```html
+<!-- BAD - inconsistent with rest of app -->
+<td>{{ "Yes" if current_user.is_admin else "No" }}</td>
+
+<!-- GOOD - checkmark symbols -->
+<td>{{ "✓" if current_user.is_admin else "✗" }}</td>
+```
+
 ---
 
 ### 6. Flash Messages

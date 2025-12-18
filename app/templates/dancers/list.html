@@ -6,36 +6,38 @@
 <h2>Dancer Management</h2>
 
 <section>
-    <p><a href="/overview">← Back to Overview</a></p>
+    <p><a href="/overview">&larr; Back to Overview</a></p>
 </section>
 
 <section>
     <h3>Search and Actions</h3>
 
-    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-        <input type="text"
-               name="query"
-               id="search-input"
-               value="{{ search }}"
-               placeholder="Search by blaze, name, or email..."
-               hx-get="/dancers/api/search"
-               hx-trigger="keyup changed delay:500ms"
-               hx-target="#dancers-table"
-               hx-indicator="#dancers-loading"
-               style="width: 400px; padding: 8px;">
+    <div class="grid">
+        <div>
+            <input type="text"
+                   name="query"
+                   id="search-input"
+                   value="{{ search }}"
+                   placeholder="Search by blaze, name, or email..."
+                   hx-get="/dancers/api/search"
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-target="#dancers-table"
+                   hx-indicator="#dancers-loading">
 
-        {% set loading_id = "dancers-loading" %}
-        {% set loading_text = "Searching dancers..." %}
-        {% set size = "small" %}
-        {% include "components/loading.html" %}
-
-        <a href="/dancers/create" style="padding: 8px 16px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
-            + Create New Dancer
-        </a>
+            {% set loading_id = "dancers-loading" %}
+            {% set loading_text = "Searching dancers..." %}
+            {% set size = "small" %}
+            {% include "components/loading.html" %}
+        </div>
+        <div>
+            <a href="/dancers/create" role="button">
+                + Create New Dancer
+            </a>
+        </div>
     </div>
 
-    <p style="font-size: 14px; color: #6c757d;">
-        <em>Live search - results update as you type</em>
+    <p>
+        <small><em>Live search - results update as you type</em></small>
     </p>
 </section>
 

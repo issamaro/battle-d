@@ -1372,6 +1372,86 @@ Tournament organizers need to invite pre-qualified performers (e.g., champions f
 
 ---
 
+## Phase 3.10: UX Consistency Audit (IN PROGRESS 🔄)
+
+**Duration:** 1 day (2025-12-17)
+
+**Status:** 🔄 IN PROGRESS
+
+**Objective:** Clean up UX inconsistencies (orphaned templates, inline styles, inconsistent patterns) that accumulated since Phase 3.3 (UX Navigation Redesign). Add E2E tests to prevent future UX regressions.
+
+### Problem Statement
+
+The Battle-D application has accumulated UX inconsistencies where new UI patterns were added alongside legacy patterns instead of replacing them. This "Frankenstein" effect includes:
+- Orphaned templates (`overview.html`) no longer used but still in codebase
+- Mixed use of PicoCSS classes vs inline styles
+- Inconsistent permission display formats (`Yes/No` vs checkmark symbols)
+- No automated testing to catch UX regressions
+
+### Key Deliverables
+
+**Template Cleanup:**
+- Delete orphaned `overview.html` (replaced by `dashboard/index.html` in Phase 3.3)
+- Document `pools/overview.html` as future feature
+- Refactor 5 templates to remove inline styles (use PicoCSS/.badge classes)
+
+**Consistency Standards:**
+- Permission display: Use checkmark symbols (check/X) consistently
+- Status badges: Use `.badge`, `.badge-pending`, `.badge-active`, `.badge-completed`, `.badge-warning` classes
+- Buttons: Use `role="button"` pattern consistently
+
+**E2E Testing:**
+- `tests/e2e/test_ux_consistency.py` - Automated UX regression tests
+- Test orphaned templates detection
+- Test inline style threshold enforcement
+- Test permission display consistency
+
+### Business Rules Defined
+
+| Rule ID | Rule Name | Description |
+|---------|-----------|-------------|
+| BR-UX-001 | No Inline Styles | Templates must use PicoCSS/CSS classes, not inline `style=""` attributes |
+| BR-UX-002 | All Links Must Work | Every href/action attribute must point to an existing route |
+| BR-UX-003 | No Orphaned Templates | Every template must be referenced by a route or included by another template |
+| BR-UX-004 | Consistent Permission Display | Use checkmark symbols (check/X) for permission tables, not Yes/No |
+
+### Files Modified
+
+**Templates (DELETE):**
+- `app/templates/overview.html` - Orphaned legacy file
+
+**Templates (DOCUMENT):**
+- `app/templates/pools/overview.html` - Add future feature comment
+
+**Templates (REFACTOR):**
+- `app/templates/dashboard/index.html` - Permission display to checkmarks
+- `app/templates/tournaments/detail.html` - Remove inline styles, use .badge classes
+- `app/templates/tournaments/list.html` - Remove inline styles, use .badge classes
+- `app/templates/dancers/list.html` - Remove inline styles, use role="button"
+- `app/templates/admin/users.html` - Remove inline styles, use PicoCSS
+- `app/templates/dancers/_table.html` - Remove inline styles
+
+**CSS:**
+- `app/static/css/battles.css` - Add .badge-warning class
+
+**Tests:**
+- `tests/e2e/test_ux_consistency.py` - NEW - UX regression tests (7 tests)
+
+**Documentation:**
+- `ROADMAP.md` - This entry
+- `FRONTEND.md` - Badge pattern and permission display standard
+- `TESTING.md` - UX consistency testing section
+
+### Test Results
+
+- [ ] All existing tests passing
+- [ ] New UX consistency tests passing (7 tests)
+- [ ] No regressions detected
+
+**Release:** Phase 3.10 IN PROGRESS 🔄 (2025-12-17)
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days
