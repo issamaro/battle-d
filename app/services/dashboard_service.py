@@ -8,6 +8,7 @@ from app.models.tournament import Tournament, TournamentPhase, TournamentStatus
 from app.repositories.tournament import TournamentRepository
 from app.repositories.category import CategoryRepository
 from app.repositories.performer import PerformerRepository
+from app.utils.tournament_calculations import calculate_minimum_performers
 
 
 @dataclass
@@ -18,7 +19,7 @@ class CategoryStats:
     is_duo: bool
     registered_count: int
     ideal_count: int  # performers_ideal * groups_ideal
-    minimum_required: int  # performers_ideal (one full group minimum)
+    minimum_required: int  # (groups_ideal × 2) + 1 per BR-MIN-001
     is_ready: bool  # Has minimum required
 
 
@@ -154,7 +155,7 @@ class DashboardService:
             )
 
             ideal_count = category.performers_ideal * category.groups_ideal
-            minimum_required = category.performers_ideal  # One full group
+            minimum_required = calculate_minimum_performers(category.groups_ideal)
 
             stats.append(CategoryStats(
                 id=category.id,

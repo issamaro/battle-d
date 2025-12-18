@@ -5,6 +5,50 @@
 
 ---
 
+## [2025-12-17] - Fix Minimum Performer Formula Inconsistency
+
+### Fixed
+
+**Minimum Performer Formula (BR-MIN-001):**
+- Fixed inconsistent minimum performer display across screens
+- Category creation showed "5" but tournament detail showed "6"
+- Dashboard service used wrong formula (`performers_ideal` instead of `(groups_ideal * 2) + 1`)
+- Root cause: Formula was updated in core calculation but 4 UI locations used outdated values
+
+### Technical Solution
+
+**Backend:**
+- `app/services/dashboard_service.py`: Changed `performers_ideal` to `calculate_minimum_performers(groups_ideal)`
+- `app/models/category.py`: Added `minimum_performers_required` property for DRY principle
+
+**Frontend:**
+- `app/templates/tournaments/detail.html`: Now uses `item.category.minimum_performers_required`
+- `app/templates/tournaments/add_category.html`: Fixed initial "6" to "5", "+ 2 elimination" to "+ 1 elimination"
+
+### Added
+
+**Category Model Enhancement:**
+- New `minimum_performers_required` property centralizes formula calculation
+- Follows same pattern as existing `ideal_pool_capacity` property
+
+**E2E Tests:**
+- `tests/e2e/test_minimum_formula_consistency.py`: 3 tests verifying formula across screens
+
+**Files Modified:**
+- `app/services/dashboard_service.py` (import, comment, calculation fix)
+- `app/models/category.py` (new property)
+- `app/templates/tournaments/detail.html` (uses model property)
+- `app/templates/tournaments/add_category.html` (initial values)
+- `tests/test_dashboard_service.py` (expected values: 4 → 5)
+- `tests/e2e/test_minimum_formula_consistency.py` (new)
+
+**Test Results:**
+- All 517 tests passing (no regressions)
+- 3 new E2E tests for formula consistency
+- 95% coverage on changed files
+
+---
+
 ## [2025-12-17] - Fix Action Button Vertical Alignment
 
 ### Fixed

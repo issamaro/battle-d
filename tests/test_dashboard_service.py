@@ -260,7 +260,7 @@ class TestGetCategoryStats:
         cat_stats = result.categories[0]
         assert cat_stats.registered_count == 6
         assert cat_stats.ideal_count == 8  # 4 * 2
-        assert cat_stats.minimum_required == 4  # performers_ideal
+        assert cat_stats.minimum_required == 5  # (groups_ideal * 2) + 1 = (2 * 2) + 1
 
     @pytest.mark.asyncio
     async def test_category_is_ready_flag(
@@ -288,7 +288,7 @@ class TestGetCategoryStats:
         result = await dashboard_service.get_dashboard_context()
 
         cat_stats = result.categories[0]
-        assert cat_stats.is_ready is False  # 3 < 4 minimum
+        assert cat_stats.is_ready is False  # 3 < 5 minimum (formula: (2*2)+1=5)
 
     @pytest.mark.asyncio
     async def test_category_is_ready_when_meets_minimum(
@@ -304,8 +304,8 @@ class TestGetCategoryStats:
             performers_ideal=4,
             groups_ideal=2,
         )
-        # 5 performers registered (meets minimum of 4)
-        category.performers = [MagicMock() for _ in range(5)]
+        # 6 performers registered (meets minimum of 5)
+        category.performers = [MagicMock() for _ in range(6)]
 
         tournament_repo.get_active_tournaments.return_value = []
         tournament_repo.get_all.return_value = [tournament]
@@ -315,7 +315,7 @@ class TestGetCategoryStats:
         result = await dashboard_service.get_dashboard_context()
 
         cat_stats = result.categories[0]
-        assert cat_stats.is_ready is True  # 5 >= 4 minimum
+        assert cat_stats.is_ready is True  # 6 >= 5 minimum (formula: (2*2)+1=5)
 
     @pytest.mark.asyncio
     async def test_empty_category(

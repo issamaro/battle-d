@@ -4,6 +4,7 @@ from typing import List, TYPE_CHECKING
 from sqlalchemy import String, Boolean, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
+from app.utils.tournament_calculations import calculate_minimum_performers
 
 if TYPE_CHECKING:
     from app.models.tournament import Tournament
@@ -99,3 +100,18 @@ class Category(BaseModel):
             Total number of performers that should qualify for pools
         """
         return self.groups_ideal * self.performers_ideal
+
+    @property
+    def minimum_performers_required(self) -> int:
+        """Calculate minimum performers required to start category.
+
+        Formula: (groups_ideal × 2) + 1 per BR-MIN-001
+
+        This ensures:
+        - At least 2 performers per pool (groups_ideal × 2)
+        - At least 1 performer eliminated in preselection (+1)
+
+        Returns:
+            Minimum number of registered performers required
+        """
+        return calculate_minimum_performers(self.groups_ideal)
