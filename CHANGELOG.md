@@ -1,7 +1,38 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-17
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-18
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-18] - Fix Registration Page Stale Status Display
+
+### Fixed
+
+**Registration Status OOB Swap (HTMX):**
+- Fixed "(Need X more)" counter not updating when dancers are added/removed
+- Root cause: Only `#reg-count` span was OOB-swapped, but status text was outside it
+- Solution: Created `_registration_status.html` partial, wrapped in `#registration-status` for full OOB swap
+
+**Removed Unclear "Ready" Badge:**
+- Removed `<mark class="status-ready">Ready</mark>` from registration page
+- Badge had no clear purpose and cluttered the UI
+- Now shows only "(Need X more)" when below minimum, nothing when sufficient
+
+**Removed Stale Panel Header Count:**
+- Removed duplicate count from `<h3>Registered (X)</h3>` panel header
+- Count already shown correctly in `_registered_list.html` partial
+
+### Added
+
+**New Partial:**
+- `app/templates/registration/_registration_status.html` - Reusable status display
+
+**Files Modified:**
+- `app/templates/registration/_registration_status.html` (new)
+- `app/templates/registration/_registered_list.html` (removed Ready badge)
+- `app/templates/registration/_registration_update.html` (updated OOB target)
+- `app/templates/registration/register.html` (use partial, removed stale count)
 
 ---
 

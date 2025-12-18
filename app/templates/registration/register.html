@@ -8,13 +8,10 @@
 <div class="registration-header">
     <a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a>
     <h2>{{ category.name }} {% if category.is_duo %}(Duo){% endif %}</h2>
-    <p class="registration-count">
-        <span id="reg-count">{{ performers|length }}/{{ category.performers_ideal * category.groups_ideal }}</span> registered
-        {% if performers|length >= category.performers_ideal %}
-        <mark class="status-ready">Ready</mark>
-        {% else %}
-        <small>(Need {{ category.performers_ideal - performers|length }} more)</small>
-        {% endif %}
+    <p id="registration-status" class="registration-count">
+        {% with registered_count=performers|length, ideal_count=category.performers_ideal * category.groups_ideal, minimum_required=category.performers_ideal %}
+        {% include "registration/_registration_status.html" %}
+        {% endwith %}
     </p>
 </div>
 
@@ -179,7 +176,7 @@ function clearDuoSelection() {
     <!-- Right: Registered Dancers -->
     <section class="panel panel-registered">
         <div class="panel-header">
-            <h3>Registered ({{ performers|length }})</h3>
+            <h3>Registered</h3>
         </div>
         <div id="registered-list" class="panel-list"
              hx-get="/registration/{{ tournament.id }}/{{ category.id }}/registered"

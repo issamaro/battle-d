@@ -4,9 +4,7 @@
     {% if guest_count is defined and guest_count > 0 %}
     <small class="guest-count">({{ guest_count }} guest{{ 's' if guest_count != 1 else '' }})</small>
     {% endif %}
-    {% if registered_count >= minimum_required %}
-    <mark class="status-ready">Ready</mark>
-    {% else %}
+    {% if registered_count < minimum_required %}
     <small class="status-need-more">(Need {{ minimum_required - registered_count }} more)</small>
     {% endif %}
 </div>

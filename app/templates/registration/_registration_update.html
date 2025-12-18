@@ -8,5 +8,7 @@
     {% include "registration/_registered_list.html" %}
 </div>
 
-<!-- Update the count in header via OOB -->
-<span id="reg-count" hx-swap-oob="innerHTML">{{ registered_count }}/{{ ideal_count }}</span>
+<!-- Update the header status (count + Need X more) via OOB -->
+<p id="registration-status" hx-swap-oob="innerHTML">
+    {% include "registration/_registration_status.html" %}
+</p>

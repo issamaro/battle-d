@@ -1,0 +1,5 @@
+<!-- Registration Status (OOB-swappable partial) -->
+<span class="reg-count">{{ registered_count }}/{{ ideal_count }}</span> registered
+{% if registered_count < minimum_required %}
+<small>(Need {{ minimum_required - registered_count }} more)</small>
+{% endif %}
