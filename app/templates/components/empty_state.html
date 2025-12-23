@@ -1,8 +1,13 @@
 {#
-  Empty State Component
+  Empty State Component with Lucide Icons
 
   Usage:
-    {% include "components/empty_state.html" with context %}
+    {% set title = "No Tournaments Yet" %}
+    {% set message = "Create your first tournament to get started" %}
+    {% set icon = "trophy" %}
+    {% set action_url = "/tournaments/create" %}
+    {% set action_text = "Create Tournament" %}
+    {% include "components/empty_state.html" %}
 
   Required context:
     - title: str (e.g., "No Dancers Found")
@@ -11,20 +16,36 @@
   Optional context:
     - action_url: str (e.g., "/dancers/create")
     - action_text: str (e.g., "Create Dancer")
-    - icon: str (e.g., "👤") - emoji or symbol
+    - icon: str - icon name from Lucide Icons (e.g., "trophy", "user", "search")
+
+  Supported icons:
+    - trophy: Tournaments empty state
+    - user: Users empty state
+    - search: Search no results
+    - calendar: Calendar/date empty state
+    - users: Multiple users/dancers empty state
 #}
+
+{# Lucide Icon SVG definitions - stroke-width 1.5 for consistency #}
+{% set icons = {
+  'trophy': '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+  'user': '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  'users': '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'search': '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+  'calendar': '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>'
+} %}
 
 <div class="empty-state" role="status" aria-live="polite">
   <div class="empty-state-content">
-    {% if icon %}
-    <div class="empty-state-icon" aria-hidden="true">{{ icon }}</div>
+    {% if icon and icon in icons %}
+    <div class="empty-state-icon" aria-hidden="true">{{ icons[icon]|safe }}</div>
     {% endif %}
 
-    <h3>{{ title }}</h3>
-    <p>{{ message }}</p>
+    <h3 class="empty-state-title">{{ title }}</h3>
+    <p class="empty-state-message">{{ message }}</p>
 
     {% if action_url and action_text %}
-    <a href="{{ action_url }}" role="button" class="primary">
+    <a href="{{ action_url }}" class="btn btn-primary">
       {{ action_text }}
     </a>
     {% endif %}

@@ -911,6 +911,79 @@ Use badge classes for ALL status indicators throughout the application:
 
 ---
 
+### 10. Lucide Icons
+
+**Icon Library:** [Lucide Icons](https://lucide.dev/) (SVG, MIT License)
+
+**Purpose:** Lightweight SVG icons for empty states and UI elements.
+
+**Usage in Templates:**
+Icons are embedded as inline SVGs via a Jinja dict mapping in `components/empty_state.html`:
+- Zero external requests
+- CSS styling via `currentColor`
+- Accessibility via `aria-hidden="true"`
+
+**Available Icons:**
+| Icon Name | Use Case |
+|-----------|----------|
+| `trophy` | Tournaments empty state |
+| `user` | Users empty state |
+| `search` | Search no results |
+| `calendar` | Date display |
+| `map-pin` | Location display |
+
+**Adding New Icons:**
+1. Get SVG from https://lucide.dev/icons/
+2. Add to `icons` dict in `components/empty_state.html`
+3. Set `stroke-width="1.5"` for visual consistency
+4. Set `width` and `height` to match use case (64 for empty state, 16 for inline)
+
+---
+
+### 11. Tournament Card
+
+**Use Case:** Display tournament in card grid format
+
+**HTML Structure:**
+```html
+<article class="card tournament-card">
+  <div class="card-body">
+    <div class="tournament-card-header">
+      <h3 class="tournament-card-title">{{ tournament.name }}</h3>
+      <button class="btn-icon" aria-label="More options">
+        <!-- Vertical dots icon -->
+      </button>
+    </div>
+    <div class="tournament-card-meta">
+      <div class="card-meta">
+        <svg><!-- Calendar icon --></svg>
+        <span>{{ date }}</span>
+      </div>
+    </div>
+    <div class="tournament-card-footer">
+      <span class="badge badge-registration">{{ phase }}</span>
+      <a href="..." class="btn btn-sm btn-secondary">View</a>
+    </div>
+  </div>
+</article>
+```
+
+**Grid Layout:**
+```html
+<div class="card-grid">
+  {% for tournament in tournaments %}
+    <!-- Tournament cards -->
+  {% endfor %}
+</div>
+```
+
+**Responsive:**
+- Desktop (1025px+): 2-3 columns
+- Tablet (769px-1024px): 2 columns
+- Mobile (< 768px): 1 column (stacked)
+
+---
+
 ## HTMX Patterns
 
 ### Pattern 1: Live Search with Debounce

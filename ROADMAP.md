@@ -1539,6 +1539,50 @@ Two screens created UX confusion:
 
 ---
 
+## Phase 3.12: UI Mockup Alignment (COMPLETE ✅)
+
+**Duration:** 1 day
+
+**Objective:** Align UI implementation with approved Figma mockups by fixing 4 key deviations.
+
+**Issues Fixed:**
+1. **Modal Auto-Display Bug (BR-UI-002)** - Delete modals displayed on page load
+2. **Empty State Icon Bug (BR-UI-001)** - Trophy text instead of SVG icon
+3. **Tournament Form Location (BR-UI-003)** - Separate page instead of modal
+4. **Tournament Layout (BR-UI-004)** - Table instead of card grid
+
+**Deliverables:**
+- [x] Fixed `_modals.scss` - Changed `display: flex` to `display: none` default
+- [x] Added Lucide Icons SVG mapping to `empty_state.html`
+- [x] Created `tournament_create_modal.html` component
+- [x] Rewrote `tournaments/list.html` with card grid layout
+- [x] Updated `FRONTEND.md` with Lucide Icons and Tournament Card docs
+
+**SCSS Updates:**
+- `_modals.scss` - Fixed modal display behavior with `[open]` selector
+- `_cards.scss` - Added tournament card variant styles
+- `_empty-state.scss` - Increased icon size to 80px
+
+**Templates Modified:**
+- `components/empty_state.html` - Lucide SVG icon mapping
+- `components/tournament_create_modal.html` - New modal component
+- `tournaments/list.html` - Card grid layout with modal trigger
+
+**Tests:**
+- All 536 existing tests passing
+- No regressions detected
+- UI changes verified manually
+
+**Documentation:**
+- `archive/FEATURE_SPEC_2025-12-23_UI-MOCKUP-ALIGNMENT.md`
+- `archive/IMPLEMENTATION_PLAN_2025-12-23_UI-MOCKUP-ALIGNMENT.md`
+- `archive/TEST_RESULTS_2025-12-23_UI-MOCKUP-ALIGNMENT.md`
+- `CHANGELOG.md` - Updated with feature details
+
+**Release:** Phase 3.12 COMPLETE ✅ (2025-12-23)
+
+---
+
 ## Phase 4: Projection Interface
 
 **Duration:** 3-5 days

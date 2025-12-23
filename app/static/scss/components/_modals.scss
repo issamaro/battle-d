@@ -4,21 +4,28 @@
 
 @use '../abstracts' as *;
 
+// Native <dialog> element - hidden by default
+// Only visible when [open] attribute is present (via .showModal())
 .modal {
-  position: fixed;
-  inset: 0;
-  z-index: $z-modal;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: $space-4;
+  // Hidden by default - native dialog behavior
+  display: none;
+  border: none;
+  padding: 0;
+  background: transparent;
 
-  // Native dialog element
+  // When open, show as centered flex container
   &[open] {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: $z-modal;
+    align-items: center;
+    justify-content: center;
+    padding: $space-4;
     animation: modal-fade-in $transition-normal;
   }
 
-  // Backdrop
+  // Backdrop (only visible when dialog is open)
   &::backdrop {
     background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);

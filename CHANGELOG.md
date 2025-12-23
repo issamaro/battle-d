@@ -5,6 +5,66 @@
 
 ---
 
+## [2025-12-23] - UI Mockup Alignment (Frontend Rebuild Phase 3)
+
+### Fixed
+**Modal Auto-Display Bug (BR-UI-002):**
+- Fixed modal CSS displaying on page load instead of on user action
+- Changed `_modals.scss` from `display: flex` to `display: none` default
+- Added `.modal[open]` selector to show modal when native dialog is open
+- Delete modals on `/admin/users` now properly hidden until button click
+
+**Empty State Icon Bug (BR-UI-001):**
+- Fixed empty states showing text ("trophy") instead of actual SVG icons
+- Added Lucide Icons SVG mapping to `empty_state.html`
+- Icons now render as 80px SVGs (trophy, user, users, search, calendar)
+
+### Added
+**Tournament Create Modal (BR-UI-003):**
+- Created `app/templates/components/tournament_create_modal.html`
+- Modal overlay with name field, matches Figma mockup design
+- Keyboard accessible (ESC to close, backdrop click to close)
+- ARIA attributes for screen reader support
+
+**Tournament Card Layout (BR-UI-004):**
+- Converted tournament list from table to card grid layout
+- Added `.tournament-card`, `.tournament-card-header`, `.tournament-card-footer` classes
+- Cards show: name, date with calendar icon, phase badge
+- Responsive grid: multi-column on desktop, single column on mobile
+
+**SCSS Components:**
+- Updated `app/static/scss/components/_cards.scss` - Tournament card variant
+- Updated `app/static/scss/components/_empty-state.scss` - Increased icon size to 80px
+- Updated `app/static/scss/components/_modals.scss` - Fixed display behavior
+
+**Documentation:**
+- Added Lucide Icons section to `FRONTEND.md` (Section 10)
+- Added Tournament Card component section to `FRONTEND.md` (Section 11)
+
+### Changed
+**Templates Modified:**
+- `app/templates/tournaments/list.html` - Complete rewrite with card layout + modal
+- `app/templates/components/empty_state.html` - Added Lucide SVG icon mapping
+
+### Breaking Changes
+**None** - All changes are additive or bug fixes
+
+**Files Modified:**
+- app/static/scss/components/_modals.scss (display fix)
+- app/static/scss/components/_cards.scss (tournament card styles)
+- app/static/scss/components/_empty-state.scss (icon sizing)
+- app/static/css/main.css (compiled)
+- app/templates/components/empty_state.html (Lucide icons)
+- app/templates/components/tournament_create_modal.html (new)
+- app/templates/tournaments/list.html (card layout)
+- FRONTEND.md (documentation)
+
+**Tests:**
+- All 536 existing tests passing
+- No new tests added (UI-only changes verified manually)
+
+---
+
 ## [2025-12-23] - Inline Styles Cleanup (Frontend Rebuild Phase 2)
 
 ### Removed

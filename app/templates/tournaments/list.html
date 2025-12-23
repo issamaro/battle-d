@@ -10,7 +10,13 @@
         <h2 class="page-title">All Tournaments</h2>
         <p class="page-subtitle">Manage your breakdancing tournaments</p>
     </div>
-    <a href="/tournaments/create" class="btn btn-create">+ Create Tournament</a>
+    <button
+        type="button"
+        class="btn btn-create"
+        onclick="document.getElementById('create-tournament-modal').showModal()"
+    >
+        + Create Tournament
+    </button>
 </div>
 
 {% if has_integrity_issue and current_user.is_admin %}
@@ -31,57 +37,63 @@
 {% endif %}
 
 {% if tournaments %}
-<div class="table-wrapper">
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Phase</th>
-                <th>Created At</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for tournament in tournaments %}
-            <tr>
-                <td><strong>{{ tournament.name }}</strong></td>
-                <td>
-                    <span class="badge {% if tournament.status.value == 'active' %}badge-active{% elif tournament.status.value == 'cancelled' %}badge-cancelled{% else %}badge-pending{% endif %}">
-                        {{ tournament.status.value|upper }}
-                    </span>
-                </td>
-                <td>
-                    {% set phase_class = {
-                        'registration': 'badge-registration',
-                        'preselection': 'badge-preselection',
-                        'pools': 'badge-pools',
-                        'finals': 'badge-finals',
-                        'completed': 'badge-completed'
-                    }.get(tournament.phase.value, 'badge-pending') %}
-                    <span class="badge {{ phase_class }}">
-                        {{ tournament.phase.value|upper }}
-                    </span>
-                </td>
-                <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>
-                    <a href="/tournaments/{{ tournament.id }}" class="btn btn-sm btn-secondary">View Details</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div id="tournament-list" class="card-grid">
+    {% for tournament in tournaments %}
+    <article class="card tournament-card">
+        <div class="card-body">
+            <div class="tournament-card-header">
+                <h3 class="tournament-card-title">{{ tournament.name }}</h3>
+                <button type="button" class="btn-icon" aria-label="More options">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="1"/>
+                        <circle cx="12" cy="5" r="1"/>
+                        <circle cx="12" cy="19" r="1"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="tournament-card-meta">
+                <div class="card-meta">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                        <line x1="16" x2="16" y1="2" y2="6"/>
+                        <line x1="8" x2="8" y1="2" y2="6"/>
+                        <line x1="3" x2="21" y1="10" y2="10"/>
+                    </svg>
+                    <span>{{ tournament.created_at.strftime('%d/%m/%Y') }}</span>
+                </div>
+            </div>
+
+            <div class="tournament-card-footer">
+                {% set phase_class = {
+                    'registration': 'badge-registration',
+                    'preselection': 'badge-preselection',
+                    'pools': 'badge-pools',
+                    'finals': 'badge-finals',
+                    'completed': 'badge-completed'
+                }.get(tournament.phase.value, 'badge-pending') %}
+                <span class="badge {{ phase_class }}">
+                    {{ tournament.phase.value|capitalize }}
+                </span>
+                <a href="/tournaments/{{ tournament.id }}" class="btn btn-sm btn-secondary">View</a>
+            </div>
+        </div>
+    </article>
+    {% endfor %}
 </div>
 
 <p class="text-muted mt-4">
     <strong>Total:</strong> {{ tournaments|length }} tournament{% if tournaments|length != 1 %}s{% endif %}
 </p>
 {% else %}
-{% set title = "No Tournaments Yet" %}
-{% set message = "Create your first tournament to get started" %}
-{% set action_url = "/tournaments/create" %}
-{% set action_text = "Create Tournament" %}
-{% set icon = "trophy" %}
-{% include "components/empty_state.html" %}
+<div id="tournament-list">
+    {% set title = "No Tournaments Yet" %}
+    {% set message = "Create your first tournament to get started" %}
+    {% set icon = "trophy" %}
+    {% include "components/empty_state.html" %}
+</div>
 {% endif %}
+
+{# Tournament Create Modal #}
+{% include "components/tournament_create_modal.html" %}
 {% endblock %}

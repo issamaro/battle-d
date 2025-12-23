@@ -836,6 +836,62 @@ abbr[title] {
   background-color: #FEF3C7;
 }
 
+.tournament-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tournament-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.tournament-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.tournament-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tournament-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid #F3F4F6;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0.25rem;
+  color: #6B7280;
+  cursor: pointer;
+}
+.btn-icon:hover {
+  background: #F3F4F6;
+  color: #111827;
+}
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .tabs {
   display: flex;
   gap: 1.5rem;
@@ -891,15 +947,19 @@ abbr[title] {
 }
 
 .modal {
+  display: none;
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+.modal[open] {
+  display: flex;
   position: fixed;
   inset: 0;
   z-index: 400;
-  display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-}
-.modal[open] {
   animation: modal-fade-in 200ms ease;
 }
 .modal::backdrop {
@@ -1379,9 +1439,9 @@ abbr[title] {
 }
 
 .empty-state-icon {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 1rem;
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1.5rem;
   color: #6B7280;
 }
 .empty-state-icon svg {
@@ -3288,5 +3348,3 @@ body.event-mode {
   outline: 2px solid #F97316;
   outline-offset: 2px;
 }
-
-/*# sourceMappingURL=main.css.map */

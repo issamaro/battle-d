@@ -121,3 +121,68 @@
 .card-header-warning {
   background-color: $color-warning-light;
 }
+
+// ==============================================
+// TOURNAMENT CARD VARIANT
+// ==============================================
+
+.tournament-card {
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: $space-3;
+  }
+}
+
+.tournament-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.tournament-card-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  margin: 0;
+  color: $color-text;
+}
+
+.tournament-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.tournament-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: $space-3;
+  border-top: 1px solid $color-border-light;
+}
+
+// Icon-only button (for menu dots, etc.)
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  color: $color-text-muted;
+  cursor: pointer;
+
+  &:hover {
+    background: $color-neutral-light;
+    color: $color-text;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
