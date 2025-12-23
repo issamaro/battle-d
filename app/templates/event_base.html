@@ -3,17 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
     <title>{% block title %}Event Mode - Battle-D{% endblock %}</title>
 
-    <!-- PicoCSS - Minimal CSS Framework -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-
-    <!-- Event Mode Styles -->
-    <link rel="stylesheet" href="/static/css/event.css">
-
-    <!-- Error Handling Styles -->
-    <link rel="stylesheet" href="/static/css/error-handling.css">
+    <!-- Battle-D Design System (compiled from SCSS) -->
+    <link rel="stylesheet" href="/static/css/main.css">
 
     <!-- HTMX for interactive UI without full page reloads -->
     <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
@@ -26,13 +19,13 @@
     <header class="event-header">
         <div class="event-header-left">
             <span class="event-live-indicator">LIVE</span>
-            <h1>{{ tournament.name }}</h1>
+            <h1 class="event-title">{{ tournament.name }}</h1>
             <span class="event-phase-badge">{{ context.phase_display }}</span>
         </div>
         <div class="event-header-right">
             <span class="event-progress">{{ context.progress.completed }}/{{ context.progress.total }}</span>
             <a href="/overview" class="event-exit-btn">Exit to Prep</a>
-            <span class="event-user">{{ current_user.email }}</span>
+            <span class="text-sm">{{ current_user.email }}</span>
         </div>
     </header>
 

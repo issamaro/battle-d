@@ -1,0 +1,96 @@
+// ==============================================
+// STATUS BADGES
+// ==============================================
+
+@use '../abstracts' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: $space-1 $space-2;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border-radius: $radius-sm;
+  white-space: nowrap;
+}
+
+// Tournament/Battle status badges
+.badge-pending {
+  background-color: $color-neutral;
+  color: $color-text-inverse;
+}
+
+.badge-active {
+  background-color: $color-primary;
+  color: $color-text-inverse;
+}
+
+.badge-completed {
+  background-color: $color-success;
+  color: $color-text-inverse;
+}
+
+.badge-cancelled {
+  background-color: $color-warning;
+  color: $color-text; // Dark text for better contrast on yellow
+}
+
+// Phase badges
+.badge-registration {
+  background-color: $color-neutral-light;
+  color: $color-neutral-dark;
+}
+
+.badge-preselection {
+  background-color: $color-primary-light;
+  color: $color-primary-dark;
+}
+
+.badge-pools {
+  background-color: $color-primary;
+  color: $color-text-inverse;
+}
+
+.badge-finals {
+  background-color: $color-success-light;
+  color: $color-success-dark;
+}
+
+// Role badge
+.badge-role {
+  background-color: $color-neutral-light;
+  color: $color-neutral-dark;
+  text-transform: capitalize;
+}
+
+// Count badge (for tabs)
+.badge-count {
+  padding: $space-1 $space-2;
+  font-size: $font-size-xs;
+  background-color: $color-neutral-light;
+  color: $color-neutral-dark;
+  border-radius: $radius-full;
+}
+
+// Success/Error/Warning/Info badges
+.badge-success {
+  background-color: $color-success;
+  color: $color-text-inverse;
+}
+
+.badge-error {
+  background-color: $color-danger;
+  color: $color-text-inverse;
+}
+
+.badge-warning {
+  background-color: $color-warning;
+  color: $color-text;
+}
+
+.badge-info {
+  background-color: $color-primary-light;
+  color: $color-primary-dark;
+}

@@ -1,0 +1,172 @@
+// ==============================================
+// ALERTS - Info, warning, danger boxes
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Base alert styles
+.alert {
+  padding: $space-4;
+  border-radius: $radius-sm;
+  margin-bottom: $space-4;
+
+  p {
+    margin: 0;
+
+    &:not(:last-child) {
+      margin-bottom: $space-2;
+    }
+  }
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: $space-2;
+  }
+
+  ul {
+    margin: $space-3 0;
+    padding-left: $space-5;
+    list-style: disc;
+
+    li {
+      margin-bottom: $space-1;
+    }
+  }
+
+  hr {
+    border: none;
+    margin: $space-3 0;
+  }
+}
+
+// Warning alert (yellow)
+.alert-warning {
+  background-color: $color-warning-light;
+  border-left: 4px solid $color-warning;
+
+  h3, h4, strong {
+    color: $color-warning-dark;
+  }
+
+  p, span {
+    color: $color-warning-dark;
+  }
+
+  hr {
+    border-top: 1px solid $color-warning-dark;
+  }
+}
+
+// Info alert (blue/cyan)
+.alert-info {
+  background-color: #d1ecf1;
+  border-left: 4px solid #0c5460;
+
+  h3, h4, strong {
+    color: #0c5460;
+  }
+
+  p, span {
+    color: #0c5460;
+  }
+}
+
+// Danger alert (red)
+.alert-danger {
+  background-color: $color-danger-light;
+  border-left: 4px solid $color-danger;
+
+  h3, h4, strong {
+    color: $color-danger-dark;
+  }
+
+  p, span {
+    color: $color-danger-dark;
+  }
+}
+
+// Success alert (green)
+.alert-success {
+  background-color: $color-success-light;
+  border-left: 4px solid $color-success;
+
+  h3, h4, strong {
+    color: $color-success-dark;
+  }
+
+  p, span {
+    color: $color-success-dark;
+  }
+}
+
+// Alert with heading
+.alert-titled {
+  h4 {
+    margin: 0 0 $space-3 0;
+  }
+}
+
+// Large display number in alert
+.alert-display {
+  font-size: $font-size-xl;
+}
+
+// Small/muted text in alert
+.alert-muted {
+  font-size: $font-size-sm;
+  opacity: 0.8;
+}
+
+// Calculator display (for add_category)
+.calculator-box {
+  padding: $space-4;
+  background-color: $color-warning-light;
+  border-left: 4px solid $color-warning;
+  border-radius: $radius-sm;
+  margin-bottom: $space-5;
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: $space-3;
+    color: $color-warning-dark;
+  }
+
+  .calculator-value {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-warning-dark;
+  }
+
+  .calculator-formula {
+    font-size: $font-size-sm;
+    color: $color-warning-dark;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid $color-warning-dark;
+    margin: $space-3 0;
+  }
+}
+
+// How-it-works info box
+.howto-box {
+  padding: $space-4;
+  background-color: #d1ecf1;
+  border-left: 4px solid #0c5460;
+  border-radius: $radius-sm;
+
+  p {
+    margin: 0 0 $space-2 0;
+    font-size: $font-size-sm;
+    color: #0c5460;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  strong {
+    color: #0c5460;
+  }
+}

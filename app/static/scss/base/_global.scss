@@ -1,0 +1,36 @@
+// ==============================================
+// GLOBAL - html, body, and global element styles
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Selection color
+::selection {
+  background-color: $color-primary-light;
+  color: $color-text;
+}
+
+// Scrollbar styling (optional - webkit only)
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: $color-neutral-light;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $color-neutral;
+  border-radius: $radius-full;
+
+  &:hover {
+    background: $color-neutral-dark;
+  }
+}
+
+// Firefox scrollbar
+* {
+  scrollbar-width: thin;
+  scrollbar-color: $color-neutral $color-neutral-light;
+}

@@ -9,27 +9,25 @@
     <p><a href="/battles/{{ battle.id }}">← Cancel</a></p>
 </section>
 
-<article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 24px;">
+<article class="battle-card">
     <header>
         <h2>Encode Battle Result</h2>
         <p>Select the winner of this battle, or mark it as a draw.</p>
     </header>
 
-    <form action="/battles/{{ battle.id }}/encode" method="post" style="margin-top: 24px;">
+    <form action="/battles/{{ battle.id }}/encode" method="post" class="mt-6">
         <section>
             <h3>Select Winner</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="performer-grid mb-6">
                 {% for performer in battle.performers %}
-                <label style="border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 16px; cursor: pointer;">
+                <label class="performer-option">
                     <input type="radio" name="winner_id" value="{{ performer.id }}" required>
-                    <div style="margin-top: 8px;">
+                    <div class="performer-option-content">
                         <strong>🎭 Performer {{ loop.index }}</strong>
                         {% if battle.phase.value == 'pools' %}
-                        <p style="margin-top: 8px; font-size: 14px;">
-                            <small>
-                                W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}<br>
-                                Points: {{ performer.pool_points }}
-                            </small>
+                        <p class="performer-stats">
+                            W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}<br>
+                            Points: {{ performer.pool_points }}
                         </p>
                         {% endif %}
                     </div>
@@ -37,18 +35,18 @@
                 {% endfor %}
             </div>
 
-            <div style="border-top: 1px solid var(--pico-muted-border-color); padding-top: 16px;">
-                <label>
-                    <input type="radio" name="winner_id" value="" id="draw_option">
+            <div class="draw-separator">
+                <label class="form-check">
+                    <input type="radio" name="winner_id" value="" id="draw_option" class="form-check-input">
                     <input type="hidden" name="is_draw" id="is_draw_hidden" value="false">
                     <strong>Draw</strong> - No winner
                 </label>
             </div>
         </section>
 
-        <footer style="margin-top: 24px; display: flex; gap: 12px;">
-            <button type="submit">Submit Result</button>
-            <a href="/battles/{{ battle.id }}" role="button" class="secondary">Cancel</a>
+        <footer class="encode-footer">
+            <button type="submit" class="btn btn-primary">Submit Result</button>
+            <a href="/battles/{{ battle.id }}" role="button" class="btn btn-secondary">Cancel</a>
         </footer>
     </form>
 </article>

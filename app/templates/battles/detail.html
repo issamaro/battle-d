@@ -9,19 +9,15 @@
     <p><a href="/overview">← Back to Overview</a></p>
 </section>
 
-<article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 24px;">
-    <header>
+<article class="battle-card">
+    <header class="battle-header">
         <h2>Battle - {{ battle.phase.value|title }}</h2>
-        <span style="padding: 6px 12px; background-color:
-            {% if battle.status.value == 'completed' %}#28a745
-            {% elif battle.status.value == 'active' %}#ffc107
-            {% else %}#6c757d{% endif %};
-            color: white; border-radius: 4px; font-size: 14px;">
+        <span class="battle-status battle-status--{{ battle.status.value }}">
             {{ battle.status.value|upper }} {% if battle.status.value == 'completed' %}✅{% elif battle.status.value == 'active' %}🔴{% else %}⏸️{% endif %}
         </span>
     </header>
 
-    <section style="margin-top: 24px;">
+    <section class="battle-section">
         <h3>Battle Information</h3>
         <dl>
             <dt><strong>Phase:</strong></dt>
@@ -38,22 +34,21 @@
         </dl>
     </section>
 
-    <section style="margin-top: 24px;">
+    <section class="battle-section">
         <h3>Performers</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div class="performer-grid">
             {% for performer in battle.performers %}
-            <article style="border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 12px;
-                {% if battle.winner_id and performer.id == battle.winner_id %}border-color: #28a745; border-width: 2px;{% endif %}">
+            <article class="performer-card {% if battle.winner_id and performer.id == battle.winner_id %}performer-card--winner{% endif %}">
                 <p><strong>🎭 Performer {{ loop.index }}</strong></p>
                 {% if battle.winner_id and performer.id == battle.winner_id %}
-                <p style="color: #28a745; font-weight: bold;">🏆 Winner</p>
+                <p class="winner-badge">🏆 Winner</p>
                 {% endif %}
 
                 {% if battle.phase.value == 'preselection' and performer.preselection_score %}
-                <p><small>Score: {{ performer.preselection_score }}</small></p>
+                <p class="performer-stats">Score: {{ performer.preselection_score }}</p>
                 {% elif battle.phase.value == 'pools' %}
-                <p><small>W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}</small></p>
-                <p><small>Points: {{ performer.pool_points }}</small></p>
+                <p class="performer-stats">W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}</p>
+                <p class="performer-stats">Points: {{ performer.pool_points }}</p>
                 {% endif %}
             </article>
             {% endfor %}
@@ -61,26 +56,26 @@
     </section>
 
     {% if battle.outcome %}
-    <section style="margin-top: 24px;">
+    <section class="battle-section">
         <h3>Battle Outcome</h3>
         <details>
             <summary>View Raw Outcome Data</summary>
-            <pre style="background-color: var(--pico-background-color); padding: 12px; border-radius: 4px; overflow-x: auto;">{{ battle.outcome }}</pre>
+            <pre class="battle-outcome-data">{{ battle.outcome }}</pre>
         </details>
     </section>
     {% endif %}
 
-    <section style="margin-top: 24px;">
+    <section class="battle-section">
         <h3>Actions</h3>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div class="battle-actions">
             {% if battle.status.value == 'pending' %}
-            <form action="/battles/{{ battle.id }}/start" method="post" style="display: inline;">
-                <button type="submit">Start Battle</button>
+            <form action="/battles/{{ battle.id }}/start" method="post">
+                <button type="submit" class="btn btn-primary">Start Battle</button>
             </form>
             {% elif battle.status.value == 'active' %}
-            <a href="/battles/{{ battle.id }}/encode" role="button">Encode Result</a>
+            <a href="/battles/{{ battle.id }}/encode" role="button" class="btn btn-primary">Encode Result</a>
             {% else %}
-            <p style="color: var(--pico-muted-color);">Battle is completed. No actions available.</p>
+            <p class="text-muted">Battle is completed. No actions available.</p>
             {% endif %}
         </div>
     </section>

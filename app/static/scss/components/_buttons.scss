@@ -1,0 +1,142 @@
+// ==============================================
+// BUTTONS
+// ==============================================
+
+@use '../abstracts' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  padding: $space-2 $space-4;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  line-height: $line-height-normal;
+  text-align: center;
+  text-decoration: none;
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all $transition-fast;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // Icon inside button
+  svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+}
+
+// Primary button (orange filled)
+.btn-primary {
+  background-color: $color-primary;
+  border-color: $color-primary;
+  color: $color-text-inverse;
+
+  &:hover:not(:disabled) {
+    background-color: $color-primary-hover;
+    border-color: $color-primary-hover;
+  }
+
+  &:active:not(:disabled) {
+    background-color: $color-primary-dark;
+    border-color: $color-primary-dark;
+  }
+}
+
+// Secondary button (gray outline)
+.btn-secondary {
+  background-color: transparent;
+  border-color: $color-border;
+  color: $color-text;
+
+  &:hover:not(:disabled) {
+    background-color: $color-neutral-light;
+    border-color: $color-neutral;
+  }
+}
+
+// Create button (orange outline) - Primary action for lists
+.btn-create {
+  background-color: transparent;
+  border-color: $color-primary;
+  color: $color-primary;
+
+  &:hover:not(:disabled) {
+    background-color: $color-primary-light;
+  }
+}
+
+// Danger button (red filled)
+.btn-danger {
+  background-color: $color-danger;
+  border-color: $color-danger;
+  color: $color-text-inverse;
+
+  &:hover:not(:disabled) {
+    background-color: $color-danger-dark;
+    border-color: $color-danger-dark;
+  }
+}
+
+// Ghost button (no background)
+.btn-ghost {
+  background-color: transparent;
+  border-color: transparent;
+  color: $color-text;
+
+  &:hover:not(:disabled) {
+    background-color: $color-neutral-light;
+  }
+}
+
+// Link button (looks like a link)
+.btn-link {
+  background-color: transparent;
+  border-color: transparent;
+  color: $color-primary;
+  padding: 0;
+
+  &:hover:not(:disabled) {
+    color: $color-primary-hover;
+    text-decoration: underline;
+  }
+}
+
+// Size variants
+.btn-sm {
+  padding: $space-1 $space-3;
+  font-size: $font-size-sm;
+}
+
+.btn-lg {
+  padding: $space-3 $space-6;
+  font-size: $font-size-lg;
+}
+
+// Full width
+.btn-block {
+  width: 100%;
+}
+
+// Button group
+.btn-group {
+  display: flex;
+  gap: $space-2;
+}
+
+// Icon-only button
+.btn-icon {
+  padding: $space-2;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}

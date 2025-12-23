@@ -2,44 +2,38 @@
 
 {% block title %}Dancer Management - Battle-D{% endblock %}
 
+{% block header_title %}Dancer Management{% endblock %}
+
 {% block content %}
-<h2>Dancer Management</h2>
+<div class="page-header">
+    <div>
+        <h2 class="page-title">All Dancers</h2>
+        <p class="page-subtitle">Manage dancers in your database</p>
+    </div>
+    <a href="/dancers/create" class="btn btn-create">+ Create Dancer</a>
+</div>
 
-<section>
-    <p><a href="/overview">&larr; Back to Overview</a></p>
-</section>
-
-<section>
-    <h3>Search and Actions</h3>
-
-    <div class="grid">
-        <div>
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="form-group mb-0">
             <input type="text"
                    name="query"
                    id="search-input"
                    value="{{ search }}"
                    placeholder="Search by blaze, name, or email..."
+                   class="form-input"
                    hx-get="/dancers/api/search"
                    hx-trigger="keyup changed delay:500ms"
                    hx-target="#dancers-table"
                    hx-indicator="#dancers-loading">
-
             {% set loading_id = "dancers-loading" %}
             {% set loading_text = "Searching dancers..." %}
             {% set size = "small" %}
             {% include "components/loading.html" %}
         </div>
-        <div>
-            <a href="/dancers/create" role="button">
-                + Create New Dancer
-            </a>
-        </div>
+        <small class="text-muted">Live search - results update as you type</small>
     </div>
-
-    <p>
-        <small><em>Live search - results update as you type</em></small>
-    </p>
-</section>
+</div>
 
 <section id="dancers-table">
     {% include "dancers/_table.html" %}

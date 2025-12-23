@@ -1,0 +1,22 @@
+// ==============================================
+// BATTLE-D DESIGN SYSTEM - Main Entry Point
+// ==============================================
+// Import order matters! Abstracts first, utilities last.
+
+// 1. Abstracts (no CSS output - tools only)
+@use 'abstracts' as *;
+
+// 2. Base (reset + element defaults)
+@use 'base';
+
+// 3. Layout (page structure)
+@use 'layout';
+
+// 4. Components (reusable UI)
+@use 'components';
+
+// 5. Pages (page-specific styles)
+@use 'pages';
+
+// 6. Utilities (helper classes - last to override)
+@use 'utilities';

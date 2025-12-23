@@ -1,0 +1,124 @@
+// ==============================================
+// SIDEBAR NAVIGATION
+// ==============================================
+
+@use '../abstracts' as *;
+
+.sidebar {
+  grid-area: sidebar;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: $color-surface;
+  border-right: 1px solid $color-border;
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: $breakpoint-md) {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid $color-border;
+  }
+}
+
+.sidebar-logo {
+  padding: $space-6;
+  border-bottom: 1px solid $color-border;
+
+  img, svg {
+    height: 32px;
+    width: auto;
+  }
+
+  // Text fallback if no logo image
+  .logo-text {
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    color: $color-primary;
+  }
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: $space-4;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  color: $color-text;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-neutral-light;
+  }
+
+  // Active state (orange)
+  &[aria-current="page"],
+  &.is-active {
+    background-color: $color-primary;
+    color: $color-text-inverse;
+
+    &:hover {
+      background-color: $color-primary-hover;
+    }
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}
+
+.nav-divider {
+  border: none;
+  border-top: 1px solid $color-border;
+  margin: $space-4 0;
+}
+
+.nav-section-label {
+  padding: $space-2 $space-4;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// Sidebar footer (user info, logout)
+.sidebar-footer {
+  padding: $space-4;
+  border-top: 1px solid $color-border;
+  margin-top: auto;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-2;
+  margin-bottom: $space-2;
+
+  .user-name {
+    font-weight: $font-weight-medium;
+    font-size: $font-size-sm;
+  }
+
+  .user-role {
+    font-size: $font-size-xs;
+    color: $color-text-muted;
+    text-transform: capitalize;
+  }
+}

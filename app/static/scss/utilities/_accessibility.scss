@@ -1,0 +1,77 @@
+// ==============================================
+// ACCESSIBILITY UTILITIES
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Screen reader only - visually hidden but accessible
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Not screen reader only - make visible again
+.not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+// Focus visible ring
+.focus-ring {
+  &:focus-visible {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+}
+
+// Skip link (for keyboard navigation)
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: $space-2 $space-4;
+  background: $color-primary;
+  color: $color-text-inverse;
+  z-index: $z-toast;
+  transition: top $transition-fast;
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// Reduced motion preference
+@media (prefers-reduced-motion: reduce) {
+  .reduce-motion {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .high-contrast-border {
+    border-width: 2px;
+  }
+}
+
+// Focus within (for form groups)
+.focus-within-ring {
+  &:focus-within {
+    outline: 2px solid $color-primary;
+    outline-offset: 2px;
+  }
+}

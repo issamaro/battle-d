@@ -1,0 +1,56 @@
+// ==============================================
+// ERROR PAGES - 401, 403, 404, 500 error displays
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Container for error pages
+.error-page {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+  padding: $space-12 $space-4;
+}
+
+// Large error code (404, 500, etc.)
+.error-code {
+  font-size: 6rem;
+  font-weight: $font-weight-bold;
+  margin: 0;
+  line-height: 1;
+
+  // Color variants
+  &--muted {
+    color: $color-text-muted;
+  }
+
+  &--danger {
+    color: $color-danger;
+  }
+
+  &--warning {
+    color: $color-warning;
+  }
+}
+
+// Error message description
+.error-message {
+  margin-bottom: $space-4;
+  color: $color-text-secondary;
+}
+
+// Technical detail (monospace)
+.error-detail {
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  margin-bottom: $space-8;
+}
+
+// Navigation buttons group
+.error-actions {
+  display: flex;
+  justify-content: center;
+  gap: $space-4;
+  flex-wrap: wrap;
+}

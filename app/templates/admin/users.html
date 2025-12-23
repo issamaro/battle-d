@@ -2,101 +2,96 @@
 
 {% block title %}User Management - Battle-D{% endblock %}
 
+{% block header_title %}User Management{% endblock %}
+
 {% block content %}
-<h2>User Management</h2>
+<div class="page-header">
+    <div>
+        <h2 class="page-title">All Users</h2>
+        <p class="page-subtitle">Manage system users and their roles</p>
+    </div>
+    <a href="/admin/users/create" class="btn btn-create">+ Create User</a>
+</div>
 
-<section>
-    <p><a href="/overview">&larr; Back to Overview</a></p>
-</section>
-
-<section>
-    <h3>Filters and Actions</h3>
-
-    <div class="grid align-end">
-        <div>
-            <label for="role-filter">Filter by Role:</label>
-            <select id="role-filter" name="role_filter" class="mb-0" onchange="window.location.href='/admin/users?role_filter=' + this.value;">
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="form-group mb-0">
+            <label for="role-filter" class="form-label">Filter by Role</label>
+            <select id="role-filter" name="role_filter" class="form-select" onchange="window.location.href='/admin/users?role_filter=' + this.value;">
                 <option value="">All Roles</option>
                 {% for role in roles %}
                 <option value="{{ role }}" {% if selected_role == role %}selected{% endif %}>{{ role }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div>
-            <a href="/admin/users/create" role="button">
-                + Create New User
-            </a>
-        </div>
     </div>
-</section>
+</div>
 
 <section id="user-list">
     {% if users %}
-        <figure>
-            <table role="grid">
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>First Name</th>
-                        <th>Role</th>
-                        <th>Created At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>{{ user.email }}</td>
-                        <td>{{ user.first_name }}</td>
-                        <td><strong>{{ user.role.value }}</strong></td>
-                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                        <td>
-                            <div class="action-group">
-                                <a href="/admin/users/{{ user.id }}/edit" role="button" class="secondary outline">Edit</a>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>First Name</th>
+                    <th>Role</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.first_name }}</td>
+                    <td><span class="badge badge-role">{{ user.role.value }}</span></td>
+                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="/admin/users/{{ user.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+                            <form method="post" action="/admin/users/{{ user.id }}/resend-magic-link" class="inline-form">
+                                <button type="submit" class="btn btn-sm btn-ghost">Resend</button>
+                            </form>
+                            <button type="button"
+                                    onclick="openDeleteModal('delete-user-{{ user.id }}')"
+                                    class="btn btn-sm btn-danger">
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                                <form method="post" action="/admin/users/{{ user.id }}/resend-magic-link" class="inline-form">
-                                    <button type="submit" class="secondary outline">Resend</button>
-                                </form>
+    <p class="text-muted mt-4">
+        <strong>Total:</strong> {{ users|length }} user{% if users|length != 1 %}s{% endif %}
+        {% if selected_role %}<em>(Filtered by: {{ selected_role }})</em>{% endif %}
+    </p>
 
-                                <button type="button"
-                                        onclick="openDeleteModal('delete-user-{{ user.id }}')"
-                                        class="contrast outline">
-                                    Delete
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </figure>
-
-        <p>
-            <strong>Total Users:</strong> {{ users|length }}
-            {% if selected_role %}(Filtered by: {{ selected_role }}){% endif %}
-        </p>
-
-        {# Delete modals for each user #}
-        {% for user in users %}
-            {% set modal_id = "delete-user-" ~ user.id %}
-            {% set item_name = user.email %}
-            {% set delete_url = "/admin/users/" ~ user.id ~ "/delete" %}
-            {% set warning_message = "This will permanently remove the user from the system." %}
-            {% include "components/delete_modal.html" %}
-        {% endfor %}
+    {# Delete modals for each user #}
+    {% for user in users %}
+        {% set modal_id = "delete-user-" ~ user.id %}
+        {% set item_name = user.email %}
+        {% set delete_url = "/admin/users/" ~ user.id ~ "/delete" %}
+        {% set warning_message = "This will permanently remove the user from the system." %}
+        {% include "components/delete_modal.html" %}
+    {% endfor %}
     {% else %}
-        {% if selected_role %}
-            {% set title = "No Users Found" %}
-            {% set message = 'No users match the filter for "' ~ selected_role ~ '"' %}
-            {% set icon = "search" %}
-        {% else %}
-            {% set title = "No Users Yet" %}
-            {% set message = "Create your first user to get started" %}
-            {% set action_url = "/admin/users/create" %}
-            {% set action_text = "Create User" %}
-            {% set icon = "user" %}
-        {% endif %}
-        {% include "components/empty_state.html" %}
+    {% if selected_role %}
+        {% set title = "No Users Found" %}
+        {% set message = 'No users match the filter for "' ~ selected_role ~ '"' %}
+        {% set icon = "search" %}
+    {% else %}
+        {% set title = "No Users Yet" %}
+        {% set message = "Create your first user to get started" %}
+        {% set action_url = "/admin/users/create" %}
+        {% set action_text = "Create User" %}
+        {% set icon = "user" %}
+    {% endif %}
+    {% include "components/empty_state.html" %}
     {% endif %}
 </section>
 {% endblock %}

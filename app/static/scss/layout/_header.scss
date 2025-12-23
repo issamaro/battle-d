@@ -1,0 +1,50 @@
+// ==============================================
+// HEADER
+// ==============================================
+
+@use '../abstracts' as *;
+
+.header {
+  grid-area: header;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-4 $space-8;
+  background: $color-surface;
+  border-bottom: 1px solid $color-border;
+  min-height: $header-height;
+
+  @media (max-width: $breakpoint-md) {
+    padding: $space-4;
+  }
+}
+
+.header-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  margin: 0;
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: $space-1;
+}
+
+.profile-name {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text;
+}
+
+.profile-role {
+  display: inline-block;
+  padding: $space-1 $space-2;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  background-color: $color-neutral-light;
+  color: $color-neutral-dark;
+  border-radius: $radius-sm;
+  text-transform: capitalize;
+}

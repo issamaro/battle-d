@@ -1,0 +1,102 @@
+// ==============================================
+// FLASH MESSAGES
+// ==============================================
+
+@use '../abstracts' as *;
+
+.flash-messages {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+  margin-bottom: $space-4;
+}
+
+.flash {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-3;
+  padding: $space-3 $space-4;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  animation: flash-slide-in $transition-normal;
+
+  &.flash-dismissing {
+    animation: flash-slide-out $transition-fast forwards;
+  }
+}
+
+@keyframes flash-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flash-slide-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.flash-success {
+  background-color: $color-success-light;
+  color: $color-success-dark;
+  border: 1px solid $color-success;
+}
+
+.flash-error {
+  background-color: $color-danger-light;
+  color: $color-danger-dark;
+  border: 1px solid $color-danger;
+}
+
+.flash-warning {
+  background-color: $color-warning-light;
+  color: $color-warning-dark;
+  border: 1px solid $color-warning;
+}
+
+.flash-info {
+  background-color: $color-primary-light;
+  color: $color-primary-dark;
+  border: 1px solid $color-primary;
+}
+
+.flash-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: $radius-sm;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity $transition-fast;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.flash-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.flash-content {
+  flex: 1;
+}

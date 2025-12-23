@@ -5,13 +5,13 @@
 {% block content %}
 <h2>⚠️ Data Integrity Issue Detected</h2>
 
-<section style="background-color: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 20px 0;">
-    <h3 style="color: #856404;">⚠️ MULTIPLE ACTIVE TOURNAMENTS FOUND</h3>
-    <p style="color: #856404;">
+<section class="alert alert-warning alert-titled">
+    <h3>⚠️ MULTIPLE ACTIVE TOURNAMENTS FOUND</h3>
+    <p>
         <strong>Data Integrity Violation:</strong> Multiple tournaments are currently in ACTIVE status.
         Only one tournament can be active at a time according to business rules.
     </p>
-    <p style="color: #856404;">
+    <p>
         <strong>Select which tournament should remain active.</strong> All others will be automatically
         set to the correct status based on their current phase.
     </p>
@@ -21,86 +21,90 @@
     <h3>Active Tournaments ({{ active_tournaments|length }} found)</h3>
 
     <form method="post" action="/admin/tournaments/fix-active">
-        <table role="grid">
-            <thead>
-                <tr>
-                    <th>Keep Active?</th>
-                    <th>Tournament Name</th>
-                    <th>Created Date</th>
-                    <th>Current Phase</th>
-                    <th>Will Become</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tournament in active_tournaments %}
-                <tr>
-                    <td style="text-align: center;">
-                        <input
-                            type="radio"
-                            name="keep_active"
-                            value="{{ tournament.id }}"
-                            required
-                        >
-                    </td>
-                    <td><strong>{{ tournament.name }}</strong></td>
-                    <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td>
-                        <span style="padding: 4px 8px; background-color: #007bff; color: white; border-radius: 4px; font-size: 12px;">
-                            {{ tournament.phase.value|upper }}
-                        </span>
-                    </td>
-                    <td>
-                        {% if tournament.phase.value == 'registration' %}
-                            <span style="padding: 4px 8px; background-color: #6c757d; color: white; border-radius: 4px; font-size: 12px;">
-                                CREATED
+        <div class="table-wrapper">
+            <table class="table" role="grid">
+                <thead>
+                    <tr>
+                        <th>Keep Active?</th>
+                        <th>Tournament Name</th>
+                        <th>Created Date</th>
+                        <th>Current Phase</th>
+                        <th>Will Become</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tournament in active_tournaments %}
+                    <tr>
+                        <td class="text-center">
+                            <input
+                                type="radio"
+                                name="keep_active"
+                                value="{{ tournament.id }}"
+                                required
+                            >
+                        </td>
+                        <td><strong>{{ tournament.name }}</strong></td>
+                        <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <span class="badge badge-active">
+                                {{ tournament.phase.value|upper }}
                             </span>
-                            <small style="display: block; color: #6c757d; margin-top: 4px;">
-                                (not started yet)
-                            </small>
-                        {% elif tournament.phase.value == 'completed' %}
-                            <span style="padding: 4px 8px; background-color: #6c757d; color: white; border-radius: 4px; font-size: 12px;">
-                                COMPLETED
-                            </span>
-                            <small style="display: block; color: #6c757d; margin-top: 4px;">
-                                (already finished)
-                            </small>
-                        {% else %}
-                            <span style="padding: 4px 8px; background-color: #ffc107; color: #333; border-radius: 4px; font-size: 12px;">
-                                CANCELLED
-                            </span>
-                            <small style="display: block; color: #856404; margin-top: 4px;">
-                                (stopped mid-tournament)
-                            </small>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                        <td>
+                            {% if tournament.phase.value == 'registration' %}
+                                <span class="badge badge-pending">
+                                    CREATED
+                                </span>
+                                <small class="text-muted d-block mt-1">
+                                    (not started yet)
+                                </small>
+                            {% elif tournament.phase.value == 'completed' %}
+                                <span class="badge badge-pending">
+                                    COMPLETED
+                                </span>
+                                <small class="text-muted d-block mt-1">
+                                    (already finished)
+                                </small>
+                            {% else %}
+                                <span class="badge badge-cancelled">
+                                    CANCELLED
+                                </span>
+                                <small class="text-muted d-block mt-1">
+                                    (stopped mid-tournament)
+                                </small>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-        <div style="background-color: #e7f3ff; border-left: 4px solid #0066cc; padding: 15px; margin-top: 20px;">
-            <h4 style="margin-top: 0; color: #0066cc;">ℹ️ How it works</h4>
-            <p style="margin-bottom: 0.5rem;">
+        <div class="alert alert-info alert-titled mt-5">
+            <h4>ℹ️ How it works</h4>
+            <p>
                 Select which tournament should remain ACTIVE. All others will be automatically
                 set to the correct status based on their phase:
             </p>
-            <ul style="margin: 10px 0; padding-left: 20px;">
+            <ul>
                 <li><strong>REGISTRATION</strong> phase → <strong>CREATED</strong> (tournament hasn't started yet)</li>
                 <li><strong>PRESELECTION/POOLS/FINALS</strong> → <strong>CANCELLED</strong> (in-progress tournament stopped)</li>
                 <li><strong>COMPLETED</strong> phase → <strong>COMPLETED</strong> (tournament already finished)</li>
             </ul>
-            <p style="margin-bottom: 0; font-size: 0.9rem; color: #666;">
+            <p class="alert-muted">
                 This ensures phase and status remain consistent with business rules.
             </p>
         </div>
 
-        <button type="submit" class="primary" style="margin-top: 20px;">
-            Fix Tournament Configuration
-        </button>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                Fix Tournament Configuration
+            </button>
+        </div>
     </form>
 
-    <p style="margin-top: 20px;">
-        <a href="/auth/logout" role="button" class="secondary">Logout (I need to think about this)</a>
+    <p class="mt-5">
+        <a href="/auth/logout" role="button" class="btn btn-secondary">Logout (I need to think about this)</a>
     </p>
 </section>
 {% endblock %}

@@ -1,0 +1,99 @@
+// ==============================================
+// TABLES
+// ==============================================
+
+@use '../abstracts' as *;
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $font-size-sm;
+}
+
+.table th,
+.table td {
+  padding: $space-3 $space-4;
+  text-align: left;
+  border-bottom: 1px solid $color-border;
+}
+
+.table th {
+  font-weight: $font-weight-semibold;
+  color: $color-text-muted;
+  background-color: $color-neutral-light;
+  text-transform: uppercase;
+  font-size: $font-size-xs;
+  letter-spacing: 0.05em;
+}
+
+.table tbody tr {
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-neutral-light;
+  }
+}
+
+// Striped table
+.table-striped tbody tr:nth-child(odd) {
+  background-color: rgba($color-neutral-light, 0.5);
+}
+
+// Bordered table
+.table-bordered {
+  border: 1px solid $color-border;
+
+  th, td {
+    border: 1px solid $color-border;
+  }
+}
+
+// Compact table
+.table-compact {
+  th, td {
+    padding: $space-2 $space-3;
+  }
+}
+
+// Responsive table (stacks on mobile)
+@media (max-width: $breakpoint-md) {
+  .table-responsive {
+    thead {
+      display: none;
+    }
+
+    tbody tr {
+      display: block;
+      padding: $space-4;
+      border-bottom: 1px solid $color-border;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      padding: $space-2 0;
+      border-bottom: none;
+
+      &::before {
+        content: attr(data-label);
+        font-weight: $font-weight-semibold;
+        color: $color-text-muted;
+      }
+    }
+  }
+}
+
+// Action cell
+.table-actions {
+  display: flex;
+  gap: $space-2;
+  justify-content: flex-end;
+}

@@ -3,11 +3,13 @@
 Tests template patterns, CSS class usage, and UI consistency standards
 defined in FRONTEND.md and Phase 3.10 UX Consistency Audit.
 
+Updated for SCSS-based design system (Frontend Rebuild Phase 2).
+
 Business Rules:
 - BR-UX-001: No inline styles in production templates
-- BR-UX-002: Consistent badge classes (badge-pending, badge-active, badge-completed, badge-warning)
+- BR-UX-002: Consistent badge classes (badge-pending, badge-active, badge-completed, etc.)
 - BR-UX-003: Permission display uses checkmark symbols
-- BR-UX-004: All templates follow PicoCSS patterns
+- BR-UX-004: All templates follow SCSS design system patterns
 """
 import pytest
 import re
@@ -26,42 +28,10 @@ class TestNoInlineStyles:
     """
 
     # Templates allowed to have inline styles (with justification)
-    # Phase 3.10 focused on high-traffic templates; remaining will be addressed in future phases
+    # After Phase 2 cleanup, only base.html has justified inline style
     ALLOWLIST = {
-        # Future feature template - not user-facing yet
-        "pools/overview.html": "Future feature (V2) - not wired to routes",
         # Base template (single style for necessary browser override)
-        "base.html": "Single style for HTMX aria-busy indicator - PicoCSS override",
-        # Registration templates - Phase 3.11 scope
-        "registration/register.html": "Phase 3.11 scope - registration flow refactor",
-        "registration/_dancer_search.html": "Phase 3.11 scope - registration flow refactor",
-        # Admin templates - Phase 3.11 scope
-        "admin/edit_user.html": "Phase 3.11 scope - admin forms refactor",
-        "admin/create_user.html": "Phase 3.11 scope - admin forms refactor",
-        "admin/fix_active_tournaments.html": "Phase 3.11 scope - admin tools refactor",
-        # Component templates - Phase 3.11 scope
-        "components/delete_modal.html": "Phase 3.11 scope - modal component refactor",
-        # Battle templates - Phase 3.11 scope
-        "battles/encode_tiebreak.html": "Phase 3.11 scope - battle encoding refactor",
-        "battles/list.html": "Phase 3.11 scope - battle list refactor",
-        "battles/detail.html": "Phase 3.11 scope - battle detail refactor",
-        "battles/encode_pool.html": "Phase 3.11 scope - battle encoding refactor",
-        # Error templates - acceptable (self-contained styling for error pages)
-        "errors/403.html": "Error pages are self-contained - acceptable",
-        "errors/500.html": "Error pages are self-contained - acceptable",
-        "errors/404.html": "Error pages are self-contained - acceptable",
-        "errors/401.html": "Error pages are self-contained - acceptable",
-        "errors/tournament_config_error.html": "Error pages are self-contained - acceptable",
-        # Phase templates - Phase 3.11 scope
-        "phases/confirm_advance.html": "Phase 3.11 scope - phase UI refactor",
-        "phases/validation_errors.html": "Phase 3.11 scope - phase UI refactor",
-        # Tournament forms - Phase 3.11 scope
-        "tournaments/create.html": "Phase 3.11 scope - tournament forms refactor",
-        "tournaments/add_category.html": "Phase 3.11 scope - category forms refactor",
-        # Dancer templates - Phase 3.11 scope
-        "dancers/profile.html": "Phase 3.11 scope - dancer profile refactor",
-        "dancers/create.html": "Phase 3.11 scope - dancer forms refactor",
-        "dancers/edit.html": "Phase 3.11 scope - dancer forms refactor",
+        "base.html": "Single style for HTMX aria-busy indicator - browser override",
     }
 
     # Maximum inline styles allowed (threshold approach)
@@ -114,9 +84,9 @@ class TestBadgeClassConsistency:
     Validates: FRONTEND.md §Badge Classes Reference
     """
 
-    # Valid badge classes per FRONTEND.md and BattleStatus enum
+    # Valid badge classes per FRONTEND.md and SCSS design system
     VALID_BADGE_CLASSES = {
-        # Core badge classes (FRONTEND.md)
+        # Core badge classes (SCSS design system)
         "badge-pending",
         "badge-active",
         "badge-completed",
@@ -124,6 +94,14 @@ class TestBadgeClassConsistency:
         "badge-interactive",
         # Guest performer badge (Phase 3.9)
         "badge-guest",
+        # Phase/status badges (SCSS design system)
+        "badge-registration",
+        "badge-preselection",
+        "badge-pools",
+        "badge-finals",
+        "badge-cancelled",
+        # Role badge
+        "badge-role",
     }
 
     def test_badge_classes_are_valid(self):
@@ -204,15 +182,15 @@ class TestPermissionDisplayFormat:
 
 
 class TestSemanticHtmlPatterns:
-    """Test PicoCSS semantic patterns (BR-UX-004).
+    """Test semantic HTML patterns (BR-UX-004).
 
-    Validates: FRONTEND.md §PicoCSS Patterns
+    Validates: FRONTEND.md §Semantic HTML Patterns
     """
 
     def test_tables_use_role_grid(self):
-        """Data tables should use role='grid' for PicoCSS styling.
+        """Data tables should use role='grid' for accessibility.
 
-        Validates: BR-UX-004 PicoCSS table patterns
+        Validates: BR-UX-004 table accessibility patterns
         Gherkin:
             Given HTML templates containing data tables
             When I check table markup
@@ -258,41 +236,41 @@ class TestSemanticHtmlPatterns:
                 + ", ".join(tables_without_role[:5])
             )
 
-    def test_action_links_use_role_button(self):
-        """Action links should use role='button' for PicoCSS styling.
+    def test_buttons_use_btn_class(self):
+        """Action buttons should use .btn class from SCSS design system.
 
-        Validates: BR-UX-004 PicoCSS button patterns
+        Validates: BR-UX-004 SCSS button patterns
         Gherkin:
-            Given HTML templates with action links
-            When I check link markup
-            Then action links should use role="button" attribute
+            Given HTML templates with action buttons
+            When I check button markup
+            Then buttons should use class="btn" or class="btn btn-*" attributes
         """
         # Given
         templates_dir = Path("app/templates")
-        # Pattern for links that look like action links (with + or Create/Add/Delete)
-        action_link_pattern = re.compile(
-            r'<a[^>]*href\s*=\s*["\'][^"\']*(?:create|add|delete|edit)[^"\']*["\'][^>]*>',
+        # Pattern for buttons (submit, button types)
+        button_pattern = re.compile(
+            r'<button[^>]*type\s*=\s*["\'](?:submit|button)["\'][^>]*>',
             re.IGNORECASE
         )
 
-        # When - count action links with/without role="button"
-        total_action_links = 0
-        action_links_with_role = 0
+        # When - count buttons with/without btn class
+        total_buttons = 0
+        buttons_with_class = 0
 
         for template_path in templates_dir.rglob("*.html"):
             content = template_path.read_text()
 
-            for match in action_link_pattern.finditer(content):
-                total_action_links += 1
-                if 'role="button"' in match.group().lower() or "role='button'" in match.group().lower():
-                    action_links_with_role += 1
+            for match in button_pattern.finditer(content):
+                total_buttons += 1
+                if 'class="btn' in match.group().lower() or "class='btn" in match.group().lower():
+                    buttons_with_class += 1
 
-        # Then - Most action links should have role="button"
-        if total_action_links > 0:
-            percentage = (action_links_with_role / total_action_links) * 100
+        # Then - Most buttons should have btn class
+        if total_buttons > 0:
+            percentage = (buttons_with_class / total_buttons) * 100
             assert percentage >= 50, (
-                f"BR-UX-004 Violation: Only {percentage:.0f}% of action links have role='button'. "
-                f"Expected >= 50%. ({action_links_with_role}/{total_action_links})"
+                f"BR-UX-004 Violation: Only {percentage:.0f}% of buttons have class='btn'. "
+                f"Expected >= 50%. ({buttons_with_class}/{total_buttons})"
             )
 
 
@@ -392,48 +370,63 @@ class TestPagesLoadWithoutError:
 class TestCssFileIntegrity:
     """Test that CSS files contain required class definitions."""
 
-    def test_badge_classes_defined_in_css(self):
-        """Badge CSS classes are defined in stylesheet.
+    def test_main_css_exists(self):
+        """Main CSS file exists after SCSS compilation.
+
+        Validates: SCSS build process produces output
+        Gherkin:
+            Given the SCSS source files
+            When I check for compiled CSS
+            Then main.css should exist
+        """
+        # Given
+        css_path = Path("app/static/css/main.css")
+
+        # Then
+        assert css_path.exists(), "main.css should exist (compiled from SCSS)"
+
+    def test_badge_classes_defined_in_main_css(self):
+        """Badge CSS classes are defined in main stylesheet.
 
         Validates: CSS class definitions exist for badge patterns
         Gherkin:
-            Given the battles.css stylesheet
+            Given the main.css stylesheet
             When I check for badge class definitions
-            Then all badge classes should be defined
+            Then core badge classes should be defined
         """
         # Given
-        css_path = Path("app/static/css/battles.css")
-        assert css_path.exists(), "battles.css should exist"
+        css_path = Path("app/static/css/main.css")
+        assert css_path.exists(), "main.css should exist"
 
         content = css_path.read_text()
 
-        # Then - all badge classes should be defined
+        # Then - core badge classes should be defined
         required_classes = [
             ".badge-pending",
             ".badge-active",
             ".badge-completed",
-            ".badge-warning",
         ]
 
         for css_class in required_classes:
             assert css_class in content, (
-                f"Missing CSS class definition: {css_class} in battles.css"
+                f"Missing CSS class definition: {css_class} in main.css"
             )
 
-    def test_inline_form_class_defined(self):
-        """Inline form utility class is defined in CSS.
+    def test_btn_classes_defined_in_main_css(self):
+        """Button CSS classes are defined in main stylesheet.
 
-        Validates: .inline-form class exists for table action buttons
+        Validates: CSS class definitions exist for button patterns
         Gherkin:
-            Given the battles.css stylesheet
-            When I check for utility class definitions
-            Then .inline-form should be defined
+            Given the main.css stylesheet
+            When I check for button class definitions
+            Then .btn and variants should be defined
         """
         # Given
-        css_path = Path("app/static/css/battles.css")
+        css_path = Path("app/static/css/main.css")
         content = css_path.read_text()
 
-        # Then
-        assert ".inline-form" in content, (
-            "Missing CSS class definition: .inline-form in battles.css"
-        )
+        # Then - button classes should be defined
+        assert ".btn" in content, "Missing CSS class definition: .btn in main.css"
+        assert ".btn-primary" in content, "Missing CSS class definition: .btn-primary in main.css"
+        assert ".btn-secondary" in content, "Missing CSS class definition: .btn-secondary in main.css"
+        assert ".btn-danger" in content, "Missing CSS class definition: .btn-danger in main.css"

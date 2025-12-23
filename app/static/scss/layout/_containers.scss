@@ -1,0 +1,106 @@
+// ==============================================
+// CONTAINERS & MAIN CONTENT
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Main app layout (authenticated)
+.app-layout {
+  display: grid;
+  grid-template-columns: $sidebar-width 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main"
+    "sidebar footer";
+  min-height: 100vh;
+
+  @media (max-width: $breakpoint-md) {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "sidebar"
+      "main"
+      "footer";
+  }
+}
+
+// Simple layout (unauthenticated)
+.simple-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+
+  .main {
+    flex: 1;
+    padding: $space-8;
+  }
+}
+
+// Main content area
+.main {
+  grid-area: main;
+  padding: $space-8;
+  background: $color-background;
+
+  @media (max-width: $breakpoint-md) {
+    padding: $space-4;
+  }
+}
+
+// Container
+.container {
+  max-width: $max-content-width;
+  margin: 0 auto;
+}
+
+.container-fluid {
+  width: 100%;
+}
+
+// Page header with title and actions
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $space-6;
+  gap: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.page-title {
+  font-size: $font-size-2xl;
+  font-weight: $font-weight-semibold;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  margin-top: $space-1;
+}
+
+.page-actions {
+  display: flex;
+  gap: $space-3;
+  flex-shrink: 0;
+}
+
+// Content sections
+.section {
+  margin-bottom: $space-8;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.section-title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $space-4;
+}

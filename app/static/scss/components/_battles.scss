@@ -1,0 +1,157 @@
+// ==============================================
+// BATTLES - Battle detail and encode form styles
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Battle detail card wrapper
+.battle-card {
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  padding: $space-6;
+  background: $color-surface;
+}
+
+// Battle header with title and status
+.battle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: $space-4;
+}
+
+// Battle section spacing
+.battle-section {
+  margin-top: $space-6;
+}
+
+// Grid layout for performers
+.performer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $space-4;
+}
+
+// Individual performer card
+.performer-card {
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-3;
+
+  &--winner {
+    border-color: $color-success;
+    border-width: 2px;
+  }
+}
+
+// Radio card for performer selection (encode forms)
+.performer-option {
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-4;
+  cursor: pointer;
+  transition: border-color $transition-fast, background-color $transition-fast;
+
+  &:hover {
+    border-color: $color-primary;
+    background-color: $color-primary-light;
+  }
+
+  // When radio is checked
+  &:has(input[type="radio"]:checked) {
+    border-color: $color-primary;
+    background-color: $color-primary-light;
+  }
+
+  // Radio input styling
+  input[type="radio"] {
+    accent-color: $color-primary;
+  }
+}
+
+// Performer option content
+.performer-option-content {
+  margin-top: $space-2;
+}
+
+// Winner badge
+.winner-badge {
+  color: $color-success;
+  font-weight: $font-weight-bold;
+}
+
+// Battle status inline badge
+.battle-status {
+  padding: $space-2 $space-3;
+  border-radius: $radius-sm;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-inverse;
+
+  &--pending {
+    background-color: $color-neutral;
+  }
+
+  &--active {
+    background-color: $color-warning;
+  }
+
+  &--completed {
+    background-color: $color-success;
+  }
+}
+
+// Battle actions footer
+.battle-actions {
+  display: flex;
+  gap: $space-3;
+  flex-wrap: wrap;
+  margin-top: $space-6;
+}
+
+// Draw option separator
+.draw-separator {
+  border-top: 1px solid $color-border;
+  padding-top: $space-4;
+  margin-top: $space-4;
+}
+
+// Form footer for encode forms
+.encode-footer {
+  display: flex;
+  gap: $space-3;
+  margin-top: $space-6;
+}
+
+// Pre/code block for outcome data
+.battle-outcome-data {
+  background-color: $color-neutral-light;
+  padding: $space-3;
+  border-radius: $radius-md;
+  overflow-x: auto;
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+}
+
+// Performer stats (small text)
+.performer-stats {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  margin-top: $space-2;
+}
+
+// Pool standings - winner row highlight
+.standings-winner {
+  background-color: rgba($color-success, 0.1);
+  font-weight: $font-weight-bold;
+}
+
+// Status text colors
+.status-success {
+  color: $color-success;
+}
+
+.status-danger {
+  color: $color-danger;
+}

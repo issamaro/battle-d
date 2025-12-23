@@ -9,7 +9,7 @@
     <p><a href="/battles/{{ battle.id }}">← Cancel</a></p>
 </section>
 
-<article style="border: 1px solid var(--pico-muted-border-color); border-radius: 8px; padding: 24px;">
+<article class="battle-card">
     <header>
         <h2>Encode Tiebreak Result</h2>
         <p>Select the winner of this tiebreak battle.</p>
@@ -18,25 +18,23 @@
         {% endif %}
     </header>
 
-    <form action="/battles/{{ battle.id }}/encode" method="post" style="margin-top: 24px;">
+    <form action="/battles/{{ battle.id }}/encode" method="post" class="mt-6">
         <section>
             <h3>Select Winner</h3>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+            <div class="performer-grid">
                 {% for performer in battle.performers %}
-                <label style="border: 1px solid var(--pico-muted-border-color); border-radius: 4px; padding: 16px; cursor: pointer;">
+                <label class="performer-option">
                     <input type="radio" name="winner_id" value="{{ performer.id }}" required>
-                    <div style="margin-top: 8px;">
+                    <div class="performer-option-content">
                         <strong>🎭 Performer {{ loop.index }}</strong>
                         {% if performer.preselection_score %}
-                        <p style="margin-top: 8px; font-size: 14px;">
-                            <small>Preselection Score: {{ performer.preselection_score }}</small>
+                        <p class="performer-stats">
+                            Preselection Score: {{ performer.preselection_score }}
                         </p>
                         {% elif performer.pool_points is not none %}
-                        <p style="margin-top: 8px; font-size: 14px;">
-                            <small>
-                                Pool Points: {{ performer.pool_points }}<br>
-                                W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}
-                            </small>
+                        <p class="performer-stats">
+                            Pool Points: {{ performer.pool_points }}<br>
+                            W-D-L: {{ performer.pool_wins or 0 }}-{{ performer.pool_draws or 0 }}-{{ performer.pool_losses or 0 }}
                         </p>
                         {% endif %}
                     </div>
@@ -45,9 +43,9 @@
             </div>
         </section>
 
-        <footer style="margin-top: 24px; display: flex; gap: 12px;">
-            <button type="submit">Submit Tiebreak Result</button>
-            <a href="/battles/{{ battle.id }}" role="button" class="secondary">Cancel</a>
+        <footer class="encode-footer">
+            <button type="submit" class="btn btn-primary">Submit Tiebreak Result</button>
+            <a href="/battles/{{ battle.id }}" role="button" class="btn btn-secondary">Cancel</a>
         </footer>
     </form>
 </article>

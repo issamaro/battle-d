@@ -1,9 +1,9 @@
 # Battle-D Frontend Architecture
-**Level 3: Operational** | Last Updated: 2025-12-06
+**Level 3: Operational** | Last Updated: 2025-12-23
 
 **Purpose:** Frontend architectural patterns, component library, and accessibility guidelines for the Battle-D tournament management system.
 
-**Version:** 1.0 (extracted from UI_MOCKUPS.md v2.1)
+**Version:** 2.0 (Custom SCSS Design System)
 
 ---
 
@@ -11,12 +11,13 @@
 
 1. [Design Principles](#design-principles)
 2. [Technology Stack](#technology-stack)
-3. [Layout Architecture](#layout-architecture)
-4. [Component Library](#component-library)
-5. [HTMX Patterns](#htmx-patterns)
-6. [Accessibility Guidelines](#accessibility-guidelines)
-7. [Responsive Design](#responsive-design)
-8. [Design Tokens](#design-tokens)
+3. [SCSS Architecture](#scss-architecture)
+4. [Layout Architecture](#layout-architecture)
+5. [Component Library](#component-library)
+6. [HTMX Patterns](#htmx-patterns)
+7. [Accessibility Guidelines](#accessibility-guidelines)
+8. [Responsive Design](#responsive-design)
+9. [Design Tokens](#design-tokens)
 
 ---
 
@@ -90,18 +91,26 @@
 
 ## Technology Stack
 
-### Frontend Framework: PicoCSS 2.x
+### Frontend Framework: Custom SCSS Design System
 
-**Minimal, semantic CSS framework**
+**Purpose-built design system based on Figma designs**
 
-**Why PicoCSS:**
-- ✅ Class-less design (works with semantic HTML)
-- ✅ Accessibility built-in (ARIA, keyboard nav)
-- ✅ Dark mode support (automatic via `prefers-color-scheme`)
-- ✅ Minimal footprint (~10KB gzipped)
-- ✅ Responsive by default
+**Why Custom SCSS (not PicoCSS):**
+- ✅ Precise control over design tokens matching Figma
+- ✅ Orange (#F97316) as primary brand color
+- ✅ Component-based architecture
+- ✅ No framework bloat
+- ✅ Optimized for Battle-D specific UI patterns
 
-**Custom CSS:** Only for layout (CSS Grid for sidebar navigation). Prefer PicoCSS defaults and utility classes over custom styles.
+**Build Tool:** Dart Sass (installed via Homebrew)
+
+```bash
+# Development (watch mode)
+sass --watch app/static/scss:app/static/css
+
+# Production (compressed)
+sass app/static/scss:app/static/css --style=compressed
+```
 
 ---
 
@@ -132,6 +141,106 @@
 - Partial templates for HTMX responses (`_table.html`, `_dancer_search.html`)
 - Context-aware navigation (role-based menu items)
 - Component includes (`{% include "components/modal.html" %}`)
+
+---
+
+## SCSS Architecture
+
+### Directory Structure
+
+```
+app/static/scss/
+│
+├── main.scss                      # Entry point - imports everything
+│
+├── abstracts/                     # No CSS output - tools only
+│   ├── _index.scss                # Forward all abstracts
+│   ├── _variables.scss            # Design tokens (colors, spacing, fonts)
+│   ├── _mixins.scss               # Reusable mixins (responsive, flex, etc.)
+│   └── _functions.scss            # SCSS functions (if needed)
+│
+├── base/                          # Foundation styles - element defaults
+│   ├── _index.scss                # Forward all base
+│   ├── _reset.scss                # CSS reset/normalize
+│   ├── _typography.scss           # h1-h6, p, links, lists, code
+│   └── _global.scss               # html, body, *, focus states
+│
+├── layout/                        # Page structure - the skeleton
+│   ├── _index.scss                # Forward all layout
+│   ├── _grid.scss                 # CSS Grid utilities (.grid, .grid-cols-*)
+│   ├── _sidebar.scss              # Sidebar navigation
+│   ├── _header.scss               # Header + profile
+│   ├── _footer.scss               # Footer
+│   └── _containers.scss           # .container, .container-fluid, .main
+│
+├── components/                    # Reusable UI pieces
+│   ├── _index.scss                # Forward all components
+│   ├── _buttons.scss              # .btn, .btn-primary, .btn-create, etc.
+│   ├── _badges.scss               # .badge, .badge-active, .badge-pending
+│   ├── _cards.scss                # .card, .card-header, .card-body
+│   ├── _tabs.scss                 # .tabs, .tab, .tab-active
+│   ├── _modals.scss               # .modal, .modal-header, .modal-body
+│   ├── _tables.scss               # .table, .table-responsive
+│   ├── _forms.scss                # .form-group, .form-input, .form-label
+│   ├── _flash.scss                # .flash-messages, .flash-success
+│   ├── _empty-state.scss          # .empty-state
+│   ├── _loading.scss              # .loading-spinner
+│   └── _dropdown.scss             # .dropdown, .dropdown-menu
+│
+├── pages/                         # Page-specific styles (if needed)
+│   ├── _index.scss                # Forward all pages
+│   ├── _event-mode.scss           # Event command center specific
+│   └── _registration.scss         # Registration two-panel layout
+│
+└── utilities/                     # Helper classes
+    ├── _index.scss                # Forward all utilities
+    ├── _spacing.scss              # .mt-4, .mb-2, .p-4, etc.
+    ├── _display.scss              # .hidden, .block, .flex
+    ├── _text.scss                 # .text-muted, .text-center, .font-bold
+    └── _accessibility.scss        # .sr-only, .focus-visible
+```
+
+### Folder Purposes
+
+| Folder | Purpose | Outputs CSS? |
+|--------|---------|--------------|
+| `abstracts/` | Variables, mixins, functions - tools only | No |
+| `base/` | Reset + element defaults (h1, p, a, etc.) | Yes |
+| `layout/` | Page structure (sidebar, header, grid) | Yes |
+| `components/` | Reusable UI (buttons, cards, modals) | Yes |
+| `pages/` | Page-specific overrides (event mode) | Yes |
+| `utilities/` | Helper classes (.sr-only, .mt-4) | Yes |
+
+### Output
+
+Single compiled file: `app/static/css/main.css`
+
+### Entry Point (main.scss)
+
+```scss
+// ==============================================
+// BATTLE-D DESIGN SYSTEM - Main Entry Point
+// ==============================================
+// Import order matters! Abstracts first, utilities last.
+
+// 1. Abstracts (no CSS output - tools only)
+@use 'abstracts' as *;
+
+// 2. Base (reset + element defaults)
+@use 'base';
+
+// 3. Layout (page structure)
+@use 'layout';
+
+// 4. Components (reusable UI)
+@use 'components';
+
+// 5. Pages (page-specific styles)
+@use 'pages';
+
+// 6. Utilities (helper classes - last to override)
+@use 'utilities';
+```
 
 ---
 
@@ -1458,81 +1567,161 @@ async def reorder_battle(
 
 ## Design Tokens
 
+All design tokens are defined in `app/static/scss/abstracts/_variables.scss`.
+
 ### Colors
 
-**Primary:**
-- `--pico-primary`: Main brand color (blue)
-- `--pico-primary-background`: Button/badge backgrounds
-- `--pico-primary-hover-background`: Hover states
+**Primary (Orange - Brand Color):**
+```scss
+$color-primary: #F97316;           // Main orange
+$color-primary-light: #FED7AA;     // Light orange (backgrounds)
+$color-primary-hover: #EA580C;     // Darker on hover
+$color-primary-dark: #C2410C;      // Darkest variant
+```
 
-**Secondary:**
-- `--pico-secondary`: Secondary actions (gray)
-- `--pico-secondary-background`: Cancel buttons
-- `--pico-secondary-hover-background`: Hover states
+**Semantic Colors:**
+```scss
+$color-success: #22C55E;           // Green - completed, valid
+$color-success-light: #DCFCE7;
+$color-success-dark: #16A34A;
 
-**Semantic:**
-- `--pico-contrast`: High contrast (delete buttons)
-- `--pico-muted-color`: Disabled states, placeholders
-- `--pico-muted-border-color`: Borders, dividers
+$color-warning: #F59E0B;           // Amber - warning, cancelled
+$color-warning-light: #FEF3C7;
+$color-warning-dark: #D97706;
 
-**Custom Badges:**
-```css
-:root {
-  --badge-created: var(--pico-muted-color);
-  --badge-active: var(--pico-primary-background);
-  --badge-completed: var(--pico-secondary-background);
-  --badge-cancelled: #f59e0b; /* Amber */
-}
+$color-danger: #EF4444;            // Red - error, delete
+$color-danger-light: #FEE2E2;
+$color-danger-dark: #DC2626;
+
+$color-neutral: #6B7280;           // Gray - pending, muted
+$color-neutral-light: #F3F4F6;
+$color-neutral-dark: #4B5563;
+```
+
+**Surface & Text:**
+```scss
+$color-background: #FFFFFF;
+$color-surface: #FFFFFF;
+$color-border: #E5E7EB;
+
+$color-text: #111827;              // Primary text
+$color-text-secondary: #4B5563;    // Secondary text
+$color-text-muted: #6B7280;        // Muted text
+$color-text-inverse: #FFFFFF;      // Text on dark backgrounds
 ```
 
 ---
 
 ### Spacing
 
-**PicoCSS Defaults:**
-- `1rem` = 16px (base unit)
-- Padding: 1rem (forms, buttons, cards)
-- Margin: 1rem (vertical rhythm)
-
-**Custom Spacing Variables:**
-```css
-:root {
-  --spacing-xs: 0.25rem;  /* 4px */
-  --spacing-sm: 0.5rem;   /* 8px */
-  --spacing-md: 1rem;     /* 16px */
-  --spacing-lg: 2rem;     /* 32px */
-  --spacing-xl: 4rem;     /* 64px */
-}
+**4px Base Scale:**
+```scss
+$space-1: 0.25rem;   // 4px
+$space-2: 0.5rem;    // 8px
+$space-3: 0.75rem;   // 12px
+$space-4: 1rem;      // 16px
+$space-5: 1.25rem;   // 20px
+$space-6: 1.5rem;    // 24px
+$space-8: 2rem;      // 32px
+$space-10: 2.5rem;   // 40px
+$space-12: 3rem;     // 48px
+$space-16: 4rem;     // 64px
 ```
 
 ---
 
 ### Typography
 
-**PicoCSS Defaults:**
-- Font family: System font stack (no web fonts)
-- Base size: 16px
-- Scale: 1.25 (headings)
-- Line height: 1.5
+**Font Family:**
+```scss
+$font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+```
 
-**Headings:**
-- `h1`: 2.5rem (40px)
-- `h2`: 2rem (32px)
-- `h3`: 1.5rem (24px)
-- `h4`: 1.25rem (20px)
+**Font Sizes:**
+```scss
+$font-size-xs: 0.75rem;    // 12px
+$font-size-sm: 0.875rem;   // 14px
+$font-size-base: 1rem;     // 16px
+$font-size-lg: 1.125rem;   // 18px
+$font-size-xl: 1.25rem;    // 20px
+$font-size-2xl: 1.5rem;    // 24px
+$font-size-3xl: 1.875rem;  // 30px
+$font-size-4xl: 2.25rem;   // 36px
+```
+
+**Font Weights:**
+```scss
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+```
 
 ---
 
 ### Borders & Shadows
 
-**Borders:**
-- Radius: 0.25rem (4px)
-- Width: 1px
-- Color: `var(--pico-muted-border-color)`
+**Border Radius:**
+```scss
+$radius-sm: 0.25rem;   // 4px
+$radius-md: 0.5rem;    // 8px
+$radius-lg: 0.75rem;   // 12px
+$radius-xl: 1rem;      // 16px
+$radius-full: 9999px;  // Pill shape
+```
 
 **Shadows:**
-- None by default (minimalist approach)
-- Optional: Subtle shadow on cards (future enhancement)
+```scss
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+```
+
+---
+
+### Breakpoints
+
+```scss
+$breakpoint-sm: 640px;   // Mobile landscape
+$breakpoint-md: 768px;   // Tablet portrait
+$breakpoint-lg: 1024px;  // Tablet landscape / small desktop
+$breakpoint-xl: 1280px;  // Desktop
+```
+
+---
+
+### Layout
+
+```scss
+$sidebar-width: 250px;
+$sidebar-width-collapsed: 200px;
+$header-height: 64px;
+$max-content-width: 1200px;
+```
+
+---
+
+### Transitions
+
+```scss
+$transition-fast: 150ms ease;
+$transition-normal: 200ms ease;
+$transition-slow: 300ms ease;
+```
+
+---
+
+### Z-Index Scale
+
+```scss
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-modal-backdrop: 300;
+$z-modal: 400;
+$z-toast: 500;
+```
 
 ---
 
@@ -2001,6 +2190,14 @@ app/static/
   - Added Pattern 6: Drag-and-Drop List Reordering (SortableJS + HTMX)
   - Business rules: BR-SCHED-002 battle reordering constraints
   - Accessibility: Keyboard navigation, ARIA live regions, reduced motion
+
+- **v2.0** (2025-12-23) - Complete frontend rebuild with custom SCSS design system
+  - Replaced PicoCSS with custom SCSS architecture
+  - Added comprehensive design tokens (colors, spacing, typography)
+  - New SCSS folder structure: abstracts, base, layout, components, pages, utilities
+  - Orange (#F97316) as primary brand color matching Figma designs
+  - Dart Sass build process (development watch + production compressed)
+  - Updated component library documentation for new class names
 
 ---
 

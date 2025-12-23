@@ -3,7 +3,6 @@
 {% block title %}Register Dancers - {{ category.name }} - Battle-D{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="/static/css/registration.css">
 
 <div class="registration-header">
     <a href="/tournaments/{{ tournament.id }}">← Back to Tournament</a>
@@ -16,7 +15,7 @@
 </div>
 
 <!-- Loading indicator -->
-<div id="reg-loading" class="htmx-indicator" style="text-align: center; padding: 10px;">
+<div id="reg-loading" class="htmx-indicator loading-indicator">
     Loading...
 </div>
 
@@ -103,7 +102,7 @@
             </div>
 
             <!-- Selected Duo Summary -->
-            <div id="duo-summary" class="duo-summary" style="display: none;">
+            <div id="duo-summary" class="duo-summary d-none">
                 <h4>Selected Duo</h4>
                 <p><strong>Dancer 1:</strong> <span id="selected-dancer1-name">-</span></p>
                 <p><strong>Dancer 2:</strong> <span id="selected-dancer2-name">-</span></p>
@@ -136,7 +135,7 @@ function selectDancer(dancerId, dancerName, dancerNumber) {
     }
 
     if (selectedDancer1 && selectedDancer2) {
-        document.getElementById('duo-summary').style.display = 'block';
+        document.getElementById('duo-summary').classList.remove('d-none');
     }
 }
 
@@ -147,7 +146,7 @@ function clearDuoSelection() {
     document.getElementById('dancer2_id').value = '';
     document.getElementById('selected-dancer1-name').textContent = '-';
     document.getElementById('selected-dancer2-name').textContent = '-';
-    document.getElementById('duo-summary').style.display = 'none';
+    document.getElementById('duo-summary').classList.add('d-none');
 }
 </script>
 

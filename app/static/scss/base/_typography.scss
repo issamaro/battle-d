@@ -1,0 +1,99 @@
+// ==============================================
+// TYPOGRAPHY - Base element styles
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Headings
+h1, h2, h3, h4, h5, h6 {
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+  color: $color-text;
+}
+
+h1 { font-size: $font-size-3xl; }
+h2 { font-size: $font-size-2xl; }
+h3 { font-size: $font-size-xl; }
+h4 { font-size: $font-size-lg; }
+h5 { font-size: $font-size-base; }
+h6 { font-size: $font-size-sm; }
+
+// Paragraphs
+p {
+  margin-bottom: $space-4;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Links
+a {
+  color: $color-primary;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-primary-hover;
+  }
+}
+
+// Small text
+small {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+// Strong
+strong {
+  font-weight: $font-weight-semibold;
+}
+
+// Code
+code {
+  font-family: $font-family-mono;
+  font-size: 0.875em;
+  padding: $space-1 $space-2;
+  background-color: $color-neutral-light;
+  border-radius: $radius-sm;
+}
+
+pre {
+  font-family: $font-family-mono;
+  font-size: $font-size-sm;
+  padding: $space-4;
+  background-color: $color-neutral-light;
+  border-radius: $radius-md;
+  overflow-x: auto;
+}
+
+// Horizontal rule
+hr {
+  border: none;
+  border-top: 1px solid $color-border;
+  margin: $space-6 0;
+}
+
+// Abbreviation
+abbr[title] {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+// Lists with bullets (when needed)
+.list-disc {
+  list-style: disc;
+  padding-left: $space-6;
+
+  li {
+    margin-bottom: $space-2;
+  }
+}
+
+.list-decimal {
+  list-style: decimal;
+  padding-left: $space-6;
+
+  li {
+    margin-bottom: $space-2;
+  }
+}

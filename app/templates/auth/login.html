@@ -4,34 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Battle-D</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: #f9fafb;
+        }
+        .login-card {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .login-logo h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #F97316;
+            margin: 0;
+        }
+        .login-logo p {
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+        .test-accounts {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        .test-accounts h3 {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+        .test-accounts ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .test-accounts li {
+            font-size: 0.875rem;
+            color: #4b5563;
+            padding: 0.25rem 0;
+        }
+        .login-footer {
+            margin-top: 2rem;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.875rem;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Battle-D</h1>
-    </header>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <h1>Battle-D</h1>
+                <p>Tournament Management System</p>
+            </div>
 
-    <main>
-        <h2>Login</h2>
-        <p>Enter your email to receive a magic link</p>
+            <form action="/auth/send-magic-link" method="post">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" required class="form-input" placeholder="Enter your email">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Send Magic Link</button>
+            </form>
 
-        <form action="/auth/send-magic-link" method="post">
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
-            <button type="submit">Send Magic Link</button>
-        </form>
+            <div class="test-accounts">
+                <h3>Test Accounts (POC)</h3>
+                <ul>
+                    <li>admin@battle-d.com (Admin)</li>
+                    <li>staff@battle-d.com (Staff)</li>
+                    <li>mc@battle-d.com (MC)</li>
+                </ul>
+            </div>
+        </div>
 
-        <section>
-            <h3>Test Accounts (POC)</h3>
-            <ul>
-                <li>admin@battle-d.com (Admin)</li>
-                <li>staff@battle-d.com (Staff)</li>
-                <li>mc@battle-d.com (MC)</li>
-            </ul>
-        </section>
-    </main>
-
-    <footer>
-        <p>Battle-D Tournament Management System</p>
-    </footer>
+        <p class="login-footer">Battle-D Tournament Management System</p>
+    </div>
 </body>
 </html>

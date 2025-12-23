@@ -1,0 +1,73 @@
+// ==============================================
+// PROFILE - Dancer profile and definition tables
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Profile container
+.profile-container {
+  max-width: 800px;
+}
+
+// Profile table (key-value pairs)
+.profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: $space-5;
+}
+
+// Profile table row
+.profile-row {
+  border-bottom: 1px solid $color-border;
+}
+
+// Profile label (left column)
+.profile-label {
+  padding: $space-3;
+  font-weight: $font-weight-semibold;
+  width: 200px;
+  color: $color-text;
+
+  @media (max-width: $breakpoint-sm) {
+    display: block;
+    width: 100%;
+    padding-bottom: $space-1;
+  }
+}
+
+// Profile value (right column)
+.profile-value {
+  padding: $space-3;
+  color: $color-text-secondary;
+
+  @media (max-width: $breakpoint-sm) {
+    display: block;
+    padding-top: 0;
+    padding-bottom: $space-3;
+  }
+}
+
+// Profile actions (buttons)
+.profile-actions {
+  margin-top: $space-5;
+}
+
+// Profile section (with separator)
+.profile-section {
+  margin-top: $space-10;
+  padding-top: $space-5;
+  border-top: 1px solid $color-border;
+}
+
+// Info box (placeholder message)
+.info-box {
+  padding: $space-5;
+  background-color: $color-neutral-light;
+  border-left: 3px solid $color-primary;
+  border-radius: $radius-sm;
+
+  p {
+    margin: 0;
+    color: $color-text-secondary;
+  }
+}

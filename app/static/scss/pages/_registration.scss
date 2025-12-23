@@ -1,0 +1,420 @@
+// ==============================================
+// REGISTRATION - Two-Panel Transfer List
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Registration header
+.registration-header {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  margin-bottom: $space-4;
+  flex-wrap: wrap;
+
+  h2 {
+    margin: 0;
+    flex: 1;
+  }
+}
+
+.registration-count {
+  margin: 0;
+}
+
+.status-ready {
+  background: $color-success;
+  color: $color-text-inverse;
+  padding: $space-1 $space-2;
+  border-radius: $radius-sm;
+}
+
+.status-need-more {
+  color: $color-danger;
+}
+
+// Two-panel transfer list layout
+.transfer-list,
+.registration-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+  margin-bottom: $space-4;
+
+  @media (max-width: $breakpoint-md) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Individual panel
+.panel {
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  display: flex;
+  flex-direction: column;
+  background: $color-surface;
+  max-height: 70vh;
+}
+
+.panel-header {
+  padding: $space-4;
+  border-bottom: 1px solid $color-border;
+  background: $color-neutral-light;
+
+  h3 {
+    margin: 0 0 $space-2;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.panel-search {
+  width: 100%;
+}
+
+.panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-2;
+}
+
+// Item card in transfer list
+.item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-3;
+  margin-bottom: $space-2;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background-color: $color-neutral-light;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+
+  strong {
+    font-weight: $font-weight-semibold;
+    color: $color-text;
+  }
+
+  span {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+}
+
+// Transfer buttons
+.btn-transfer {
+  padding: $space-2 $space-3;
+  background: $color-primary;
+  color: $color-text-inverse;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+.btn-remove {
+  padding: $space-2 $space-3;
+  background: $color-danger;
+  color: $color-text-inverse;
+  border: none;
+  border-radius: $radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: $color-danger-dark;
+  }
+}
+
+// Registration stats
+.registration-stats {
+  display: flex;
+  gap: $space-4;
+  padding: $space-3;
+  background: $color-neutral-light;
+  border-radius: $radius-md;
+  margin-bottom: $space-4;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .stat-value {
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $color-text;
+  }
+
+  .stat-label {
+    font-size: $font-size-sm;
+    color: $color-text-muted;
+  }
+}
+
+// Duo selection specific
+.duo-selection {
+  .item-card {
+    cursor: pointer;
+
+    &.is-selected {
+      border-color: $color-primary;
+      background-color: $color-primary-light;
+    }
+  }
+}
+
+// Dancer/Performer Cards (from old registration.css)
+.dancer-list,
+.performer-list {
+  display: flex;
+  flex-direction: column;
+  gap: $space-2;
+}
+
+.dancer-card,
+.performer-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-3 $space-4;
+  margin: 0;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-surface;
+
+  &:hover {
+    background: $color-neutral-light;
+  }
+}
+
+.dancer-info,
+.performer-info {
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.dancer-blaze,
+.performer-blaze {
+  font-weight: $font-weight-semibold;
+}
+
+.dancer-name,
+.performer-name {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+.dancer-meta {
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+}
+
+.duo-partner {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+// Registration buttons
+.btn-add {
+  background: $color-primary;
+  color: $color-text-inverse;
+  border: none;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+// Empty states and hints
+.empty-message {
+  text-align: center;
+  padding: $space-8;
+  color: $color-text-muted;
+}
+
+.hint {
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+  padding: $space-4;
+  text-align: center;
+}
+
+// Registered header
+.registered-header {
+  padding: $space-2 $space-4;
+  background: $color-neutral-light;
+  border-radius: $radius-md;
+  margin-bottom: $space-2;
+}
+
+// Duo Registration
+.duo-registration {
+  padding: $space-4;
+}
+
+.duo-search-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: $space-4;
+  margin-bottom: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.duo-dancer-search {
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  padding: $space-4;
+
+  h4 {
+    margin: 0 0 $space-2;
+  }
+}
+
+.search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: $space-2;
+}
+
+.duo-summary {
+  background: $color-neutral-light;
+  padding: $space-4;
+  border-radius: $radius-md;
+  border: 2px solid $color-primary;
+
+  h4 {
+    margin: 0 0 $space-2;
+  }
+}
+
+.duo-card {
+  border-left: 3px solid $color-primary;
+}
+
+// Footer
+.registration-footer {
+  margin-top: $space-4;
+  padding: $space-4;
+  background: $color-neutral-light;
+  border-radius: $radius-md;
+  text-align: center;
+
+  p {
+    margin: 0 0 $space-2;
+  }
+}
+
+// Guest Performer Styles
+$color-guest: #8b5cf6; // Purple for guests
+$color-guest-dark: #7c3aed;
+$color-guest-light: rgba(139, 92, 246, 0.05);
+
+.badge-guest {
+  display: inline-block;
+  background: $color-guest;
+  color: $color-text-inverse;
+  padding: $space-1 $space-2;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: $space-2;
+  vertical-align: middle;
+}
+
+.performer-guest {
+  border-left: 3px solid $color-guest;
+  background: $color-guest-light;
+}
+
+.guest-count {
+  color: $color-guest;
+  font-weight: $font-weight-medium;
+  margin-left: $space-2;
+}
+
+.guest-score {
+  font-size: $font-size-xs;
+  color: $color-guest;
+  font-style: italic;
+}
+
+.dancer-actions,
+.performer-actions {
+  display: flex;
+  gap: $space-2;
+  align-items: center;
+}
+
+.btn-guest {
+  background: $color-guest;
+  color: $color-text-inverse;
+  border: none;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: $color-guest-dark;
+  }
+}
+
+.btn-make-guest {
+  background: transparent;
+  color: $color-guest;
+  border: 1px solid $color-guest;
+  padding: $space-1 $space-2;
+  border-radius: $radius-md;
+  cursor: pointer;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  transition: all $transition-fast;
+
+  &:hover {
+    background: $color-guest-light;
+  }
+}
+
+// Error state
+.error {
+  color: $color-danger;
+  font-weight: $font-weight-semibold;
+}

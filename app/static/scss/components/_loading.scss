@@ -1,0 +1,99 @@
+// ==============================================
+// LOADING INDICATORS
+// ==============================================
+
+@use '../abstracts' as *;
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-3;
+  padding: $space-4;
+  color: $color-text-muted;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid $color-border;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: $font-size-sm;
+}
+
+// Size variants
+.loading-sm {
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+}
+
+.loading-lg {
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 4px;
+  }
+}
+
+// Overlay loading
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-background, 0.8);
+  z-index: $z-modal-backdrop;
+}
+
+// HTMX loading indicator
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity $transition-fast;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
+
+// Loading indicator (centered)
+.loading-indicator {
+  text-align: center;
+  padding: $space-3;
+}
+
+// Button loading state
+.btn-loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}

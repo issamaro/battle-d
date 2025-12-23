@@ -2,81 +2,86 @@
 
 {% block title %}Tournament Management - Battle-D{% endblock %}
 
-{% block content %}
-<h2>Tournament Management</h2>
+{% block header_title %}Tournament Management{% endblock %}
 
-<section>
-    <p><a href="/overview">&larr; Back to Overview</a></p>
-</section>
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2 class="page-title">All Tournaments</h2>
+        <p class="page-subtitle">Manage your breakdancing tournaments</p>
+    </div>
+    <a href="/tournaments/create" class="btn btn-create">+ Create Tournament</a>
+</div>
 
 {% if has_integrity_issue and current_user.is_admin %}
-<article aria-label="Data integrity warning">
-    <header>
-        <h3>Data Integrity Warning</h3>
-    </header>
-    <p>
-        <strong>Multiple active tournaments detected.</strong>
-        Only one tournament should be active at a time.
-        <a href="/overview">Visit Overview to fix this issue</a>.
-    </p>
-</article>
+<div class="card mb-4">
+    <div class="card-header card-header-warning">
+        <div class="card-header-content">
+            <h3 class="card-title">Data Integrity Warning</h3>
+        </div>
+    </div>
+    <div class="card-body">
+        <p>
+            <strong>Multiple active tournaments detected.</strong>
+            Only one tournament should be active at a time.
+            <a href="/overview">Visit Overview to fix this issue</a>.
+        </p>
+    </div>
+</div>
 {% endif %}
 
-<section>
-    <h3>Actions</h3>
-    <a href="/tournaments/create" role="button">
-        + Create New Tournament
-    </a>
-</section>
+{% if tournaments %}
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Phase</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tournament in tournaments %}
+            <tr>
+                <td><strong>{{ tournament.name }}</strong></td>
+                <td>
+                    <span class="badge {% if tournament.status.value == 'active' %}badge-active{% elif tournament.status.value == 'cancelled' %}badge-cancelled{% else %}badge-pending{% endif %}">
+                        {{ tournament.status.value|upper }}
+                    </span>
+                </td>
+                <td>
+                    {% set phase_class = {
+                        'registration': 'badge-registration',
+                        'preselection': 'badge-preselection',
+                        'pools': 'badge-pools',
+                        'finals': 'badge-finals',
+                        'completed': 'badge-completed'
+                    }.get(tournament.phase.value, 'badge-pending') %}
+                    <span class="badge {{ phase_class }}">
+                        {{ tournament.phase.value|upper }}
+                    </span>
+                </td>
+                <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    <a href="/tournaments/{{ tournament.id }}" class="btn btn-sm btn-secondary">View Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-<section>
-    <h3>All Tournaments</h3>
-    {% if tournaments %}
-        <figure>
-            <table role="grid">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Phase</th>
-                        <th>Created At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for tournament in tournaments %}
-                    <tr>
-                        <td><strong>{{ tournament.name }}</strong></td>
-                        <td>
-                            <span class="badge {% if tournament.status.value == 'active' %}badge-active{% elif tournament.status.value == 'cancelled' %}badge-warning{% else %}badge-pending{% endif %}">
-                                {{ tournament.status.value|upper }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge badge-active">
-                                {{ tournament.phase.value|upper }}
-                            </span>
-                        </td>
-                        <td>{{ tournament.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                        <td>
-                            <a href="/tournaments/{{ tournament.id }}">View Details</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </figure>
-
-        <p>
-            <strong>Total Tournaments:</strong> {{ tournaments|length }}
-        </p>
-    {% else %}
-        {% set title = "No Tournaments Yet" %}
-        {% set message = "Create your first tournament to get started" %}
-        {% set action_url = "/tournaments/create" %}
-        {% set action_text = "Create Tournament" %}
-        {% set icon = "trophy" %}
-        {% include "components/empty_state.html" %}
-    {% endif %}
-</section>
+<p class="text-muted mt-4">
+    <strong>Total:</strong> {{ tournaments|length }} tournament{% if tournaments|length != 1 %}s{% endif %}
+</p>
+{% else %}
+{% set title = "No Tournaments Yet" %}
+{% set message = "Create your first tournament to get started" %}
+{% set action_url = "/tournaments/create" %}
+{% set action_text = "Create Tournament" %}
+{% set icon = "trophy" %}
+{% include "components/empty_state.html" %}
+{% endif %}
 {% endblock %}

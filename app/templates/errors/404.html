@@ -3,11 +3,11 @@
 {% block title %}404 - Page Not Found{% endblock %}
 
 {% block content %}
-<main class="container" style="max-width: 600px; text-align: center; padding: 3rem 1rem;">
+<main class="error-page">
   <div role="alert" aria-live="polite">
-    <h1 style="font-size: 6rem; margin: 0; color: var(--pico-muted-color);">404</h1>
+    <h1 class="error-code error-code--muted">404</h1>
     <h2>Not Found</h2>
-    <p style="margin-bottom: 2rem;">
+    <p class="error-message">
       {% if detail %}
         {{ detail }}
       {% else %}
@@ -15,11 +15,11 @@
       {% endif %}
     </p>
 
-    <nav aria-label="Error navigation">
-      <a href="/overview" role="button" class="primary">
+    <nav class="error-actions" aria-label="Error navigation">
+      <a href="/overview" role="button" class="btn btn-primary">
         Go to Overview
       </a>
-      <a href="javascript:history.back()" role="button" class="secondary" style="margin-left: 1rem;">
+      <a href="javascript:history.back()" role="button" class="btn btn-secondary">
         Go Back
       </a>
     </nav>

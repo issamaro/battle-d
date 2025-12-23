@@ -2,63 +2,72 @@
 
 {% block title %}Edit User - Battle-D{% endblock %}
 
+{% block header_title %}Edit User{% endblock %}
+
 {% block content %}
-<h2>Edit User</h2>
+<div class="page-header">
+    <div>
+        <h2 class="page-title">Edit User</h2>
+        <p class="page-subtitle"><a href="/admin/users">← Back to User List</a></p>
+    </div>
+</div>
 
-<section>
-    <p><a href="/admin/users">← Back to User List</a></p>
-</section>
+<div class="card">
+    <div class="card-body">
+        <form method="post" action="/admin/users/{{ user_to_edit.id }}/edit" class="form">
+            <div class="form-group">
+                <label for="email" class="form-label">Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" value="{{ user_to_edit.email }}" required class="form-input">
+            </div>
 
-<section>
-    <form method="post" action="/admin/users/{{ user_to_edit.id }}/edit" style="max-width: 500px;">
-        <div style="margin-bottom: 15px;">
-            <label for="email">Email:</label><br>
-            <input type="email" id="email" name="email" value="{{ user_to_edit.email }}" required style="width: 100%; padding: 8px;">
+            <div class="form-group">
+                <label for="first_name" class="form-label">First Name <span class="required">*</span></label>
+                <input type="text" id="first_name" name="first_name" value="{{ user_to_edit.first_name }}" required class="form-input">
+            </div>
+
+            <div class="form-group">
+                <label for="role" class="form-label">Role <span class="required">*</span></label>
+                <select id="role" name="role" required class="form-select">
+                    {% for role in roles %}
+                    <option value="{{ role }}" {% if role == user_to_edit.role.value %}selected{% endif %}>{{ role }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="card card-neutral mb-4">
+                <div class="card-body">
+                    <small class="text-muted">
+                        <strong>Created:</strong> {{ user_to_edit.created_at.strftime('%Y-%m-%d %H:%M') }}<br>
+                        <strong>User ID:</strong> {{ user_to_edit.id }}
+                    </small>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Update User</button>
+                <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-6">
+    <div class="card-header">
+        <h3 class="card-title">Other Actions</h3>
+    </div>
+    <div class="card-body">
+        <div class="btn-group">
+            <form method="post" action="/admin/users/{{ user_to_edit.id }}/resend-magic-link" class="inline-form">
+                <button type="submit" class="btn btn-secondary">Resend Magic Link</button>
+            </form>
+            <button type="button"
+                    onclick="openDeleteModal('delete-user-{{ user_to_edit.id }}')"
+                    class="btn btn-danger">
+                Delete User
+            </button>
         </div>
-
-        <div style="margin-bottom: 15px;">
-            <label for="first_name">First Name:</label><br>
-            <input type="text" id="first_name" name="first_name" value="{{ user_to_edit.first_name }}" required style="width: 100%; padding: 8px;">
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <label for="role">Role:</label><br>
-            <select id="role" name="role" required style="width: 100%; padding: 8px;">
-                {% for role in roles %}
-                <option value="{{ role }}" {% if role == user_to_edit.role.value %}selected{% endif %}>{{ role }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div style="margin-bottom: 15px; padding: 10px; background-color: #f8f9fa; border-left: 3px solid #6c757d;">
-            <p style="margin: 0; font-size: 14px; color: #495057;">
-                <strong>Created:</strong> {{ user_to_edit.created_at.strftime('%Y-%m-%d %H:%M') }}<br>
-                <strong>User ID:</strong> {{ user_to_edit.id }}
-            </p>
-        </div>
-
-        <button type="submit" style="background-color: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
-            Update User
-        </button>
-        <a href="/admin/users" style="margin-left: 10px;">Cancel</a>
-    </form>
-</section>
-
-<section style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-    <h3>Other Actions</h3>
-
-    <form method="post" action="/admin/users/{{ user_to_edit.id }}/resend-magic-link" style="display:inline; margin-right: 10px;">
-        <button type="submit" style="background-color: #17a2b8; color: white; padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px;">
-            Resend Magic Link
-        </button>
-    </form>
-
-    <button type="button"
-            onclick="openDeleteModal('delete-user-{{ user_to_edit.id }}')"
-            style="background-color: #dc3545; color: white; padding: 8px 16px; border: none; cursor: pointer; border-radius: 4px;">
-        Delete User
-    </button>
-</section>
+    </div>
+</div>
 
 {# Delete modal #}
 {% set modal_id = "delete-user-" ~ user_to_edit.id %}
@@ -66,5 +75,4 @@
 {% set delete_url = "/admin/users/" ~ user_to_edit.id ~ "/delete" %}
 {% set warning_message = "This will permanently remove the user from the system." %}
 {% include "components/delete_modal.html" %}
-
 {% endblock %}

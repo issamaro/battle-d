@@ -1,7 +1,70 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-18
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-23
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-23] - Inline Styles Cleanup (Frontend Rebuild Phase 2)
+
+### Removed
+**Inline Styles:**
+- Removed all ~121 inline `style=""` attributes from 18 templates
+- Removed all `var(--pico-*)` CSS variable references
+- Removed hardcoded Bootstrap colors (#007bff, #28a745, etc.)
+
+### Added
+**SCSS Components (New Partials):**
+- Created `app/static/scss/components/_error-pages.scss` - Error page layout classes
+- Created `app/static/scss/components/_battles.scss` - Battle encode form classes
+- Created `app/static/scss/components/_profile.scss` - Profile page layout classes
+- Created `app/static/scss/components/_alerts.scss` - Alert/info box classes
+
+**CSS Classes:**
+- Error pages: `.error-page`, `.error-code`, `.error-message`, `.error-actions`
+- Battles: `.battle-card`, `.performer-grid`, `.performer-option`, `.battle-status`
+- Profile: `.profile-table`, `.profile-row`, `.profile-label`, `.profile-value`
+- Alerts: `.alert`, `.alert-warning`, `.alert-info`, `.alert-danger`, `.calculator-box`
+- Utilities: `.d-none`, `.d-block`, `.d-flex`, `.card-neutral`, `.loading-indicator`
+
+### Changed
+**Templates Migrated (18 total):**
+- `errors/401.html`, `403.html`, `404.html`, `500.html`, `tournament_config_error.html`
+- `battles/detail.html`, `encode_pool.html`, `encode_tiebreak.html`
+- `dancers/profile.html`, `edit.html`
+- `tournaments/add_category.html`, `create.html`, `list.html`
+- `admin/fix_active_tournaments.html`, `edit_user.html`
+- `registration/register.html`, `_dancer_search.html`
+- `pools/overview.html`
+
+**SCSS Updated:**
+- `app/static/scss/components/_index.scss` - Added 4 new partials
+- `app/static/scss/components/_cards.scss` - Added card-neutral, card-header-warning
+- `app/static/scss/components/_loading.scss` - Added loading-indicator
+- `app/static/scss/utilities/_display.scss` - Added d-none, d-block, d-flex utilities
+
+**Tests Updated:**
+- `tests/e2e/test_delete_modal.py` - Updated for SCSS design system (btn btn-danger)
+- `tests/e2e/test_ux_consistency.py` - Updated CSS file checks, badge classes
+
+### Breaking Changes
+**None** - All changes are CSS-only, no API or behavior changes
+
+**Files Modified:**
+- 4 new SCSS partials
+- 4 updated SCSS files
+- 18 template files migrated
+- 2 test files updated
+
+**Tests Added/Updated:**
+- test_delete_modal.py (8 tests, updated assertions)
+- test_ux_consistency.py (12 tests, updated assertions)
+
+**Test Results:**
+- All 19 UX tests passing (1 skipped for progressive enhancement)
+- All 53 related feature tests passing
+- 0 inline styles remaining in templates
+- SCSS compiles without errors
 
 ---
 

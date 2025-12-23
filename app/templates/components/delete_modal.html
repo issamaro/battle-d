@@ -13,59 +13,57 @@
     - warning_message: str (additional warning text)
     - cancel_text: str (default: "Cancel")
     - confirm_text: str (default: "Delete")
+
+  CSS: Uses classes from components/_modals.scss
 #}
 
 {% set cancel_text = cancel_text|default("Cancel") %}
 {% set confirm_text = confirm_text|default("Delete") %}
 
-<dialog id="{{ modal_id }}" aria-labelledby="{{ modal_id }}-title" aria-describedby="{{ modal_id }}-desc">
-  <article>
-    <header>
+<dialog id="{{ modal_id }}" class="modal modal-danger" aria-labelledby="{{ modal_id }}-title" aria-describedby="{{ modal_id }}-desc">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="{{ modal_id }}-title" class="modal-title">Confirm Deletion</h3>
       <button
+        type="button"
+        class="modal-close"
         aria-label="Close"
-        rel="prev"
         onclick="document.getElementById('{{ modal_id }}').close()"
-      ></button>
-      <h3 id="{{ modal_id }}-title">Confirm Deletion</h3>
-    </header>
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
 
-    <div id="{{ modal_id }}-desc">
+    <div class="modal-body" id="{{ modal_id }}-desc">
       <p>Are you sure you want to delete <strong>{{ item_name }}</strong>?</p>
 
       {% if warning_message %}
-      <p class="warning-text" role="alert" style="color: var(--pico-color-red-500);">
+      <div class="modal-warning" role="alert">
         <strong>Warning:</strong> {{ warning_message }}
-      </p>
+      </div>
       {% endif %}
 
-      <p style="color: var(--pico-muted-color); font-size: 0.875rem;">
-        This action cannot be undone.
-      </p>
+      <p class="text-muted text-sm">This action cannot be undone.</p>
     </div>
 
-    <footer>
-      <button
-        class="secondary"
-        onclick="document.getElementById('{{ modal_id }}').close()"
-      >
-        {{ cancel_text }}
-      </button>
-
-      <form
-        method="POST"
-        action="{{ delete_url }}"
-        style="display: inline;"
-      >
+    <div class="modal-footer">
+      <form method="POST" action="{{ delete_url }}" class="flex gap-4">
         <button
-          type="submit"
-          class="primary"
-          style="background-color: var(--pico-color-red-500);"
+          type="button"
+          class="btn btn-secondary"
+          onclick="document.getElementById('{{ modal_id }}').close()"
         >
+          {{ cancel_text }}
+        </button>
+        <button type="submit" class="btn btn-danger">
           {{ confirm_text }}
         </button>
       </form>
-    </footer>
-  </article>
+    </div>
+  </div>
 </dialog>
 
 <script>

@@ -1,52 +1,54 @@
 {% if dancers %}
-    <figure>
-        <table role="grid">
-            <thead>
-                <tr>
-                    <th>Blaze</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Age</th>
-                    <th>Country</th>
-                    <th>City</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for dancer in dancers %}
-                <tr>
-                    <td><strong>{{ dancer.blaze }}</strong></td>
-                    <td>{{ dancer.full_name }}</td>
-                    <td>{{ dancer.email }}</td>
-                    <td>{{ dancer.age }}</td>
-                    <td>{{ dancer.country or "-" }}</td>
-                    <td>{{ dancer.city or "-" }}</td>
-                    <td>
-                        <a href="/dancers/{{ dancer.id }}/profile">View</a>
-                        <a href="/dancers/{{ dancer.id }}/edit">Edit</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </figure>
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Blaze</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Age</th>
+                <th>Country</th>
+                <th>City</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dancer in dancers %}
+            <tr>
+                <td><strong>{{ dancer.blaze }}</strong></td>
+                <td>{{ dancer.full_name }}</td>
+                <td>{{ dancer.email }}</td>
+                <td>{{ dancer.age }}</td>
+                <td>{{ dancer.country or "-" }}</td>
+                <td>{{ dancer.city or "-" }}</td>
+                <td>
+                    <div class="btn-group">
+                        <a href="/dancers/{{ dancer.id }}/profile" class="btn btn-sm btn-secondary">View</a>
+                        <a href="/dancers/{{ dancer.id }}/edit" class="btn btn-sm btn-ghost">Edit</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
-    <p>
-        <strong>Total Dancers:</strong> {{ dancers|length }}
-        {% if search %}<em>(Search results for "{{ search }}")</em>{% endif %}
-    </p>
+<p class="text-muted mt-4">
+    <strong>Total:</strong> {{ dancers|length }} dancer{% if dancers|length != 1 %}s{% endif %}
+    {% if search %}<em>(Search results for "{{ search }}")</em>{% endif %}
+</p>
 {% else %}
-    {% if search %}
-        {% set title = "No Dancers Found" %}
-        {% set message = 'No dancers match your search for "' ~ search ~ '"' %}
-        {% set icon = "search" %}
-        {% include "components/empty_state.html" %}
-    {% else %}
-        {% set title = "No Dancers Yet" %}
-        {% set message = "Create your first dancer to get started" %}
-        {% set action_url = "/dancers/create" %}
-        {% set action_text = "Create Dancer" %}
-        {% set icon = "user" %}
-        {% include "components/empty_state.html" %}
-    {% endif %}
+{% if search %}
+    {% set title = "No Dancers Found" %}
+    {% set message = 'No dancers match your search for "' ~ search ~ '"' %}
+    {% set icon = "search" %}
+    {% include "components/empty_state.html" %}
+{% else %}
+    {% set title = "No Dancers Yet" %}
+    {% set message = "Create your first dancer to get started" %}
+    {% set action_url = "/dancers/create" %}
+    {% set action_text = "Create Dancer" %}
+    {% set icon = "user" %}
+    {% include "components/empty_state.html" %}
+{% endif %}
 {% endif %}

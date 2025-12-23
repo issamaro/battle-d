@@ -10,24 +10,23 @@
 </section>
 
 <section>
-    <form method="post" action="/tournaments/{{ tournament.id }}/add-category" style="max-width: 700px;">
-        <div style="margin-bottom: 15px;">
-            <label for="name">Category Name:</label><br>
-            <input type="text" id="name" name="name" required placeholder="e.g., Hip Hop Boys 1v1" style="width: 100%; padding: 8px;">
-            <small style="color: #6c757d;">Be specific: include style, gender/age group, and battle type</small>
+    <form method="post" action="/tournaments/{{ tournament.id }}/add-category" class="form">
+        <div class="form-group">
+            <label for="name" class="form-label">Category Name:</label>
+            <input type="text" id="name" name="name" required placeholder="e.g., Hip Hop Boys 1v1" class="form-input">
+            <small class="form-help">Be specific: include style, gender/age group, and battle type</small>
         </div>
 
-        <div style="margin-bottom: 20px;">
-            <label>
-                <input type="checkbox" name="is_duo" value="true" id="is-duo-checkbox">
-                2v2 Category (Duo battles)
+        <div class="form-group">
+            <label class="form-check">
+                <input type="checkbox" name="is_duo" value="true" id="is-duo-checkbox" class="form-check-input">
+                <span class="form-check-label">2v2 Category (Duo battles)</span>
             </label>
-            <br>
-            <small style="color: #6c757d;">Check this if dancers compete in pairs</small>
+            <small class="form-help">Check this if dancers compete in pairs</small>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label for="groups_ideal">Number of Pools (Groups):</label><br>
+        <div class="form-group">
+            <label for="groups_ideal" class="form-label">Number of Pools (Groups):</label>
             <input type="number"
                    id="groups_ideal"
                    name="groups_ideal"
@@ -35,13 +34,13 @@
                    min="1"
                    max="10"
                    required
-                   style="width: 100%; padding: 8px;"
+                   class="form-input"
                    oninput="updateMinimumCalculation()">
-            <small style="color: #6c757d;">Number of pool groups for round-robin battles (Fixed at registration)</small>
+            <small class="form-help">Number of pool groups for round-robin battles (Fixed at registration)</small>
         </div>
 
-        <div style="margin-bottom: 15px;">
-            <label for="performers_ideal">Target Performers Per Pool:</label><br>
+        <div class="form-group">
+            <label for="performers_ideal" class="form-label">Target Performers Per Pool:</label>
             <input type="number"
                    id="performers_ideal"
                    name="performers_ideal"
@@ -49,34 +48,34 @@
                    min="2"
                    max="20"
                    required
-                   style="width: 100%; padding: 8px;"
+                   class="form-input"
                    oninput="updateMinimumCalculation()">
-            <small style="color: #6c757d;">Ideal size for each pool (Adaptive based on registrations)</small>
+            <small class="form-help">Ideal size for each pool (Adaptive based on registrations)</small>
         </div>
 
-        <div style="margin-bottom: 20px; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107;">
-            <h4 style="margin-top: 0;">📊 Category Requirements</h4>
+        <div class="calculator-box">
+            <h4>📊 Category Requirements</h4>
 
-            <p style="margin: 5px 0;">
+            <p>
                 <strong>Minimum Required Performers:</strong>
-                <span id="min-display" style="font-size: 20px; color: #856404;">5</span>
+                <span id="min-display" class="calculator-value">5</span>
             </p>
 
-            <p style="margin: 5px 0; font-size: 14px; color: #856404;">
+            <p class="calculator-formula">
                 <strong>Formula:</strong> <span id="formula-display">(2 pools × 2 minimum) + 1 elimination</span>
             </p>
 
-            <hr style="border-top: 1px solid #856404; margin: 10px 0;">
+            <hr>
 
-            <p style="margin: 5px 0; font-size: 14px;">
+            <p>
                 <strong>Ideal Pool Capacity:</strong> <span id="ideal-display">8</span> performers
                 <br>
                 <small>(After preselection: <span id="pools-display">2</span> pools × <span id="per-pool-display">4</span> performers/pool)</small>
             </p>
         </div>
 
-        <div style="margin-bottom: 15px; padding: 10px; background-color: #d1ecf1; border-left: 3px solid #0c5460;">
-            <p style="margin: 0; font-size: 14px; color: #0c5460;">
+        <div class="howto-box">
+            <p>
                 <strong>How it works:</strong><br>
                 • Registration phase: Collect performers (need at least the minimum)<br>
                 • Preselection phase: Eliminate performers to reach pool capacity<br>
@@ -85,10 +84,12 @@
             </p>
         </div>
 
-        <button type="submit" style="background-color: #28a745; color: white; padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px;">
-            Add Category
-        </button>
-        <a href="/tournaments/{{ tournament.id }}" style="margin-left: 10px;">Cancel</a>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                Add Category
+            </button>
+            <a href="/tournaments/{{ tournament.id }}" class="btn btn-secondary">Cancel</a>
+        </div>
     </form>
 </section>
 

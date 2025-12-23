@@ -1,0 +1,177 @@
+// ==============================================
+// EVENT MODE - Command Center Specific Styles
+// ==============================================
+
+@use '../abstracts' as *;
+
+// Event mode body class
+body.event-mode {
+  margin: 0;
+  padding: 0;
+  background: $color-background;
+}
+
+// Event header (compact, no sidebar)
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-3 $space-6;
+  background: $color-primary;
+  color: $color-text-inverse;
+
+  @media (max-width: $breakpoint-md) {
+    flex-direction: column;
+    gap: $space-2;
+    padding: $space-3 $space-4;
+  }
+}
+
+.event-header-left {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+}
+
+.event-header-right {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+}
+
+.event-live-indicator {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-weight: $font-weight-semibold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.event-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  margin: 0;
+}
+
+.event-phase-badge {
+  padding: $space-1 $space-3;
+  background: rgba($color-text-inverse, 0.2);
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  text-transform: uppercase;
+}
+
+.event-progress {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+}
+
+.event-exit-btn {
+  padding: $space-2 $space-4;
+  background: rgba($color-text-inverse, 0.2);
+  color: $color-text-inverse;
+  border-radius: $radius-md;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background: rgba($color-text-inverse, 0.3);
+  }
+}
+
+// Event main content (two-panel layout)
+.event-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr auto;
+  gap: $space-4;
+  padding: $space-4;
+  height: calc(100vh - 60px);
+
+  @media (max-width: $breakpoint-lg) {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
+}
+
+// Command center panels
+.event-panel {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.event-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-3 $space-4;
+  background: $color-neutral-light;
+  border-bottom: 1px solid $color-border;
+}
+
+.event-panel-title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  margin: 0;
+}
+
+.event-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: $space-4;
+}
+
+// Battle card in event mode
+.event-battle-card {
+  display: flex;
+  align-items: center;
+  gap: $space-4;
+  padding: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  margin-bottom: $space-2;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: $color-neutral-light;
+  }
+
+  &.is-active {
+    border-color: $color-primary;
+    background-color: $color-primary-light;
+  }
+}
+
+.event-battle-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-neutral-light;
+  border-radius: $radius-full;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-sm;
+}
+
+.event-battle-performers {
+  flex: 1;
+  font-weight: $font-weight-medium;
+}
+
+.event-battle-actions {
+  display: flex;
+  gap: $space-2;
+}

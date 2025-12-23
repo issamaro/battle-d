@@ -1,0 +1,144 @@
+// ==============================================
+// MODAL DIALOGS
+// ==============================================
+
+@use '../abstracts' as *;
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: $z-modal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $space-4;
+
+  // Native dialog element
+  &[open] {
+    animation: modal-fade-in $transition-normal;
+  }
+
+  // Backdrop
+  &::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-content {
+  background: $color-surface;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-xl;
+  max-width: 500px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: $breakpoint-sm) {
+    max-width: 95vw;
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $space-4 $space-6;
+  border-bottom: 1px solid $color-border;
+}
+
+.modal-title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-semibold;
+  margin: 0;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: $color-text-muted;
+  border-radius: $radius-sm;
+  transition: background-color $transition-fast, color $transition-fast;
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: $color-neutral-light;
+    color: $color-text;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.modal-body {
+  padding: $space-6;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-3;
+  padding: $space-4 $space-6;
+  border-top: 1px solid $color-border;
+  background-color: $color-neutral-light;
+}
+
+// Delete confirmation modal
+.modal-danger {
+  .modal-header {
+    background-color: $color-danger-light;
+    border-bottom-color: $color-danger;
+  }
+
+  .modal-title {
+    color: $color-danger-dark;
+  }
+}
+
+.modal-warning {
+  padding: $space-3;
+  background-color: $color-danger-light;
+  border-left: 4px solid $color-danger;
+  border-radius: $radius-sm;
+  margin-bottom: $space-4;
+
+  strong {
+    color: $color-danger-dark;
+  }
+}
+
+// Modal sizes
+.modal-sm .modal-content {
+  max-width: 400px;
+}
+
+.modal-lg .modal-content {
+  max-width: 700px;
+}
+
+.modal-xl .modal-content {
+  max-width: 900px;
+}

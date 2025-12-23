@@ -1,0 +1,123 @@
+// ==============================================
+// CARD COMPONENT
+// ==============================================
+
+@use '../abstracts' as *;
+
+.card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  transition: box-shadow $transition-fast;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: $space-4;
+  border-bottom: 1px solid $color-border;
+  gap: $space-4;
+}
+
+.card-header-content {
+  flex: 1;
+  min-width: 0; // Allow text truncation
+}
+
+.card-title {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text;
+  margin: 0;
+}
+
+.card-subtitle {
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+  margin: $space-1 0 0;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex-shrink: 0;
+}
+
+.card-body {
+  padding: $space-4;
+}
+
+.card-footer {
+  display: flex;
+  gap: $space-3;
+  padding: $space-4;
+  border-top: 1px solid $color-border;
+  background: $color-neutral-light;
+}
+
+// Card grid layout
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: $space-4;
+
+  @media (max-width: $breakpoint-sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Card metadata (date, location, etc.)
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// Card link (entire card clickable)
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+
+  &:hover .card {
+    box-shadow: $shadow-md;
+  }
+}
+
+// Compact card variant
+.card-compact {
+  .card-header,
+  .card-body,
+  .card-footer {
+    padding: $space-3;
+  }
+
+  .card-title {
+    font-size: $font-size-base;
+  }
+}
+
+// Card with neutral background (for info display)
+.card-neutral {
+  background-color: $color-neutral-light;
+  border-color: $color-border-light;
+}
+
+// Card header variants
+.card-header-warning {
+  background-color: $color-warning-light;
+}

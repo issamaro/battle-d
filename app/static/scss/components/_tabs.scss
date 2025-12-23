@@ -1,0 +1,69 @@
+// ==============================================
+// TAB NAVIGATION
+// ==============================================
+
+@use '../abstracts' as *;
+
+.tabs {
+  display: flex;
+  gap: $space-6;
+  border-bottom: 1px solid $color-border;
+  margin-bottom: $space-6;
+  overflow-x: auto;
+
+  // Hide scrollbar but allow scrolling
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-3 0;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  color: $color-text-muted;
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $color-text;
+  }
+
+  // Active tab
+  &[aria-selected="true"],
+  &.is-active {
+    color: $color-text;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background-color: $color-primary;
+    }
+
+    .badge-count {
+      background-color: $color-primary-light;
+      color: $color-primary-dark;
+    }
+  }
+}
+
+// Tab panels
+.tab-panel {
+  display: none;
+
+  &.is-active {
+    display: block;
+  }
+}
