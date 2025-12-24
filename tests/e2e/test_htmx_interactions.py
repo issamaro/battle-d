@@ -112,24 +112,23 @@ class TestBattleQueuePartials:
 class TestFullPageResponses:
     """Test that pages return full HTML without HX-Request header."""
 
-    def test_overview_full_page(self, staff_client):
-        """GET /overview returns full page.
+    def test_overview_redirects_to_tournaments(self, staff_client):
+        """GET /overview redirects to /tournaments (dashboard removed).
 
-        Validates: FRONTEND.md Page Structure (full HTML pages)
+        Validates: Navigation Streamlining feature
         Gherkin:
             Given I am authenticated as Staff
-            When I navigate to /overview without HX-Request header
-            Then the response is successful (200)
-            And the response is a full HTML page with <html> tag
+            When I navigate to /overview
+            Then I am redirected to /tournaments (302)
         """
         # Given (authenticated via staff_client fixture)
 
         # When
-        response = staff_client.get("/overview")
+        response = staff_client.get("/overview", follow_redirects=False)
 
         # Then
-        assert_status_ok(response)
-        assert is_full_page(response.text)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
     def test_tournaments_list_full_page(self, staff_client):
         """GET /tournaments returns full page.

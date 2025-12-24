@@ -122,3 +122,31 @@
     text-transform: capitalize;
   }
 }
+
+// Event Mode prominent button
+.nav-item-event-mode {
+  background-color: $color-primary;
+  color: $color-text-inverse !important;
+  border-radius: $radius-md;
+  margin: $space-2;
+  padding: $space-3 !important;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-weight: $font-weight-semibold;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    color: $color-text-inverse !important;
+  }
+
+  &.is-active {
+    background-color: $color-primary-dark;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+}

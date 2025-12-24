@@ -2,7 +2,7 @@
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Request, Form, HTTPException, status, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.dependencies import (
     get_current_user,
@@ -109,6 +109,11 @@ async def create_user(
 ):
     """Create a new user (admin only).
 
+    Business Rules (BR-UX-004, BR-UX-007):
+    - Uses HTMX + HX-Redirect pattern for modal submission
+    - Returns form partial with errors on validation failure
+    - Returns HX-Redirect to user list on success
+
     Args:
         request: FastAPI request
         email: User email
@@ -120,20 +125,38 @@ async def create_user(
         email_service: Email service
 
     Returns:
-        Redirect to user list
+        HX-Redirect to user list on success
     """
     user = require_admin(current_user)
+    is_htmx = request.headers.get("HX-Request") == "true"
+    errors = {}
 
     # Validate role
     try:
         user_role = UserRole(role)
     except ValueError:
-        add_flash_message(request, f"Invalid role: {role}", "error")
-        return RedirectResponse(url="/admin/users/create", status_code=303)
+        errors["role"] = f"Invalid role: {role}"
 
     # Check if email already exists
     if await user_repo.email_exists(email.lower()):
-        add_flash_message(request, f"Email '{email}' is already registered", "error")
+        errors["email"] = f"Email '{email}' is already registered"
+
+    # If validation errors, return form partial
+    if errors:
+        if is_htmx:
+            return templates.TemplateResponse(
+                request=request,
+                name="components/user_create_form_partial.html",
+                context={
+                    "errors": errors,
+                    "email": email,
+                    "first_name": first_name,
+                    "role": role,
+                    "roles": [r.value for r in UserRole],
+                },
+                status_code=400,
+            )
+        add_flash_message(request, list(errors.values())[0], "error")
         return RedirectResponse(url="/admin/users/create", status_code=303)
 
     # Create user
@@ -150,6 +173,12 @@ async def create_user(
         add_flash_message(request, f"User '{first_name}' created and magic link sent", "success")
     else:
         add_flash_message(request, f"User '{first_name}' created successfully", "success")
+
+    # Return HX-Redirect for HTMX
+    if is_htmx:
+        response = HTMLResponse(content="", status_code=200)
+        response.headers["HX-Redirect"] = "/admin/users"
+        return response
 
     return RedirectResponse(url="/admin/users", status_code=303)
 
@@ -380,7 +409,7 @@ async def fix_active_tournaments(
         tournament_repo: Tournament repository
 
     Returns:
-        Redirect to overview with success/error message
+        Redirect to tournaments with success/error message
     """
     require_admin(current_user)
 
@@ -393,7 +422,7 @@ async def fix_active_tournaments(
             "No data integrity issue found. Only one or zero tournaments are active.",
             "info"
         )
-        return RedirectResponse(url="/overview", status_code=303)
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     # Parse form: Only tournament_id field with value "keep"
     form_data = await request.form()
@@ -405,13 +434,13 @@ async def fix_active_tournaments(
             "You must select one tournament to keep active.",
             "error"
         )
-        return RedirectResponse(url="/overview", status_code=303)
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     try:
         keep_active_uuid = uuid.UUID(keep_active_id)
     except ValueError:
         add_flash_message(request, "Invalid tournament ID.", "error")
-        return RedirectResponse(url="/overview", status_code=303)
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     # Validate the selected tournament is in the active list
     if not any(t.id == keep_active_uuid for t in active_tournaments):
@@ -420,7 +449,7 @@ async def fix_active_tournaments(
             "Selected tournament is not in the active list.",
             "error"
         )
-        return RedirectResponse(url="/overview", status_code=303)
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     # Deactivate all others with intelligent status selection
     deactivated_count = 0
@@ -443,4 +472,4 @@ async def fix_active_tournaments(
         f"Tournament configuration fixed. {deactivated_count} tournament(s) deactivated.",
         "success"
     )
-    return RedirectResponse(url="/overview", status_code=303)
+    return RedirectResponse(url="/tournaments", status_code=303)

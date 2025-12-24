@@ -76,3 +76,27 @@ class CategoryRepository(BaseRepository[Category]):
             groups_ideal=groups_ideal,
             performers_ideal=performers_ideal,
         )
+
+    async def delete_with_cascade(self, id: uuid.UUID) -> bool:
+        """Delete category using ORM to trigger cascade.
+
+        Unlike base delete() which uses raw SQL, this method:
+        1. Fetches the category object
+        2. Uses session.delete() which triggers ORM cascade
+        3. Properly deletes all child performers, pools, battles
+
+        This fixes BR-FIX-002: Dancers can re-register in the same
+        tournament after their category is deleted.
+
+        Args:
+            id: Category UUID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        category = await self.get_by_id(id)
+        if not category:
+            return False
+        await self.session.delete(category)
+        await self.session.flush()
+        return True

@@ -93,7 +93,7 @@ async def verify_magic_link(request: Request, token: str):
         token: Magic link token from URL
 
     Returns:
-        Redirect to overview with session cookie
+        Redirect to tournaments with session cookie
     """
     # Verify token
     payload = magic_link_auth.verify_token(token)
@@ -109,7 +109,7 @@ async def verify_magic_link(request: Request, token: str):
 
     # Set session cookie and add success flash
     add_flash_message(request, "Welcome back! You have been logged in successfully.", "success")
-    redirect_response = RedirectResponse(url="/overview", status_code=303)
+    redirect_response = RedirectResponse(url="/tournaments", status_code=303)
     redirect_response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
         value=session_token,
@@ -144,7 +144,7 @@ async def backdoor_login(request: Request, email: str):
         email: Email address requesting backdoor access
 
     Returns:
-        Redirect to overview with session cookie or 403 if not authorized
+        Redirect to tournaments with session cookie or 403 if not authorized
     """
     # Check if email is in backdoor list
     email_lower = email.lower()
@@ -168,7 +168,7 @@ async def backdoor_login(request: Request, email: str):
 
     # Set session cookie and redirect
     add_flash_message(request, f"Backdoor login successful. Welcome, {email}!", "success")
-    redirect_response = RedirectResponse(url="/overview", status_code=303)
+    redirect_response = RedirectResponse(url="/tournaments", status_code=303)
     redirect_response.set_cookie(
         key=settings.SESSION_COOKIE_NAME,
         value=session_token,

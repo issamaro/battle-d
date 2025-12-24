@@ -139,7 +139,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 
 # Include routers
-# Dashboard router handles / and /overview
+# Dashboard router handles / and /overview (both redirect to /tournaments)
 app.include_router(dashboard.router)
 app.include_router(auth.router)
 # NOTE: phases.router removed - phase management consolidated into Event Mode
@@ -152,11 +152,11 @@ app.include_router(battles.router)
 app.include_router(event.router)
 
 
-# Legacy redirect: /dashboard -> /overview
+# Legacy redirect: /dashboard -> /tournaments
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_redirect(request: Request):
-    """Redirect old /dashboard route to /overview."""
-    return RedirectResponse(url="/overview", status_code=301)
+    """Redirect old /dashboard route to /tournaments."""
+    return RedirectResponse(url="/tournaments", status_code=301)
 
 
 @app.get("/health")

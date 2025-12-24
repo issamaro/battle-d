@@ -187,7 +187,7 @@ class TestAuthRoutes:
         )
 
         assert response.status_code == 303  # Redirect
-        assert response.headers["location"] == "/overview"
+        assert response.headers["location"] == "/tournaments"
 
         # Check session cookie was set
         cookies = response.cookies
@@ -219,8 +219,8 @@ class TestAuthRoutes:
         response = client.get("/dashboard")
         assert response.status_code == 401
 
-    def test_dashboard_with_auth(self, client):
-        """Test dashboard page is accessible when authenticated."""
+    def test_overview_redirects_to_tournaments(self, client):
+        """Test /overview redirects to /tournaments (dashboard removed)."""
         # Login first
         token = magic_link_auth.generate_token("admin@battle-d.com", "admin")
         login_response = client.get(f"/auth/verify?token={token}", follow_redirects=False)
@@ -236,13 +236,13 @@ class TestAuthRoutes:
         cookie_end = set_cookie_header.find(";", cookie_start)
         session_cookie = set_cookie_header[cookie_start:cookie_end]
 
-        # Access dashboard page with session
+        # Access /overview - should redirect to /tournaments
         response = client.get(
-            "/overview", cookies={settings.SESSION_COOKIE_NAME: session_cookie}
+            "/overview", cookies={settings.SESSION_COOKIE_NAME: session_cookie},
+            follow_redirects=False
         )
-        assert response.status_code == 200
-        assert b"Dashboard" in response.content
-        assert b"admin@battle-d.com" in response.content
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
 
 class TestSessionManagement:
@@ -262,17 +262,17 @@ class TestSessionManagement:
         cookie_end = set_cookie_header.find(";", cookie_start)
         session_cookie = set_cookie_header[cookie_start:cookie_end]
 
-        # Make multiple requests with same session
+        # Make multiple requests with same session (use /tournaments instead of /overview)
         for _ in range(3):
             response = client.get(
-                "/overview", cookies={settings.SESSION_COOKIE_NAME: session_cookie}
+                "/tournaments", cookies={settings.SESSION_COOKIE_NAME: session_cookie}
             )
             assert response.status_code == 200
 
     def test_invalid_session_rejected(self, client):
         """Test invalid session is rejected."""
         response = client.get(
-            "/overview",
+            "/tournaments",
             cookies={settings.SESSION_COOKIE_NAME: "invalid-session"},
         )
         assert response.status_code == 401

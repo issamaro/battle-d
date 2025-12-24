@@ -10,7 +10,11 @@
         <h2 class="page-title">All Users</h2>
         <p class="page-subtitle">Manage system users and their roles</p>
     </div>
-    <a href="/admin/users/create" class="btn btn-create">+ Create User</a>
+    <button type="button"
+            class="btn btn-create"
+            onclick="document.getElementById('create-user-modal').showModal()">
+        + Create User
+    </button>
 </div>
 
 <div class="card mb-4">
@@ -94,4 +98,7 @@
     {% include "components/empty_state.html" %}
     {% endif %}
 </section>
+
+{# User Create Modal #}
+{% include "components/user_create_modal.html" %}
 {% endblock %}

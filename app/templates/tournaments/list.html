@@ -30,7 +30,7 @@
         <p>
             <strong>Multiple active tournaments detected.</strong>
             Only one tournament should be active at a time.
-            <a href="/overview">Visit Overview to fix this issue</a>.
+            <a href="/tournaments">Refresh this page to see current status</a>.
         </p>
     </div>
 </div>
@@ -43,13 +43,49 @@
         <div class="card-body">
             <div class="tournament-card-header">
                 <h3 class="tournament-card-title">{{ tournament.name }}</h3>
-                <button type="button" class="btn-icon" aria-label="More options">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="1"/>
-                        <circle cx="12" cy="5" r="1"/>
-                        <circle cx="12" cy="19" r="1"/>
-                    </svg>
-                </button>
+                <div class="dropdown">
+                    <button type="button"
+                            class="btn-actions dropdown-trigger"
+                            aria-label="More options"
+                            aria-expanded="false"
+                            onclick="toggleDropdown(this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="12" cy="5" r="1"/>
+                            <circle cx="12" cy="19" r="1"/>
+                        </svg>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="/tournaments/{{ tournament.id }}" class="dropdown-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            View
+                        </a>
+                        <button type="button"
+                                class="dropdown-item"
+                                onclick="openRenameModal('{{ tournament.id }}', '{{ tournament.name|e }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                            </svg>
+                            Rename
+                        </button>
+                        {% if tournament.status.value == 'created' %}
+                        <div class="dropdown-divider"></div>
+                        <button type="button"
+                                class="dropdown-item dropdown-item-danger"
+                                onclick="openDeleteModal('delete-tournament-{{ tournament.id }}')">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                            </svg>
+                            Delete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <div class="tournament-card-meta">
@@ -75,7 +111,14 @@
                 <span class="badge {{ phase_class }}">
                     {{ tournament.phase.value|capitalize }}
                 </span>
-                <a href="/tournaments/{{ tournament.id }}" class="btn btn-sm btn-secondary">View</a>
+                <div class="tournament-card-actions">
+                    {% if tournament.status.value == 'active' and (current_user.is_mc or current_user.is_admin) %}
+                    <a href="/event/{{ tournament.id }}" class="btn btn-sm btn-primary">
+                        Event Mode
+                    </a>
+                    {% endif %}
+                    <a href="/tournaments/{{ tournament.id }}" class="btn btn-sm btn-secondary">View</a>
+                </div>
             </div>
         </div>
     </article>
@@ -96,4 +139,60 @@
 
 {# Tournament Create Modal #}
 {% include "components/tournament_create_modal.html" %}
+
+{# Rename Modal #}
+{% include "components/rename_modal.html" %}
+
+{# Delete modals for each tournament #}
+{% for tournament in tournaments %}
+    {% if tournament.status.value == 'created' %}
+        {% set modal_id = "delete-tournament-" ~ tournament.id %}
+        {% set item_name = tournament.name %}
+        {% set delete_url = "/tournaments/" ~ tournament.id ~ "/delete" %}
+        {% set warning_message = "This will permanently delete the tournament and all its data." %}
+        {% include "components/delete_modal.html" %}
+    {% endif %}
+{% endfor %}
+
+<script>
+function toggleDropdown(trigger) {
+    const dropdown = trigger.closest('.dropdown');
+    const wasOpen = dropdown.classList.contains('is-open');
+
+    // Close all other dropdowns first
+    document.querySelectorAll('.dropdown.is-open').forEach(d => {
+        d.classList.remove('is-open');
+        d.querySelector('.dropdown-trigger').setAttribute('aria-expanded', 'false');
+    });
+
+    // Toggle this one
+    if (!wasOpen) {
+        dropdown.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+
+        // Close when clicking outside
+        const closeHandler = (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    }
+}
+
+function openRenameModal(tournamentId, currentName) {
+    const modal = document.getElementById('rename-modal');
+    const form = modal.querySelector('form');
+    const input = modal.querySelector('#new-name');
+
+    // Update form action and input value
+    form.setAttribute('hx-post', '/tournaments/' + tournamentId + '/rename');
+    htmx.process(form);  // Re-process HTMX attributes
+    input.value = currentName;
+
+    modal.showModal();
+}
+</script>
 {% endblock %}

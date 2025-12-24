@@ -713,7 +713,7 @@ class TestFixActiveTournaments:
             Given I am authenticated as Admin
             And there is no issue with multiple active tournaments
             When I POST to /admin/tournaments/fix-active
-            Then I am redirected to /overview (303)
+            Then I am redirected to /tournaments (303)
             And an info message indicates no issue found
         """
         # Given (authenticated as admin via admin_client fixture)
@@ -727,7 +727,7 @@ class TestFixActiveTournaments:
         # Then
         # Redirects with info message (no issue found)
         assert response.status_code == 303
-        assert "/overview" in response.headers.get("location", "")
+        assert "/tournaments" in response.headers.get("location", "")
 
     def test_fix_active_missing_selection(self, admin_client, create_e2e_tournament):
         """POST /admin/tournaments/fix-active without selection.

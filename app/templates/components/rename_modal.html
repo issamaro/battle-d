@@ -1,0 +1,68 @@
+{#
+  Rename Modal Component
+
+  Usage:
+    {% include "components/rename_modal.html" %}
+
+  Opens via JavaScript:
+    openRenameModal(tournamentId, currentName)
+
+  CSS: Uses classes from components/_modals.scss
+#}
+
+<dialog id="rename-modal" class="modal" aria-labelledby="rename-modal-title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="rename-modal-title" class="modal-title">Rename Tournament</h3>
+      <button type="button"
+              class="modal-close"
+              aria-label="Close"
+              onclick="document.getElementById('rename-modal').close()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form hx-post="/tournaments/placeholder/rename"
+          hx-swap="none">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="new-name" class="form-label">New Name <span class="required">*</span></label>
+          <input type="text"
+                 id="new-name"
+                 name="name"
+                 required
+                 class="form-input"
+                 autofocus>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-secondary"
+                onclick="document.getElementById('rename-modal').close()">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+          Rename
+        </button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+  document.getElementById('rename-modal').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      this.close();
+    }
+  });
+
+  document.getElementById('rename-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.close();
+    }
+  });
+</script>

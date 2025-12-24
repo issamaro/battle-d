@@ -75,7 +75,7 @@
                     {% for item in category_data %}
                     {% set minimum_required = item.category.minimum_performers_required %}
                     {% set is_ready = item.performer_count >= minimum_required %}
-                    <tr>
+                    <tr id="category-row-{{ item.category.id }}">
                         <td><strong>{{ item.category.name }}</strong></td>
                         <td>{{ item.category.category_type }}</td>
                         <td>
@@ -91,7 +91,19 @@
                         </td>
                         <td>{{ item.category.groups_ideal }}</td>
                         <td>
-                            <a href="/registration/{{ tournament.id }}/{{ item.category.id }}">Register Dancers</a>
+                            <div class="btn-group">
+                                <a href="/registration/{{ tournament.id }}/{{ item.category.id }}" class="btn btn-sm btn-secondary">
+                                    Register
+                                </a>
+                                {% if tournament.phase.value == 'registration' %}
+                                {# Modal trigger instead of hx-confirm (BR-FIX-003) #}
+                                <button type="button"
+                                        class="btn btn-sm btn-danger"
+                                        onclick="document.getElementById('remove-category-{{ item.category.id }}').showModal()">
+                                    Remove
+                                </button>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -104,6 +116,17 @@
             <span class="badge badge-completed">Green</span> = Ready to advance |
             <span class="badge badge-pending">Gray</span> = Need more performers
         </small>
+
+        {# Include category removal modals (BR-FIX-003) #}
+        {% if tournament.phase.value == 'registration' %}
+            {% for item in category_data %}
+                {% set modal_id = "remove-category-" ~ item.category.id %}
+                {% set category = item.category %}
+                {% set performer_count = item.performer_count %}
+                {% set tournament_id = tournament.id %}
+                {% include "components/category_remove_modal.html" %}
+            {% endfor %}
+        {% endif %}
     {% else %}
         {% set title = "No Categories Yet" %}
         {% set message = "Add a category to get started with registration!" %}
@@ -113,4 +136,49 @@
         {% include "components/empty_state.html" %}
     {% endif %}
 </section>
+
+{# Phase Advancement Section - Admin Only #}
+{% if current_user.is_admin and tournament.phase.value == 'registration' %}
+<section class="mt-6">
+    <h3>Phase Advancement</h3>
+
+    {% set all_ready = true %}
+    {% for item in category_data %}
+        {% if item.performer_count < item.category.minimum_performers_required %}
+            {% set all_ready = false %}
+        {% endif %}
+    {% endfor %}
+
+    {% if all_ready and category_data|length > 0 %}
+    <div class="card">
+        <div class="card-body">
+            <p>All categories meet minimum requirements. You can advance to the next phase.</p>
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="document.getElementById('phase-advance-modal').showModal()">
+                Advance to Preselection →
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <strong>Cannot advance phase:</strong>
+                {% if category_data|length == 0 %}
+                    No categories have been added yet.
+                {% else %}
+                    Not all categories meet minimum performer requirements.
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+
+{# Include Phase Advance Modal #}
+{% set modal_tournament = tournament %}
+{% set modal_category_data = category_data %}
+{% include "components/phase_advance_modal.html" %}
+{% endif %}
 {% endblock %}

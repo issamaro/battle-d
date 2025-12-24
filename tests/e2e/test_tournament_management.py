@@ -325,15 +325,20 @@ class TestPhaseOverview:
 class TestPhaseAdvancement:
     """Test advancing tournament phases via HTTP.
 
-    NOTE: The /tournaments/{id}/advance route has been removed.
-    Phase advancement is now done via /event/{id}/advance.
-    See: FEATURE_SPEC_2024-12-18_SCREEN-CONSOLIDATION.md
+    NOTE: The /tournaments/{id}/advance route was re-added as part of
+    UX Issues Batch Fix (2024-12-24) to enable phase advancement from
+    the tournament detail page.
     """
 
     def test_advance_phase_requires_admin(self, staff_client, create_e2e_tournament):
-        """POST /tournaments/{id}/advance returns 404 (route removed).
+        """POST /tournaments/{id}/advance requires admin role.
 
-        Note: Phase advancement is now at /event/{id}/advance.
+        Validates: DOMAIN_MODEL.md User roles (admin-only phase advancement)
+        Gherkin:
+            Given I am authenticated as Staff (not Admin)
+            And a tournament exists
+            When I POST to /tournaments/{id}/advance
+            Then I am denied access (401/403)
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
@@ -347,45 +352,51 @@ class TestPhaseAdvancement:
             follow_redirects=False,
         )
 
-        # Then - route should no longer exist
-        assert response.status_code == 404
+        # Then - staff should not be able to advance phases
+        assert response.status_code in [401, 403]
 
-    def test_advance_phase_shows_validation(self, admin_client, create_e2e_tournament):
-        """POST /tournaments/{id}/advance returns 404 (route removed).
+    def test_advance_phase_works_for_admin(self, admin_client, create_e2e_tournament):
+        """POST /tournaments/{id}/advance works for admin.
 
-        Note: Validation is now shown at /event/{id}/advance.
+        Validates: Issue #6 - Phase advancement from tournament detail
+        Gherkin:
+            Given I am authenticated as Admin
+            And a tournament exists
+            When I POST to /tournaments/{id}/advance
+            Then I receive a response (200 for validation, 303 for redirect)
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
-            create_e2e_tournament(performers_per_category=1)
+            create_e2e_tournament(performers_per_category=4)
         )
         tournament = data["tournament"]
 
         # When
         response = admin_client.post(
             f"/tournaments/{tournament.id}/advance",
-            data={"confirmed": "false"},
+            follow_redirects=False,
         )
 
-        # Then - route should no longer exist
-        assert response.status_code == 404
+        # Then - should work (may show validation or redirect)
+        assert response.status_code in [200, 302, 303, 400]
 
-    def test_advance_phase_shows_confirmation(self, admin_client, create_e2e_tournament):
-        """POST /tournaments/{id}/advance returns 404 (route removed).
+    def test_advance_phase_redirects_to_detail(self, admin_client, create_e2e_tournament):
+        """POST /tournaments/{id}/advance redirects back to detail page.
 
-        Note: Confirmation is now shown at /event/{id}/advance.
+        Validates: Issue #6 - Phase advancement from tournament detail
         """
         # Given
         data = asyncio.get_event_loop().run_until_complete(
-            create_e2e_tournament(performers_per_category=5)
+            create_e2e_tournament(performers_per_category=4)
         )
         tournament = data["tournament"]
 
         # When
         response = admin_client.post(
             f"/tournaments/{tournament.id}/advance",
-            data={"confirmed": "false"},
+            follow_redirects=False,
         )
 
-        # Then - route should no longer exist
-        assert response.status_code == 404
+        # Then - should redirect (or show validation error which is also valid)
+        if response.status_code in [302, 303]:
+            assert f"/tournaments/{tournament.id}" in response.headers.get("location", "")

@@ -89,8 +89,8 @@ async def command_center(
         TournamentPhase.FINALS,
     ]
     if tournament.phase not in event_phases:
-        # Redirect to dashboard with message
-        return RedirectResponse(url="/overview", status_code=303)
+        # Redirect to tournaments with message
+        return RedirectResponse(url="/tournaments", status_code=303)
 
     # Get command center context
     context = await event_service.get_command_center_context(

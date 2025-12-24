@@ -1,0 +1,51 @@
+{#
+  User Create Form Partial (for HTMX swap)
+
+  Used inside user_create_modal.html
+  Swapped on validation errors
+#}
+
+{% if errors %}
+<div class="alert alert-danger mb-4">
+  {% for field, message in errors.items() %}
+  <p>{{ message }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+{# Email + First Name side-by-side for wider modal (BR-FIX-005) #}
+<div class="form-row">
+  <div class="form-group">
+    <label for="email" class="form-label">Email <span class="required">*</span></label>
+    <input type="email"
+           id="email"
+           name="email"
+           required
+           class="form-input {% if errors and errors.email %}is-invalid{% endif %}"
+           value="{{ email|default('', true) }}"
+           autofocus>
+  </div>
+  <div class="form-group">
+    <label for="first_name" class="form-label">First Name <span class="required">*</span></label>
+    <input type="text"
+           id="first_name"
+           name="first_name"
+           required
+           class="form-input"
+           value="{{ first_name|default('', true) }}">
+  </div>
+</div>
+
+<div class="form-group">
+  <label for="role" class="form-label">Role <span class="required">*</span></label>
+  <select id="role" name="role" required class="form-select">
+    {% for r in roles %}
+    <option value="{{ r }}" {% if role == r %}selected{% endif %}>{{ r }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="form-check mb-4">
+  <input type="checkbox" name="send_magic_link" value="true" checked class="form-check-input" id="send_magic_link">
+  <label for="send_magic_link" class="form-check-label">Send magic link email to user</label>
+</div>

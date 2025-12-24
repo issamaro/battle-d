@@ -162,6 +162,21 @@
   border-top: 1px solid $color-border-light;
 }
 
+.tournament-card-actions {
+  display: flex;
+  gap: $space-2;
+}
+
+// Override overflow for tournament cards with dropdowns (BR-FIX-001)
+// Prevents dropdown menu from being clipped by card overflow:hidden
+.tournament-card {
+  overflow: visible;
+
+  .card-body {
+    overflow: visible;
+  }
+}
+
 // Icon-only button (for menu dots, etc.)
 .btn-icon {
   display: flex;

@@ -1,7 +1,240 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-23
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2024-12-24
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-23] - Navigation Streamlining
+
+### Changed
+**Navigation Structure:**
+- Removed redundant Dashboard page (`/overview` now redirects to `/tournaments`)
+- Post-login redirects to Tournaments list instead of Dashboard
+- Sidebar navigation: Tournaments is now the first item
+
+**Event Mode Accessibility:**
+- Added prominent "Event Mode" button in sidebar (visible for MC/Admin when tournament active)
+- Added "Event Mode" button on active tournament cards in list view
+
+### Removed
+**Deleted Files:**
+- `app/templates/dashboard/index.html`
+- `app/templates/dashboard/_no_tournament.html`
+- `app/templates/dashboard/_registration_mode.html`
+- `app/templates/dashboard/_event_active.html`
+- `app/templates/dashboard/` directory
+
+### Breaking Changes
+**None** - `/overview` redirects preserve old bookmarks
+
+**Files Modified:**
+- `app/routers/dashboard.py` (redirect only)
+- `app/routers/auth.py` (post-login redirect)
+- `app/templates/base.html` (sidebar navigation)
+- `app/templates/tournaments/list.html` (Event Mode button)
+- Error pages (401, 403, 404, 500) - updated links
+- 5 test files updated
+
+**Test Results:**
+- All 566 tests passing
+- No regressions detected
+
+---
+
+## [2025-12-23] - Complete Frontend Rebuild
+
+### Added
+**SCSS Design System:**
+- Complete SCSS architecture replacing PicoCSS
+- Design tokens in `_variables.scss` (colors, spacing, typography)
+- Reusable mixins for responsive design
+- Component library: buttons, badges, cards, tabs, modals, tables, forms
+
+**New Components:**
+- `.btn-*` variants (primary, secondary, danger, ghost, link)
+- `.badge-*` variants (role, status colors)
+- `.card` component with hover effects
+- `.tabs` component with active states
+- `.page-header` for consistent page layouts
+
+### Changed
+**CSS Architecture:**
+- Removed PicoCSS CDN entirely
+- Custom SCSS compiled to `main.css` (3397 lines)
+- Organized into: abstracts, base, layout, components, pages, utilities
+
+**Templates Updated:**
+- `base.html` - New sidebar, header, removed PicoCSS
+- `event_base.html` - Updated to new classes
+- All form templates - Removed inline styles
+- All list pages - New page-header, table, badge classes
+
+### Removed
+**Deleted Files:**
+- `app/static/css/error-handling.css`
+- `app/static/css/battles.css`
+- `app/static/css/registration.css`
+- `app/static/css/event.css`
+
+### Breaking Changes
+**None** - Visual-only rebuild, no functional changes
+
+**Files Created:**
+- `app/static/scss/` - Complete SCSS architecture (30+ files)
+- See FRONTEND.md v2.0 for full component documentation
+
+**Test Results:**
+- All 566 tests passing
+- No regressions detected
+
+---
+
+## [2024-12-24] - UX Issues Hotfix
+
+### Fixed
+**Critical Data Integrity Bug (BR-FIX-002):**
+- Category deletion now properly cascades to performers using ORM delete
+- Added `delete_with_cascade()` method to CategoryRepository
+- Dancers can now re-register after category removal
+
+**Dropdown Menu Truncation (BR-FIX-001):**
+- Fixed `.tournament-card { overflow: visible }` in `_cards.scss`
+- Dropdown menus no longer clipped by card boundaries
+
+**Browser Alert vs Modal (BR-FIX-003):**
+- Created `category_remove_modal.html` styled confirmation modal
+- Category removal now uses proper modal instead of browser alert
+
+**Empty State Icon Alignment (BR-FIX-004):**
+- Added `.empty-state-content { display: flex; justify-content: center }` in `_empty-state.scss`
+
+**User Modal Width (BR-FIX-005):**
+- Added `modal-lg` class to `user_create_modal.html`
+- Added `form-row` layout for Email/Name side-by-side
+
+### Breaking Changes
+**None** - All changes are bug fixes
+
+**Files Modified:**
+- `app/repositories/category.py` (delete_with_cascade method)
+- `app/routers/tournaments.py` (use cascade delete)
+- `app/static/scss/components/_cards.scss` (overflow fix)
+- `app/static/scss/components/_empty-state.scss` (centering)
+- `app/templates/components/user_create_modal.html` (modal-lg)
+- `app/templates/components/user_create_form_partial.html` (form-row)
+- `app/templates/components/category_remove_modal.html` (new)
+- `app/templates/tournaments/detail.html` (modal trigger)
+
+**Tests Added:**
+- 2 tests in `tests/e2e/test_ux_issues_batch.py` (cascade + styled modal)
+
+**Test Results:**
+- All 566 tests passing
+- No regressions detected
+
+---
+
+## [2024-12-24] - UX Issues Batch Fix
+
+### Added
+**Tournament Card Actions (BR-UX-001):**
+- Three-dots dropdown menu with View, Rename, Delete options
+- `rename_modal.html` component for in-place tournament renaming
+- `POST /tournaments/{id}/rename` endpoint
+
+**Creation Form Modals (BR-UX-004):**
+- `user_create_modal.html` + form partial for inline user creation
+- `dancer_create_modal.html` + form partial for inline dancer creation
+- HTMX validation with HX-Redirect on success
+
+**Phase Advancement UI (BR-UX-006):**
+- `phase_advance_modal.html` for phase transitions
+- `POST /tournaments/{id}/advance` endpoint on tournament router
+- Visible advance button on tournament detail page
+
+**Category Removal (BR-UX-003):**
+- `DELETE /tournaments/{id}/categories/{cat_id}` endpoint
+- CASCADE deletes performers (not dancers)
+- Restricted to REGISTRATION phase only
+
+### Fixed
+**Modal Centering (BR-UX-005):**
+- Added `margin: auto` to `_modals.scss` for proper viewport centering
+
+**Empty State Alignment (BR-UX-002):**
+- Added `display: block` to SVG in `_empty-state.scss`
+
+**Modal Harmonization (BR-UX-007):**
+- Converted `tournament_create_modal.html` to use HTMX + HX-Redirect pattern
+- All modals now use consistent HTMX submission pattern
+
+### Breaking Changes
+**None** - All changes are additive
+
+**Files Created (8):**
+- `app/templates/components/phase_advance_modal.html`
+- `app/templates/components/user_create_modal.html`
+- `app/templates/components/user_create_form_partial.html`
+- `app/templates/components/dancer_create_modal.html`
+- `app/templates/components/dancer_create_form_partial.html`
+- `app/templates/components/tournament_create_form_partial.html`
+- `app/templates/components/rename_modal.html`
+- `tests/e2e/test_ux_issues_batch.py`
+
+**Files Modified (13):**
+- `app/static/scss/components/_modals.scss`
+- `app/static/scss/components/_empty-state.scss`
+- `app/templates/tournaments/list.html`
+- `app/templates/tournaments/detail.html`
+- `app/templates/admin/users.html`
+- `app/templates/dancers/list.html`
+- `app/templates/components/tournament_create_modal.html`
+- `app/routers/tournaments.py`
+- `app/routers/admin.py`
+- `app/routers/dancers.py`
+
+**Tests Added:**
+- `tests/e2e/test_ux_issues_batch.py` (19 tests)
+
+**Test Results:**
+- All 566 tests passing
+- No regressions detected
+
+---
+
+## [2024-12-24] - Tournament Deletion Fix
+
+### Added
+**Tournament Deletion Endpoint:**
+- Added `POST /tournaments/{tournament_id}/delete` endpoint for CREATED status tournaments
+- Added `delete_with_cascade()` method to TournamentRepository
+- Uses ORM cascade via `session.delete()` to properly delete related data
+
+**E2E Tests:**
+- Created `tests/e2e/test_tournament_deletion.py` with 11 comprehensive tests
+- Tests cover: authentication, authorization, status validation, cascade behavior, HTMX support
+
+### Fixed
+**Missing Delete Endpoint (BR-DEL-001):**
+- Staff users can now delete CREATED status tournaments
+- Delete modal at `/tournaments` now works correctly (previously returned 404)
+- Categories and performers cascade deleted with tournament
+- Dancer profiles preserved (FK cascade direction correct)
+
+### Breaking Changes
+**None** - All changes are additive
+
+**Files Modified:**
+- `app/repositories/tournament.py` (new delete_with_cascade method)
+- `app/routers/tournaments.py` (new delete endpoint)
+
+**Tests Added:**
+- `tests/e2e/test_tournament_deletion.py` (11 tests)
+
+**Test Results:**
+- All 566 tests passing (555 existing + 11 new)
+- No regressions detected
 
 ---
 

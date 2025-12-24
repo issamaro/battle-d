@@ -1,0 +1,120 @@
+{#
+  Phase Advancement Preview Modal
+
+  Usage:
+    {% set modal_tournament = tournament %}
+    {% set modal_category_data = category_data %}
+    {% include "components/phase_advance_modal.html" %}
+
+  Required context:
+    - modal_tournament: Tournament object
+    - modal_category_data: List of {category, performer_count} dicts
+#}
+
+<dialog id="phase-advance-modal" class="modal modal-lg" aria-labelledby="phase-advance-title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="phase-advance-title" class="modal-title">Advance Tournament Phase</h3>
+      <button type="button"
+              class="modal-close"
+              aria-label="Close"
+              onclick="document.getElementById('phase-advance-modal').close()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-warning" role="alert">
+        <strong>Warning:</strong> This action is IRREVERSIBLE. You cannot go back to the Registration phase.
+      </div>
+
+      <h4>Phase Transition</h4>
+      <table class="table mb-4">
+        <tr>
+          <td><strong>Current Phase:</strong></td>
+          <td><span class="badge badge-pending">{{ modal_tournament.phase.value|upper }}</span></td>
+        </tr>
+        <tr>
+          <td><strong>Next Phase:</strong></td>
+          <td><span class="badge badge-active">PRESELECTION</span></td>
+        </tr>
+        <tr>
+          <td><strong>Status Change:</strong></td>
+          <td>CREATED → ACTIVE</td>
+        </tr>
+      </table>
+
+      <h4>Category Readiness</h4>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Registered</th>
+            <th>Required</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in modal_category_data %}
+          {% set min_req = item.category.minimum_performers_required %}
+          {% set is_ready = item.performer_count >= min_req %}
+          <tr>
+            <td>{{ item.category.name }}</td>
+            <td>{{ item.performer_count }}</td>
+            <td>{{ min_req }}</td>
+            <td>
+              {% if is_ready %}
+              <span class="badge badge-completed">Ready</span>
+              {% else %}
+              <span class="badge badge-pending">Needs {{ min_req - item.performer_count }} more</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="alert alert-info mt-4">
+        <p><strong>What happens next:</strong></p>
+        <ul>
+          <li>Preselection battles will be generated for all categories</li>
+          <li>Tournament status changes to ACTIVE</li>
+          <li>You will be redirected to Event Mode</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button"
+              class="btn btn-secondary"
+              onclick="document.getElementById('phase-advance-modal').close()">
+        Cancel
+      </button>
+      <form method="POST" action="/tournaments/{{ modal_tournament.id }}/advance" class="inline-form">
+        <input type="hidden" name="confirmed" value="true">
+        <button type="submit" class="btn btn-primary">
+          Confirm Advancement
+        </button>
+      </form>
+    </div>
+  </div>
+</dialog>
+
+<script>
+  // ESC key handling
+  document.getElementById('phase-advance-modal').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      this.close();
+    }
+  });
+
+  // Close on backdrop click
+  document.getElementById('phase-advance-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.close();
+    }
+  });
+</script>

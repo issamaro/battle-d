@@ -12,6 +12,7 @@
   border: none;
   padding: 0;
   background: transparent;
+  margin: auto;  // Override browser default dialog positioning for proper centering
 
   // When open, show as centered flex container
   &[open] {

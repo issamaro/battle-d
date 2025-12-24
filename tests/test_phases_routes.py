@@ -65,16 +65,17 @@ class TestOldPhasesRoutesRemoved:
         # Route should no longer exist (consolidated into Event Mode)
         assert response.status_code == 404
 
-    def test_old_advance_route_removed(self, unauthenticated_client):
-        """POST /tournaments/{id}/advance returns 404 (route removed).
+    def test_advance_route_requires_auth(self, unauthenticated_client):
+        """POST /tournaments/{id}/advance requires authentication.
 
-        Phase advancement is now done via /event/{id}/advance.
+        Phase advancement from tournament detail page requires auth.
+        Note: UX Issues Batch (2024-12-24) re-added this endpoint.
         """
         fake_id = uuid.uuid4()
         response = unauthenticated_client.post(f"/tournaments/{fake_id}/advance")
 
-        # Route should no longer exist (consolidated into Event Mode)
-        assert response.status_code == 404
+        # Route requires authentication (401 or redirect to login)
+        assert response.status_code in [401, 302, 303]
 
 
 class TestEventModeAdvanceExists:

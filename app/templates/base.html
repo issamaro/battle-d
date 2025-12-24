@@ -23,21 +23,15 @@
         </div>
         <nav class="sidebar-nav">
             <ul class="nav-list">
-                <li>
-                    <a href="/overview" class="nav-item {% if request.url.path == '/overview' %}is-active{% endif %}">
-                        Dashboard
-                    </a>
-                </li>
-
                 {% if current_user.is_staff %}
-                <li>
-                    <a href="/dancers" class="nav-item {% if '/dancers' in request.url.path %}is-active{% endif %}">
-                        Dancers
-                    </a>
-                </li>
                 <li>
                     <a href="/tournaments" class="nav-item {% if '/tournaments' in request.url.path %}is-active{% endif %}">
                         Tournaments
+                    </a>
+                </li>
+                <li>
+                    <a href="/dancers" class="nav-item {% if '/dancers' in request.url.path %}is-active{% endif %}">
+                        Dancers
                     </a>
                 </li>
                 {% endif %}
@@ -50,21 +44,16 @@
                 </li>
                 {% endif %}
 
-                {% if active_tournament %}
+                {% if active_tournament and (current_user.is_mc or current_user.is_admin) %}
                 <li><hr class="nav-divider"></li>
-                <li class="nav-section-label">{{ active_tournament.name }}</li>
                 <li>
-                    <a href="/tournaments/{{ active_tournament.id }}" class="nav-item">
-                        Tournament Details
-                    </a>
-                </li>
-                {% if current_user.is_mc or current_user.is_admin %}
-                <li>
-                    <a href="/event/{{ active_tournament.id }}" class="nav-item">
+                    <a href="/event/{{ active_tournament.id }}" class="nav-item nav-item-event-mode {% if '/event' in request.url.path %}is-active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
                         Event Mode
                     </a>
                 </li>
-                {% endif %}
                 {% endif %}
             </ul>
         </nav>

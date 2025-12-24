@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Request, Form, HTTPException, status, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app.dependencies import (
     get_current_user,
@@ -137,6 +137,11 @@ async def create_dancer(
 ):
     """Create a new dancer (staff only).
 
+    Business Rules (BR-UX-004, BR-UX-007):
+    - Uses HTMX + HX-Redirect pattern for modal submission
+    - Returns form partial with errors on validation failure
+    - Returns HX-Redirect to dancer list on success
+
     Args:
         request: FastAPI request
         email: Dancer email
@@ -150,35 +155,64 @@ async def create_dancer(
         dancer_service: Dancer service
 
     Returns:
-        Redirect to dancer list
+        HX-Redirect to dancer list on success
     """
     user = require_staff(current_user)
+    is_htmx = request.headers.get("HX-Request") == "true"
+    errors = {}
 
     # Parse date
+    dob = None
     try:
         dob = date.fromisoformat(date_of_birth)
     except ValueError:
-        add_flash_message(request, "Invalid date format. Use YYYY-MM-DD", "error")
-        return RedirectResponse(url="/dancers/create", status_code=303)
+        errors["date_of_birth"] = "Invalid date format. Use YYYY-MM-DD"
 
     # Create dancer via service (handles validation)
-    try:
-        await dancer_service.create_dancer(
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            date_of_birth=dob,
-            blaze=blaze,
-            country=country if country else None,
-            city=city if city else None,
-        )
-        add_flash_message(request, f"Dancer '{blaze}' created successfully", "success")
-    except ValidationError as e:
-        # Add first validation error as flash message
-        add_flash_message(request, e.errors[0] if e.errors else "Validation error", "error")
-        return RedirectResponse(url="/dancers/create", status_code=303)
+    if not errors:
+        try:
+            await dancer_service.create_dancer(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                date_of_birth=dob,
+                blaze=blaze,
+                country=country if country else None,
+                city=city if city else None,
+            )
+            add_flash_message(request, f"Dancer '{blaze}' created successfully", "success")
 
-    return RedirectResponse(url="/dancers", status_code=303)
+            # Return HX-Redirect for HTMX
+            if is_htmx:
+                response = HTMLResponse(content="", status_code=200)
+                response.headers["HX-Redirect"] = "/dancers"
+                return response
+
+            return RedirectResponse(url="/dancers", status_code=303)
+
+        except ValidationError as e:
+            errors["general"] = e.errors[0] if e.errors else "Validation error"
+
+    # If errors, return form partial or redirect
+    if is_htmx:
+        return templates.TemplateResponse(
+            request=request,
+            name="components/dancer_create_form_partial.html",
+            context={
+                "errors": errors,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "date_of_birth": date_of_birth,
+                "blaze": blaze,
+                "country": country,
+                "city": city,
+            },
+            status_code=400,
+        )
+
+    add_flash_message(request, list(errors.values())[0], "error")
+    return RedirectResponse(url="/dancers/create", status_code=303)
 
 
 @router.get("/{dancer_id}/profile", response_class=HTMLResponse)

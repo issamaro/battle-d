@@ -142,21 +142,24 @@ class TestPermissionDisplayFormat:
     """Test that permission display uses checkmarks (BR-UX-003).
 
     Validates: FRONTEND.md §Permission Display Standard
+
+    NOTE: Dashboard has been removed (Navigation Streamlining 2025-12-23).
+    Permission display is now tested via admin/users.html
     """
 
-    def test_permission_display_uses_checkmarks(self, admin_client):
-        """Dashboard permission table should use checkmark symbols.
+    def test_admin_users_permission_display_uses_checkmarks(self, admin_client):
+        """Admin users table should use checkmark symbols for permissions.
 
         Validates: BR-UX-003 Permission display uses checkmark symbols
         Gherkin:
             Given I am authenticated as Admin
-            When I view the dashboard
+            When I view the users admin page
             Then permissions are displayed with checkmarks (not Yes/No)
         """
         # Given (authenticated via admin_client fixture)
 
         # When
-        response = admin_client.get("/dashboard")
+        response = admin_client.get("/admin/users")
 
         # Then
         content = response.text
@@ -164,16 +167,8 @@ class TestPermissionDisplayFormat:
 
         # Should contain checkmarks for permissions
         assert "✓" in content or "&#10003;" in content, (
-            "BR-UX-003 Violation: Dashboard should use checkmark symbols"
+            "BR-UX-003 Violation: Admin users should use checkmark symbols"
         )
-
-        # Should NOT contain Yes/No patterns in permission context
-        # We check the permissions section specifically
-        if "Your Permissions" in content:
-            permissions_section = content.split("Your Permissions")[1].split("</section>")[0]
-            assert "Yes" not in permissions_section or "✓" in permissions_section, (
-                "BR-UX-003 Violation: Permission display should use ✓/✗, not Yes/No"
-            )
 
 
 # =============================================================================
@@ -282,25 +277,23 @@ class TestSemanticHtmlPatterns:
 class TestPagesLoadWithoutError:
     """Test that refactored pages still load correctly."""
 
-    def test_dashboard_loads(self, admin_client):
-        """Dashboard page loads successfully after UX refactor.
+    def test_overview_redirects_to_tournaments(self, admin_client):
+        """/overview redirects to /tournaments (dashboard removed).
 
-        Validates: Dashboard template integrity
+        Validates: Navigation Streamlining feature
         Gherkin:
             Given I am authenticated as Admin
-            When I navigate to /dashboard
-            Then the page loads successfully (200)
-            And contains permission table with checkmarks
+            When I navigate to /overview
+            Then I am redirected to /tournaments (302)
         """
         # Given (authenticated)
 
         # When
-        response = admin_client.get("/dashboard")
+        response = admin_client.get("/overview", follow_redirects=False)
 
         # Then
-        assert response.status_code == 200
-        assert "Dashboard" in response.text or "dashboard" in response.text.lower()
-        assert "Your Permissions" in response.text
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
     def test_tournaments_list_loads(self, staff_client):
         """Tournaments list page loads successfully after UX refactor.

@@ -27,28 +27,11 @@
       </button>
     </div>
 
-    <form method="POST" action="/tournaments/create">
+    <form hx-post="/tournaments/create"
+          hx-target="#create-tournament-modal .modal-body"
+          hx-swap="innerHTML">
       <div class="modal-body">
-        <div class="form-group">
-          <label for="tournament-name" class="form-label">Tournament Name <span class="required">*</span></label>
-          <input
-            type="text"
-            id="tournament-name"
-            name="name"
-            required
-            placeholder="e.g., Battle-D Winter 2024"
-            class="form-input"
-            autofocus
-          >
-          <small class="form-help">Give your tournament a unique, descriptive name</small>
-        </div>
-
-        <div class="alert alert-info">
-          <p>
-            <strong>Note:</strong> After creating the tournament, you can add categories and register dancers.
-            The tournament will start in the <strong>REGISTRATION</strong> phase.
-          </p>
-        </div>
+        {% include "components/tournament_create_form_partial.html" %}
       </div>
 
       <div class="modal-footer">

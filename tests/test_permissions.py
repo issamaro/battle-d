@@ -89,28 +89,32 @@ class TestCurrentUser:
 class TestRoleBasedAccess:
     """Tests for role-based access control."""
 
-    def test_admin_can_access_dashboard(self, client):
-        """Test admin can access overview page."""
+    def test_admin_overview_redirects_to_tournaments(self, client):
+        """Test /overview redirects to /tournaments for admin."""
         session = get_session_cookie("admin@battle-d.com", "admin")
-        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session})
-        assert response.status_code == 200
+        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session}, follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
-    def test_staff_can_access_dashboard(self, client):
-        """Test staff can access overview page."""
+    def test_staff_overview_redirects_to_tournaments(self, client):
+        """Test /overview redirects to /tournaments for staff."""
         session = get_session_cookie("staff@battle-d.com", "staff")
-        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session})
-        assert response.status_code == 200
+        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session}, follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
-    def test_mc_can_access_dashboard(self, client):
-        """Test MC can access overview page."""
+    def test_mc_overview_redirects_to_tournaments(self, client):
+        """Test /overview redirects to /tournaments for MC."""
         session = get_session_cookie("mc@battle-d.com", "mc")
-        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session})
-        assert response.status_code == 200
+        response = client.get("/overview", cookies={settings.SESSION_COOKIE_NAME: session}, follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
-    def test_unauthenticated_cannot_access_dashboard(self, client):
-        """Test unauthenticated user cannot access overview page."""
-        response = client.get("/overview")
-        assert response.status_code == 401
+    def test_unauthenticated_overview_still_redirects(self, client):
+        """Test /overview redirects even when unauthenticated (then auth check happens on /tournaments)."""
+        response = client.get("/overview", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["location"] == "/tournaments"
 
 
 @pytest.mark.skip(reason="Phase navigation migrated to database-driven - tests need rewriting")

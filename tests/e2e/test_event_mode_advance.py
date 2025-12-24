@@ -221,14 +221,17 @@ class TestRemovedPhasesRoutes:
         # Old route should no longer exist
         assert response.status_code == 404
 
-    def test_phases_advance_old_route_removed(self, admin_client):
-        """POST /tournaments/{id}/advance returns 404 (route removed).
+    def test_phases_advance_route_exists_on_tournaments(self, admin_client):
+        """POST /tournaments/{id}/advance route exists.
 
-        Validates: BR-NAV-001 - Single path to functions
+        Note: This route was re-added in UX Issues Batch (2024-12-24) for
+        phase advancement from tournament detail page.
+
+        Validates: Issue #6 - Phase advancement from tournament detail
         Gherkin:
             Given I am authenticated as Admin
-            When I POST to /tournaments/{id}/advance (old route)
-            Then I receive a 404 Not Found response
+            When I POST to /tournaments/{id}/advance
+            Then I receive a response (not 404/405 Method Not Allowed)
         """
         # Given
         fake_id = uuid4()
@@ -237,8 +240,8 @@ class TestRemovedPhasesRoutes:
         response = admin_client.post(f"/tournaments/{fake_id}/advance")
 
         # Then
-        # Old route should no longer exist
-        assert response.status_code == 404
+        # Route should exist (returns 400 for confirmation required, not 404/405)
+        assert response.status_code not in [404, 405], "Route should exist"
 
 
 class TestRemovedBattlesListRoute:

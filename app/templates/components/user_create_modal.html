@@ -1,0 +1,61 @@
+{#
+  User Create Modal Component
+
+  Usage:
+    {% include "components/user_create_modal.html" %}
+
+  Required context:
+    - roles: List of role values (passed from parent template)
+
+  CSS: Uses classes from components/_modals.scss
+#}
+
+<dialog id="create-user-modal" class="modal modal-lg" aria-labelledby="create-user-title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="create-user-title" class="modal-title">Create New User</h3>
+      <button type="button"
+              class="modal-close"
+              aria-label="Close"
+              onclick="document.getElementById('create-user-modal').close()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form hx-post="/admin/users/create"
+          hx-target="#create-user-modal .modal-body"
+          hx-swap="innerHTML">
+      <div class="modal-body" id="create-user-form-container">
+        {% include "components/user_create_form_partial.html" %}
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-secondary"
+                onclick="document.getElementById('create-user-modal').close()">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-primary">
+          Create User
+        </button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script>
+  document.getElementById('create-user-modal').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      this.close();
+    }
+  });
+
+  document.getElementById('create-user-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.close();
+    }
+  });
+</script>

@@ -10,7 +10,11 @@
         <h2 class="page-title">All Dancers</h2>
         <p class="page-subtitle">Manage dancers in your database</p>
     </div>
-    <a href="/dancers/create" class="btn btn-create">+ Create Dancer</a>
+    <button type="button"
+            class="btn btn-create"
+            onclick="document.getElementById('create-dancer-modal').showModal()">
+        + Create Dancer
+    </button>
 </div>
 
 <div class="card mb-4">
@@ -38,4 +42,7 @@
 <section id="dancers-table">
     {% include "dancers/_table.html" %}
 </section>
+
+{# Dancer Create Modal #}
+{% include "components/dancer_create_modal.html" %}
 {% endblock %}

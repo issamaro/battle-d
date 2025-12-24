@@ -336,11 +336,9 @@ footer { grid-area: footer; }
   <h2>Battle-D</h2>
   <nav>
     <ul>
-      <li><a href="/overview">Overview</a></li>
-      <li><a href="/phases">Phases</a></li>
       {% if current_user.is_staff %}
-      <li><a href="/dancers">Dancers</a></li>
       <li><a href="/tournaments">Tournaments</a></li>
+      <li><a href="/dancers">Dancers</a></li>
       {% endif %}
       {% if current_user.is_admin %}
       <li><a href="/admin/users">Users</a></li>
@@ -1177,6 +1175,227 @@ async def delete_dancer(id: UUID):
 
 ---
 
+### Pattern 5.1: Modal Form with HX-Redirect
+
+**Use Case:** Creation/Edit forms in modals with full page redirect on success
+
+**HTML (Modal):**
+```html
+<dialog id="create-user-modal" class="modal" aria-labelledby="create-user-title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="create-user-title" class="modal-title">Create New User</h3>
+      <button type="button" class="modal-close" aria-label="Close"
+              onclick="document.getElementById('create-user-modal').close()">×</button>
+    </div>
+
+    <form hx-post="/admin/users/create"
+          hx-target="#create-user-modal .modal-body"
+          hx-swap="innerHTML">
+      <div class="modal-body" id="create-user-form-container">
+        {% include "components/user_create_form_partial.html" %}
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                onclick="document.getElementById('create-user-modal').close()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create User</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+```
+
+**Backend Route:**
+```python
+@router.post("/admin/users/create")
+async def create_user(request: Request, email: str = Form(...), ...):
+    is_htmx = request.headers.get("HX-Request") == "true"
+    errors = {}
+
+    # Validation
+    if await user_repo.email_exists(email):
+        errors["email"] = "Email already registered"
+
+    # If validation errors, return form partial
+    if errors:
+        if is_htmx:
+            return templates.TemplateResponse(
+                "components/user_create_form_partial.html",
+                {"errors": errors, "email": email, ...},
+                status_code=400
+            )
+        # Fallback for non-HTMX
+        return RedirectResponse("/admin/users/create", 303)
+
+    # Create user
+    new_user = await user_repo.create_user(...)
+
+    # Return HX-Redirect for HTMX
+    if is_htmx:
+        response = HTMLResponse(content="", status_code=200)
+        response.headers["HX-Redirect"] = "/admin/users"
+        return response
+
+    return RedirectResponse("/admin/users", 303)
+```
+
+**Key Points:**
+- `hx-post` submits form via AJAX
+- `hx-target=".modal-body"` + `hx-swap="innerHTML"` replaces form on error
+- Server returns `HX-Redirect` header on success → full page navigation
+- Form partial re-renders with error messages
+- Non-HTMX fallback uses standard redirects
+
+---
+
+### Pattern 5.2: Dropdown Menu with Actions
+
+**Use Case:** Three-dots action menu on cards/items
+
+**HTML:**
+```html
+<div class="dropdown">
+    <button type="button"
+            class="btn-actions dropdown-trigger"
+            aria-label="More options"
+            aria-expanded="false"
+            onclick="toggleDropdown(this)">
+        <svg><!-- Vertical dots icon --></svg>
+    </button>
+    <div class="dropdown-menu">
+        <a href="/items/{{ item.id }}" class="dropdown-item">
+            <svg><!-- Eye icon --></svg>
+            View
+        </a>
+        <button type="button" class="dropdown-item"
+                onclick="openRenameModal('{{ item.id }}', '{{ item.name|e }}')">
+            <svg><!-- Edit icon --></svg>
+            Rename
+        </button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item dropdown-item-danger"
+                onclick="openDeleteModal('delete-item-{{ item.id }}')">
+            <svg><!-- Trash icon --></svg>
+            Delete
+        </button>
+    </div>
+</div>
+```
+
+**JavaScript:**
+```javascript
+function toggleDropdown(trigger) {
+    const dropdown = trigger.closest('.dropdown');
+    const wasOpen = dropdown.classList.contains('is-open');
+
+    // Close all other dropdowns first
+    document.querySelectorAll('.dropdown.is-open').forEach(d => {
+        d.classList.remove('is-open');
+        d.querySelector('.dropdown-trigger').setAttribute('aria-expanded', 'false');
+    });
+
+    // Toggle this one
+    if (!wasOpen) {
+        dropdown.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+
+        // Close when clicking outside
+        const closeHandler = (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('is-open');
+                trigger.setAttribute('aria-expanded', 'false');
+                document.removeEventListener('click', closeHandler);
+            }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    }
+}
+```
+
+**Key Points:**
+- `.dropdown` container holds trigger and menu
+- `.is-open` class toggles visibility (CSS animation)
+- `aria-expanded` for accessibility
+- Click-outside handling closes menu
+- Icons + text in dropdown items
+
+---
+
+### Pattern 5.3: Rename Modal with Dynamic Action
+
+**Use Case:** Reusable rename modal for multiple items
+
+**HTML:**
+```html
+<dialog id="rename-modal" class="modal" aria-labelledby="rename-modal-title">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="rename-modal-title" class="modal-title">Rename Item</h3>
+      <button type="button" class="modal-close" aria-label="Close"
+              onclick="document.getElementById('rename-modal').close()">×</button>
+    </div>
+
+    <form hx-post="/items/placeholder/rename" hx-swap="none">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="new-name" class="form-label">New Name <span class="required">*</span></label>
+          <input type="text" id="new-name" name="name" required class="form-input" autofocus>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary"
+                onclick="document.getElementById('rename-modal').close()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Rename</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+```
+
+**JavaScript:**
+```javascript
+function openRenameModal(itemId, currentName) {
+    const modal = document.getElementById('rename-modal');
+    const form = modal.querySelector('form');
+    const input = modal.querySelector('#new-name');
+
+    // Update form action dynamically
+    form.setAttribute('hx-post', '/items/' + itemId + '/rename');
+    htmx.process(form);  // Re-process HTMX attributes
+    input.value = currentName;
+
+    modal.showModal();
+}
+```
+
+**Backend Route:**
+```python
+@router.post("/{item_id}/rename")
+async def rename_item(item_id: str, request: Request, name: str = Form(...), ...):
+    # Update item
+    await item_repo.update(item_id, name=name)
+    add_flash_message(request, f"Renamed to '{name}'", "success")
+
+    # Check if HTMX request
+    is_htmx = request.headers.get("HX-Request") == "true"
+    if is_htmx:
+        response = HTMLResponse(content="", status_code=200)
+        response.headers["HX-Redirect"] = "/items"
+        return response
+
+    return RedirectResponse("/items", 303)
+```
+
+**Key Points:**
+- Single modal instance reused for all items
+- `hx-post` action updated dynamically via JavaScript
+- `htmx.process(form)` re-initializes HTMX after attribute change
+- `hx-swap="none"` - we rely on HX-Redirect, not DOM swap
+
+---
+
 ### Pattern 6: Drag-and-Drop List Reordering (SortableJS + HTMX)
 
 **Use Case:** Battle queue reordering with constraints
@@ -1622,7 +1841,7 @@ async def reorder_battle(
 ### Desktop Enhancements (1025px+)
 
 **Multi-Column Layouts:**
-- Dashboard: 2-3 column grid for cards
+- Tournaments list: 2-3 column grid for cards
 - Forms: Side-by-side inputs where logical
 - Tables: Full table layout with all columns visible
 
@@ -1827,7 +2046,7 @@ $z-toast: 500;
         </div>
         <div class="event-header-right">
             <span class="event-progress">{{ progress.completed }}/{{ progress.total }}</span>
-            <a href="/overview" class="event-exit-btn">Exit to Prep</a>
+            <a href="/tournaments" class="event-exit-btn">Exit to Prep</a>
         </div>
     </header>
 
@@ -2064,88 +2283,75 @@ async def register_dancer_htmx(t_id: UUID, c_id: UUID, dancer_id: UUID, ...):
 
 ---
 
-### Pattern 9: Context-Aware Smart Dashboard
+### Pattern 9: Event Mode Navigation
 
-**Use Case:** Dashboard that shows different content based on tournament state
+**Use Case:** Quick access to Event Mode from multiple entry points
 
-**Business Rule (BR-NAV-002):** Dashboard displays different content based on tournament state.
+**Business Rule (BR-NAV-002):** Users can access Event Mode from sidebar (when active tournament exists) and from tournament cards.
 
-**HTML Structure:**
+**Sidebar Event Mode Button:**
 ```html
-<!-- app/templates/dashboard/index.html -->
-{% extends "base.html" %}
-
-{% block content %}
-{% if state == 'no_tournament' %}
-    <!-- State 1: No active tournament -->
-    <section class="dashboard-cta">
-        <h2>No Active Tournament</h2>
-        <p>Create a tournament to get started.</p>
-        <a href="/tournaments/create" role="button">+ Create Tournament</a>
-    </section>
-
-    {% if past_tournaments %}
-    <section>
-        <h3>Past Tournaments</h3>
-        <!-- List of completed tournaments -->
-    </section>
-    {% endif %}
-
-{% elif state == 'registration' %}
-    <!-- State 2: Tournament in REGISTRATION phase -->
-    <section class="dashboard-header">
-        <h2>{{ tournament.name }}</h2>
-        <span class="badge badge-registration">REGISTRATION</span>
-    </section>
-
-    <section class="category-grid">
-        {% for cat in categories %}
-        <article class="category-card {% if cat.is_ready %}ready{% else %}needs-more{% endif %}">
-            <h3>{{ cat.name }}</h3>
-            <p class="registration-count">
-                {{ cat.registered }}/{{ cat.ideal }} registered
-            </p>
-            <p class="status">
-                {% if cat.is_ready %}✓ Ready{% else %}Need {{ cat.minimum - cat.registered }} more{% endif %}
-            </p>
-            <a href="/registration/{{ tournament.id }}/{{ cat.id }}" role="button" class="secondary">
-                Register Dancers
-            </a>
-        </article>
-        {% endfor %}
-    </section>
-
-    {% if all_categories_ready %}
-    <section class="dashboard-action">
-        <form action="/tournaments/{{ tournament.id }}/advance" method="post">
-            <input type="hidden" name="confirmed" value="false">
-            <button type="submit" class="start-event-btn">▶ Start Event</button>
-        </form>
-    </section>
-    {% endif %}
-
-{% elif state == 'event_active' %}
-    <!-- State 3: Tournament in event phases -->
-    <section class="dashboard-header">
-        <h2>{{ tournament.name }}</h2>
-        <span class="badge badge-live">🔴 LIVE - {{ tournament.phase.value|upper }}</span>
-    </section>
-
-    <section class="event-summary">
-        <p>Battle Progress: {{ progress.completed }}/{{ progress.total }} ({{ progress.percentage }}%)</p>
-        <a href="/event/{{ tournament.id }}" role="button" class="go-to-event-btn">
-            Go to Event Mode →
-        </a>
-    </section>
+<!-- In base.html sidebar -->
+{% if active_tournament and (current_user.is_mc or current_user.is_admin) %}
+<li><hr class="nav-divider"></li>
+<li>
+    <a href="/event/{{ active_tournament.id }}" class="nav-item nav-item-event-mode">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        Event Mode
+    </a>
+</li>
 {% endif %}
-{% endblock %}
+```
+
+**Tournament Card Event Mode Button:**
+```html
+<!-- In tournaments/list.html card footer -->
+<div class="tournament-card-footer">
+    <span class="badge {{ phase_class }}">{{ tournament.phase.value|capitalize }}</span>
+    <div class="tournament-card-actions">
+        {% if tournament.status.value == 'active' and (current_user.is_mc or current_user.is_admin) %}
+        <a href="/event/{{ tournament.id }}" class="btn btn-sm btn-primary">
+            Event Mode
+        </a>
+        {% endif %}
+        <a href="/tournaments/{{ tournament.id }}" class="btn btn-sm btn-secondary">View</a>
+    </div>
+</div>
+```
+
+**SCSS for Event Mode Button:**
+```scss
+// In _sidebar.scss
+.nav-item-event-mode {
+  background-color: $color-primary;
+  color: white !important;
+  border-radius: $radius-md;
+  margin: $space-2;
+  padding: $space-3 !important;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-weight: $font-weight-semibold;
+
+  &:hover {
+    background-color: $color-primary-dark;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
 ```
 
 **Key Points:**
-- Single template with conditional blocks
-- State determined by service layer
-- Clear CTAs for each state
-- Visual distinction between states
+- Prominent button with lightning bolt icon in sidebar
+- Only visible to MC and Admin users
+- Sidebar button appears when ANY active tournament exists
+- Card button appears only on ACTIVE tournament cards
+- Primary color styling for visual prominence
 
 ---
 

@@ -122,3 +122,26 @@ class TournamentRepository(BaseRepository[Tournament]):
 
         # Call parent update method
         return await super().update(id, **kwargs)
+
+    async def delete_with_cascade(self, id: uuid.UUID) -> bool:
+        """Delete tournament using ORM to trigger cascade.
+
+        Unlike base delete() which uses raw SQL, this method:
+        1. Fetches the tournament object
+        2. Uses session.delete() which triggers ORM cascade
+        3. Properly deletes all child categories and performers
+
+        This mirrors CategoryRepository.delete_with_cascade() pattern.
+
+        Args:
+            id: Tournament UUID
+
+        Returns:
+            True if deleted, False if not found
+        """
+        tournament = await self.get_by_id(id)
+        if not tournament:
+            return False
+        await self.session.delete(tournament)
+        await self.session.flush()
+        return True
