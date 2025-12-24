@@ -1,7 +1,39 @@
 # Battle-D Documentation Changelog
-**Level 0: Meta - Navigation & Reference** | Last Updated: 2024-12-24
+**Level 0: Meta - Navigation & Reference** | Last Updated: 2025-12-24
 
 **Purpose:** Track all significant documentation changes for historical reference
+
+---
+
+## [2025-12-24] - Category Creation Phase Validation (BR-CAT-001)
+
+### Fixed
+**Category Management:**
+- Categories can now only be created when tournament status is CREATED
+- Blocks category creation for ACTIVE and COMPLETED tournaments
+- "Add Category" button hidden for non-CREATED tournaments
+- Error message displayed when attempting to access add-category form for non-CREATED tournaments
+
+### Added
+**Validation Rules:**
+- Added BR-CAT-001: Category Creation Status Restriction
+- Added status validation to both GET (form) and POST (submit) endpoints
+- Added 6 E2E tests for category creation validation
+
+### Changed
+**Tournament Detail Page:**
+- "Add Category" button conditionally shown based on tournament status
+- Empty state message updated for non-CREATED tournaments
+
+**Files Modified:**
+- `app/routers/tournaments.py` (status validation)
+- `app/templates/tournaments/detail.html` (conditional button)
+- `VALIDATION_RULES.md` (BR-CAT-001 documentation)
+- `tests/e2e/test_category_phase_validation.py` (new test file)
+
+**Test Results:**
+- All 572 tests passing (6 new)
+- No regressions detected
 
 ---
 

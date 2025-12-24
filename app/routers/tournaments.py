@@ -222,6 +222,9 @@ async def add_category_form(
 ):
     """Display add category form (staff only).
 
+    Business Rules:
+    - BR-CAT-001: Categories can only be created when tournament status is CREATED
+
     Args:
         tournament_id: Tournament UUID
         request: FastAPI request
@@ -250,6 +253,15 @@ async def add_category_form(
             detail="Tournament not found",
         )
 
+    # Verify tournament status allows category creation (BR-CAT-001)
+    if tournament.status != TournamentStatus.CREATED:
+        add_flash_message(
+            request,
+            "Categories can only be added when tournament is in CREATED status",
+            "error",
+        )
+        return RedirectResponse(url=f"/tournaments/{tournament_id}", status_code=303)
+
     return templates.TemplateResponse(
         request=request,
         name="tournaments/add_category.html",
@@ -269,9 +281,13 @@ async def add_category(
     groups_ideal: int = Form(2),
     performers_ideal: int = Form(4),
     current_user: Optional[CurrentUser] = Depends(get_current_user),
+    tournament_repo: TournamentRepository = Depends(get_tournament_repo),
     category_repo: CategoryRepository = Depends(get_category_repo),
 ):
     """Add a category to a tournament (staff only).
+
+    Business Rules:
+    - BR-CAT-001: Categories can only be created when tournament status is CREATED
 
     Args:
         request: FastAPI request
@@ -281,6 +297,7 @@ async def add_category(
         groups_ideal: Target number of pools
         performers_ideal: Target performers per pool
         current_user: Current authenticated user
+        tournament_repo: Tournament repository
         category_repo: Category repository
 
     Returns:
@@ -294,6 +311,20 @@ async def add_category(
     except ValueError:
         add_flash_message(request, "Invalid tournament ID", "error")
         return RedirectResponse(url="/tournaments", status_code=303)
+
+    # Get tournament and verify status (BR-CAT-001)
+    tournament = await tournament_repo.get_by_id(tournament_uuid)
+    if not tournament:
+        add_flash_message(request, "Tournament not found", "error")
+        return RedirectResponse(url="/tournaments", status_code=303)
+
+    if tournament.status != TournamentStatus.CREATED:
+        add_flash_message(
+            request,
+            "Categories can only be added when tournament is in CREATED status",
+            "error",
+        )
+        return RedirectResponse(url=f"/tournaments/{tournament_id}", status_code=303)
 
     # Create category
     await category_repo.create_category(

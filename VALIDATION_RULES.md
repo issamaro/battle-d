@@ -460,6 +460,31 @@ async def reorder_battle(battle_id: UUID, new_position: int) -> ValidationResult
 | Tournament | Status = CREATED | Status = ACTIVE or COMPLETED |
 | Category | No performers registered | Has performers registered |
 
+### Category Creation Rules
+
+**BR-CAT-001: Category Creation Status Restriction**
+
+Categories can only be created when the tournament status is CREATED.
+
+**Validation:**
+```python
+if tournament.status != TournamentStatus.CREATED:
+    raise ValidationError("Categories can only be added when tournament is in CREATED status")
+```
+
+**Rationale:**
+- Tournament structure (categories) is part of initial setup
+- Once competition begins (ACTIVE), category structure is locked
+- Prevents inconsistent tournament state during competition
+- Aligns with existing delete_category validation pattern
+
+**Implementation Location:** `app/routers/tournaments.py::add_category()`
+
+**Error Message:**
+```
+Categories can only be added when tournament is in CREATED status
+```
+
 ---
 
 ## Duo Registration Validation

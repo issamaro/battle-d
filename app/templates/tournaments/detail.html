@@ -51,11 +51,14 @@
 <section>
     <h3>Categories</h3>
 
+    {# BR-CAT-001: Only show Add Category button when tournament is CREATED #}
+    {% if tournament.status.value == 'created' %}
     <p>
         <a href="/tournaments/{{ tournament.id }}/add-category" role="button">
             + Add Category
         </a>
     </p>
+    {% endif %}
 
     {% if category_data %}
         <figure>
@@ -129,9 +132,14 @@
         {% endif %}
     {% else %}
         {% set title = "No Categories Yet" %}
-        {% set message = "Add a category to get started with registration!" %}
-        {% set action_url = "/tournaments/" ~ tournament.id ~ "/add-category" %}
-        {% set action_text = "Add Category" %}
+        {# BR-CAT-001: Only show Add Category action when tournament is CREATED #}
+        {% if tournament.status.value == 'created' %}
+            {% set message = "Add a category to get started with registration!" %}
+            {% set action_url = "/tournaments/" ~ tournament.id ~ "/add-category" %}
+            {% set action_text = "Add Category" %}
+        {% else %}
+            {% set message = "No categories were added to this tournament." %}
+        {% endif %}
         {% set icon = "folder" %}
         {% include "components/empty_state.html" %}
     {% endif %}
